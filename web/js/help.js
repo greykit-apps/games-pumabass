@@ -5,8 +5,11 @@ const keys = rows => `<table class="keys">${rows.map(([k, v]) => `<tr><td>${k}</
 export const HELP = [
   ['Playing', `
 <h3>Getting going</h3>
-<p><b>Learn a song</b> opens your song list. Pick a song and press <kbd>Space</kbd>. The notes come towards you down
-the highway and land on the strings at the bottom, on time with the record.</p>
+<p><b>Learn a song</b> opens your song list. A song opens paused: press <kbd>Space</kbd> to play. The notes come
+towards you down the highway and land on the strings at the bottom, on time with the record.</p>
+<p>Play after a pause starts six seconds back and counts you in, so you can find the groove again before you
+reach the spot you stopped at. <b>Resume game</b> does the same. Jump somewhere yourself (click the bar, the arrow
+keys) and it plays from right there.</p>
 <h3>Keys while a song is up</h3>
 ${keys([
     ['Space', 'play / pause'],
@@ -45,6 +48,7 @@ thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
 <b style="color:#b351e8">e</b> purple). The number on a note is the fret. A long bar across the lit lane is an open string.</p>
 <p>The lit lane on the floor is where your hand should be; the fret numbers at the bottom light up to match.
+On a big jump the view pulls back until you can see both ends, then settles on the new spot.
 A tail behind a note means hold it; a tail that bends sideways is a slide to the fret shown.</p>
 ${keys([
     ['H / P', 'hammer-on / pull-off'],

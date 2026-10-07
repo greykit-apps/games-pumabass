@@ -78,6 +78,7 @@
   <section id="player" class="screen hidden" aria-label="Player">
     <canvas id="highway"></canvas>
     <div class="p-top">
+      <span class="wordmark" aria-hidden="true">Puma<b>Bass</b></span>
       <button id="back" title="Back to the song list (Esc)"><kbd>Esc</kbd>Songs</button>
       <div class="song-info">
         <div id="p-title"></div>
@@ -88,6 +89,11 @@
     </div>
     <div id="section-name"></div>
     <div id="loading" class="hidden">Loading</div>
+    <!-- Over the highway: PAUSED while paused, and the run-up countdown after a pause. -->
+    <div id="overlay" class="hidden" aria-live="polite">
+      <div id="ov-big"></div>
+      <div id="ov-small"></div>
+    </div>
 
     <div class="p-bottom">
       <div id="progress" title="Click to jump; Shift+click moves the nearest loop edge">

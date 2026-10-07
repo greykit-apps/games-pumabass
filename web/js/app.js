@@ -110,7 +110,7 @@ function titleCfg() {
     about: ABOUT,
     settings: { html: settingsHTML, onClick: settingsClick },
     onAct: act => {
-      if (act === 'resume' && rs) { leaveTitle(); openSong(rs, Math.max(0, resume.t - 2)); }
+      if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t); }
       if (act === 'new') { leaveTitle(); showLibrary(); }
     },
   };
@@ -324,6 +324,14 @@ let loop = null; // { a, b }
 let offsetMs = 0;
 const clock = { raw: 0, stamp: 0 };
 let lastResumeSave = 0;
+/* The run-up: play after a pause starts RUNUP seconds back and counts down to
+ * the spot you stopped at ("live"), so you can find the groove again. pausedAt
+ * is that spot; an explicit jump while paused (click, keys, wheel) clears it,
+ * since then you chose where to start. */
+const RUNUP = 6;
+let pausedAt = null;   // where play will count back in to, or null
+let liveAt = null;     // the spot the countdown is counting to, while it runs
+let liveShownAt = 0;   // when LIVE went up, to take it down again
 
 async function openSong(s, startAt = 0) {
   song = s;
@@ -359,6 +367,8 @@ async function openSong(s, startAt = 0) {
   });
   $('loading').classList.add('hidden');
   audio.currentTime = startAt;
+  pausedAt = startAt > 0.5 ? startAt : null; // Resume game counts back in, too
+  liveAt = null;
   setSpeed(prefs.startSpeed); // loading a new source resets the rate
   updatePlayButton();
   saveResume();
@@ -397,20 +407,67 @@ function songTime() {
   return est - offsetMs / 1000;
 }
 
-function seek(t) {
+function seek(t, chosen = true) {
+  if (chosen) { pausedAt = null; liveAt = null; }
   audio.currentTime = Math.max(0, Math.min(t, (audio.duration || chart.songLength) - 0.05));
   clock.raw = audio.currentTime; clock.stamp = performance.now();
 }
 
 function togglePlay() {
   if (!chart) return;
-  if (audio.paused) audio.play(); else audio.pause();
+  if (audio.paused) {
+    if (pausedAt !== null) {
+      liveAt = pausedAt;
+      seek(Math.max(0, pausedAt - RUNUP), false);
+      pausedAt = null;
+    }
+    audio.play();
+  } else {
+    // Pausing during a countdown still comes back in at the original spot.
+    pausedAt = liveAt !== null && audio.currentTime < liveAt ? liveAt : audio.currentTime;
+    liveAt = null;
+    audio.pause();
+  }
+}
+
+/* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
+function renderOverlay() {
+  const el = $('overlay');
+  let big = '', small = '', mode = '';
+  if (!$('loading').classList.contains('hidden')) { /* nothing over the loading message */ }
+  else if (audio.paused) {
+    mode = 'paused';
+    liveShownAt = 0;
+    big = 'PAUSED';
+    small = pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
+  } else if (liveAt !== null) {
+    const left = (liveAt - audio.currentTime) / audio.playbackRate;
+    if (left > 0) { mode = 'count'; big = String(Math.ceil(left)); small = 'back in at ' + formatTime(liveAt); liveShownAt = 0; }
+    else {
+      if (!liveShownAt) liveShownAt = performance.now();
+      if (performance.now() - liveShownAt < 700) { mode = 'live'; big = 'LIVE'; }
+      else { liveAt = null; liveShownAt = 0; }
+    }
+  }
+  el.classList.toggle('hidden', !mode);
+  if (!mode) return;
+  if (el.dataset.big !== big) {
+    // Each new number pulses in.
+    el.classList.remove('tick');
+    void el.offsetWidth;
+    if (mode === 'count' || mode === 'live') el.classList.add('tick');
+    el.dataset.big = big;
+    $('ov-big').textContent = big;
+  }
+  if (el.dataset.small !== small) { el.dataset.small = small; $('ov-small').innerHTML = small; }
+  el.classList.toggle('paused', mode === 'paused');
+  el.classList.toggle('live', mode === 'live');
 }
 
 function updatePlayButton() { $('play-label').textContent = audio.paused ? 'Play' : 'Pause'; }
 audio.addEventListener('play', updatePlayButton);
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
-audio.addEventListener('ended', () => { updatePlayButton(); save(KEY_RESUME, null); });
+audio.addEventListener('ended', () => { updatePlayButton(); pausedAt = null; liveAt = null; save(KEY_RESUME, null); });
 
 function currentSection(t) {
   let cur = null;
@@ -564,13 +621,14 @@ function frame() {
     let t = songTime();
     if (loop && !audio.paused && t >= loop.b) {
       // Restart the loop with a short lead-in so you can get ready.
-      seek(Math.max(0, loop.a - 1.0));
+      seek(Math.max(0, loop.a - 1.0), false);
       t = songTime();
     }
     highway.draw(t);
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
+    renderOverlay();
     const sec = currentSection(t);
     $('section-name').textContent = sec && sec.name !== 'noguitar' ? sec.name : '';
     if (!audio.paused && performance.now() - lastResumeSave > 3000) { lastResumeSave = performance.now(); saveResume(); }

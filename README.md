@@ -10,13 +10,13 @@ Double-click **start.bat**. It opens the app in your browser at http://localhost
 Close the black console window to quit.
 
 The boot plays, then the title: **Learn a song** (`N`) opens the song list, **Resume game** (`R`)
-picks up where you left off, and **Settings** (`S`), **Help** (`?`) and **About** (`A`) are below.
+picks up where you left off (with a 6-second count-in), and **Settings** (`S`), **Help** (`?`) and **About** (`A`) are below.
 
 ## Playing
 
 | Key | Action |
 | --- | --- |
-| Space | Play / pause |
+| Space | Play / pause (play after a pause starts 6 s back and counts you in) |
 | Left / Right | Back / forward 5 seconds |
 | Up / Down | Faster / slower (pitch stays the same) |
 | L | Loop the current section (again to stop) |

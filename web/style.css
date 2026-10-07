@@ -94,7 +94,22 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 #p-title { font-weight: 600; font-size: 18px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #p-sub { font-size: 12px; color: var(--dim); }
 .chip { color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 4px 10px; font-size: 12px; white-space: nowrap; }
-#section-name { position: absolute; top: 70px; left: var(--s4); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+/* the wordmark, as on the share card: Puma plain, Bass in the accent */
+.wordmark { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--text); white-space: nowrap; }
+.wordmark b { color: var(--accent); font-weight: 700; }
+/* PAUSED and the countdown: big, over the upper highway, never in the way of a click */
+#overlay { position: absolute; left: 0; right: 0; top: 24%; text-align: center; pointer-events: none; }
+#ov-big { font-size: clamp(56px, 12vw, 150px); font-weight: 700; line-height: 1; letter-spacing: .08em; color: var(--accent);
+  text-shadow: 0 0 28px rgba(84, 242, 255, .55), 0 0 4px rgba(5, 7, 15, .9); }
+#ov-small { margin-top: 14px; font-size: clamp(14px, 2vw, 20px); letter-spacing: .14em; text-transform: uppercase; color: var(--text);
+  text-shadow: 0 0 6px rgba(5, 7, 15, .95); }
+#ov-small kbd { font-size: .85em; color: var(--accent); border-color: var(--accent); padding: 0 8px; margin: 0 4px; }
+#overlay.paused #ov-big { font-size: clamp(44px, 8vw, 110px); }
+#overlay.live #ov-big { color: var(--good); text-shadow: 0 0 28px rgba(74, 222, 106, .55); }
+#overlay.tick #ov-big { animation: ov-tick .9s cubic-bezier(.22, 1, .36, 1); }
+@keyframes ov-tick { from { transform: scale(1.35); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #overlay.tick #ov-big { animation: none; } }
+#section-name { position: absolute; top: 74px; left: var(--s4); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 #loading { position: absolute; top: 45%; width: 100%; text-align: center; font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
 
 .p-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s2) var(--s4) var(--s3);

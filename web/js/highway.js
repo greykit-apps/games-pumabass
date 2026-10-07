@@ -6,6 +6,16 @@ export const STRING_COLORS = ['#e8413c', '#f2c623', '#2e8ff0', '#f5892a', '#3fc7
 const INLAYS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
 const MAX_FRET = 24;
 
+// Camera planning, in frets and seconds.
+const MIN_VIEW = 9;     // never show fewer frets than this
+const MARGIN = 2;       // frets of room either side of the notes in view
+const COMFORT = 7;      // hand positions whose notes fit in this many frets share one view: no move at all
+const MAX_SPAN = 14;    // the widest a view may get to save a move
+const MIN_HOLD = 3;     // a view held for less than this is worth merging into a neighbour
+const GLIDE_GAP = 1.6;  // with at least this long between positions, glide straight across
+const ZOOM_OUT = 0.9;   // seconds to pull back before a quick jump
+const ZOOM_IN = 0.9;    // seconds to settle in after it
+
 export class Highway {
   constructor(canvas) {
     this.canvas = canvas;
@@ -16,17 +26,32 @@ export class Highway {
     this.lookahead = 3.0;   // seconds of notes visible
     this.invert = false;    // true = low string on top
     this.camX = 5;
-    this.camWidth = 8;
-    this.lastFrame = 0;
+    this.camWidth = MIN_VIEW;
+    this.camPath = [];
   }
 
   setChart(chart, playable) {
     this.chart = chart;
     this.notes = playable.notes;
     this.anchors = playable.anchors;
-    const a = this.anchorAt(this.notes[0]?.t ?? 0);
-    this.camX = a.fret - 1 + a.width / 2;
-    this.camWidth = Math.max(a.width + 3, 7);
+    this.camPath = planCamera(this.notes, this.anchors);
+  }
+
+  // The camera window (centre and visible width, in frets) at song time t,
+  // read off the planned path so it is the same however you got to t.
+  camAt(t) {
+    const keys = this.camPath;
+    if (!keys.length) return { c: 4.5, w: MIN_VIEW };
+    if (t <= keys[0].t) return keys[0];
+    let i = 1;
+    while (i < keys.length && keys[i].t <= t) i++;
+    if (i === keys.length) return keys[keys.length - 1];
+    const a = keys[i - 1], b = keys[i];
+    const u = ease((t - a.t) / (b.t - a.t));
+    // Interpolate the edges, not centre and width: a window that contains a
+    // range at both ends then contains it all the way between.
+    const l = lerp(a.c - a.w / 2, b.c - b.w / 2, u), r = lerp(a.c + a.w / 2, b.c + b.w / 2, u);
+    return { c: (l + r) / 2, w: r - l };
   }
 
   anchorAt(t) {
@@ -64,17 +89,11 @@ export class Highway {
     ctx.fillRect(0, 0, W, H);
     if (!chart) return;
 
-    // Smoothly follow the hand position a little ahead of time.
-    const frameT = performance.now();
-    const dt = Math.min(0.1, (frameT - (this.lastFrame || frameT)) / 1000);
-    this.lastFrame = frameT;
+    // The camera follows the path planned for the whole song (planCamera).
     const anchor = this.anchorAt(now + 0.35);
-    const targetX = anchor.fret - 1 + anchor.width / 2;
-    const targetW = Math.max(anchor.width + 4, 9);
-    const k = dt === 0 ? 1 : 1 - Math.exp(-dt * 4);
-    this.camX += (targetX - this.camX) * k;
-    this.camWidth += (targetW - this.camWidth) * k;
-    this.camX = Math.max(this.camWidth / 2 - 0.6, this.camX);
+    const cam = this.camAt(now);
+    this.camX = cam.c;
+    this.camWidth = cam.w;
 
     // Camera setup. s0 = pixels per world unit on the "now" plane.
     const nStr = chart.strings;
@@ -311,7 +330,7 @@ export class Highway {
     const open = p.f === 0;
     const x = this.noteX(p.f, anchor);
     const halfW = open ? anchor.width / 2 - 0.05 : 0.38;
-    const halfH = open ? this.stringGap * 0.22 : this.stringGap * 0.42;
+    const halfH = open ? this.stringGap * 0.3 : this.stringGap * 0.47;
     const [cx, cy, s] = this.P(x, y, z);
     const w = halfW * 2 * s, h = halfH * 2 * s;
 
@@ -347,15 +366,10 @@ export class Highway {
       ctx.stroke();
     }
 
-    // Fret number on the gem.
-    const fontPx = Math.round(s * (open ? 0.26 : 0.32));
-    if (fontPx >= 7 && !muted) {
-      ctx.font = `bold ${fontPx}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#111';
-      ctx.fillText(String(p.f), cx, cy + 1);
-    }
+    // Fret number on the gem, sized to sit inside it: its ink, not its line
+    // box, is fitted to the gem's height and width and centred on the gem.
+    // (The border is stroked on the edge, so half of it is inside.)
+    if (!muted) drawFitted(ctx, String(p.f), cx, cy, (open ? h * 1.6 : w * 0.8), h - ctx.lineWidth - Math.max(2, h * 0.14));
 
     // Technique labels above the gem.
     const label = techLabel(p, tech);
@@ -367,6 +381,24 @@ export class Highway {
     }
     ctx.globalAlpha = 1;
   }
+}
+
+// Text that fits a box of maxW x maxH, centred on (cx, cy) by its actual ink.
+function drawFitted(ctx, text, cx, cy, maxW, maxH) {
+  if (maxH < 6) return;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic'; // the ink measurements below are from the baseline
+  let px = Math.floor(maxH * 1.35);
+  ctx.font = `bold ${px}px system-ui, sans-serif`;
+  let m = ctx.measureText(text);
+  const inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  const scale = Math.min(maxH / inkH, maxW / m.width);
+  px = Math.floor(px * scale);
+  if (px < 7) return;
+  ctx.font = `bold ${px}px system-ui, sans-serif`;
+  m = ctx.measureText(text);
+  ctx.fillStyle = '#111';
+  ctx.fillText(text, cx, cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
 }
 
 function techLabel(p, tech) {
@@ -398,3 +430,93 @@ function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
 }
+
+const lerp = (a, b, u) => a + (b - a) * u;
+const ease = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u)); // smoothstep: eases in and out
+
+/* The camera path for a whole song, planned once rather than chased frame by
+ * frame, so long jumps can be seen coming.
+ *
+ * 1. Each hand position (anchor) that has notes becomes a span of frets those
+ *    notes need, and the time from its first note to the end of its last.
+ * 2. Neighbouring positions merge into one "shot" while their notes fit in
+ *    COMFORT frets (no move at all). Then a shot held for less than MIN_HOLD
+ *    merges into a neighbour, up to MAX_SPAN frets wide: staying zoomed out
+ *    beats moving back and forth.
+ * 3. Between shots, with time to spare the camera glides across the gap. On
+ *    a quick jump it pulls back until both ends are in view, arriving there
+ *    as the last note of the old position lands, then eases in on the new one.
+ * Returns keyframes { t, c, w }: the window's centre and width in frets. */
+function planCamera(notes, anchors) {
+  const anchorIndex = t => {
+    let lo = 0, hi = anchors.length - 1, found = 0;
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (anchors[mid].t <= t) { found = mid; lo = mid + 1; } else hi = mid - 1; }
+    return found;
+  };
+  const segs = anchors.map(a => ({ lo: a.fret - 1, hi: a.fret - 1 + a.width, first: Infinity, last: -Infinity }));
+  for (const n of notes) {
+    const seg = segs[anchorIndex(n.t)];
+    if (!seg) continue;
+    for (const p of n.notes || [n]) {
+      for (const f of [p.f, p.slideTo]) if (f > 0) { seg.lo = Math.min(seg.lo, f - 1); seg.hi = Math.max(seg.hi, f); }
+    }
+    seg.first = Math.min(seg.first, n.t);
+    seg.last = Math.max(seg.last, n.t + (n.sus || 0));
+  }
+  let shots = segs.filter(s => s.first !== Infinity).map(s => ({ ...s }));
+  if (!shots.length) return [];
+
+  const span = (a, b) => Math.max(a.hi, b.hi) - Math.min(a.lo, b.lo);
+  const dur = s => s.last - s.first;
+  const merge = (a, b) => ({ lo: Math.min(a.lo, b.lo), hi: Math.max(a.hi, b.hi), first: Math.min(a.first, b.first), last: Math.max(a.last, b.last) });
+
+  // Rocksmith repeats an anchor every phrase, so first join neighbours that fit
+  // in COMFORT frets into runs: a run's length is how long the hand really stays.
+  const runs = [shots[0]];
+  for (const s of shots.slice(1)) {
+    const cur = runs[runs.length - 1];
+    if (span(cur, s) <= COMFORT) runs[runs.length - 1] = merge(cur, s);
+    else runs.push(s);
+  }
+  // Then fold any run held too briefly into whichever neighbour stays narrower.
+  shots = runs;
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let i = 0; i < shots.length && shots.length > 1; i++) {
+      if (dur(shots[i]) >= MIN_HOLD) continue;
+      const opts = [i - 1, i + 1].filter(j => j >= 0 && j < shots.length && span(shots[i], shots[j]) <= MAX_SPAN);
+      if (!opts.length) continue;
+      const j = opts.reduce((a, b) => (span(shots[i], shots[a]) <= span(shots[i], shots[b]) ? a : b));
+      const [a, b] = j < i ? [j, i] : [i, j];
+      shots.splice(a, 2, merge(shots[a], shots[b]));
+      changed = true;
+      break;
+    }
+  }
+
+  // The window that shows a span of frets, kept from sliding past the nut.
+  const view = (lo, hi) => {
+    const w = Math.max(hi - lo + 2 * MARGIN, MIN_VIEW);
+    return { c: Math.max((lo + hi) / 2, w / 2 - 0.6), w };
+  };
+  const keys = [{ t: shots[0].first - 1, ...view(shots[0].lo, shots[0].hi) }];
+  for (let i = 1; i < shots.length; i++) {
+    const A = shots[i - 1], B = shots[i];
+    const a = view(A.lo, A.hi), b = view(B.lo, B.hi);
+    const prev = keys[keys.length - 1].t;
+    const tA = Math.max(A.last, prev + 0.05), tB = Math.max(B.first, tA + 0.05);
+    if (tB - tA >= GLIDE_GAP) {
+      // Time to spare: hold, then glide across, settled a little before the first new note.
+      const end = tB - 0.4, start = Math.max(tA + 0.05, end - 1.4);
+      keys.push({ t: start, ...a }, { t: end, ...b });
+    } else {
+      // A quick jump: pull back to show both ends, then ease in.
+      const both = view(Math.min(A.lo, B.lo), Math.max(A.hi, B.hi));
+      const start = Math.max(prev + 0.01, tA - ZOOM_OUT);
+      if (start < tA) keys.push({ t: start, ...a });
+      keys.push({ t: tA, ...both }, { t: Math.max(tB + 0.2, tA + ZOOM_IN), ...b });
+    }
+  }
+  return keys;
+}
+export { planCamera }; // for checking camera paths from Node

@@ -4,15 +4,15 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 ## Highway (the play space)
 
-- [ ] **Wordmark.** Put the PumaBass wordmark in the upper left of the highway screen.
-- [ ] **Smooth long jumps.** Fretboard movement on long hand-position jumps is too jerky. For a long jump,
+- [x] **Wordmark.** Put the PumaBass wordmark in the upper left of the highway screen.
+- [x] **Smooth long jumps.** Fretboard movement on long hand-position jumps is too jerky. For a long jump,
       zoom out until both ends of the jump are in view, then ease back in to where the hand needs to be.
       Keep the number of camera moves down: staying zoomed out (or partly zoomed out) is better than
       several moves back to back.
-- [ ] **Run-up on resume.** Resuming a song, from a save or just from pause, rewinds 6 seconds and shows a big
+- [x] **Run-up on resume.** Resuming a song, from a save or just from pause, rewinds 6 seconds and shows a big
       on-screen countdown to when you are "live", so you can get back into the groove.
-      (Today, Resume game rewinds 2 seconds and unpausing doesn't rewind at all.)
-- [ ] **Fret numbers on gems.** The numbers inside the notes overlap the gem borders in an unattractive way.
+- [x] **Fret numbers on gems.** The numbers inside the notes overlap the gem borders in an unattractive way.
+- [x] **Start paused.** A song opens paused, with a big PAUSED and "Press Space to play" over the highway.
 
 ## Song library
 
