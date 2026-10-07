@@ -54,14 +54,16 @@
             <button data-type="rhythm">Rhythm</button>
             <button data-type="all">All</button>
           </div>
+          <button id="fav-filter" aria-pressed="false" title="Show only your favorites"><span class="star-glyph" aria-hidden="true">&#9733;</span> Favorites</button>
           <select id="sort" aria-label="Sort">
             <option value="artist">Artist</option>
             <option value="title">Title</option>
             <option value="tuning">Tuning</option>
             <option value="recent">Recently played</option>
+            <option value="plays">Most played</option>
           </select>
         </div>
-        <div class="songs-head" aria-hidden="true"><span>#</span><span>Song</span><span>Part</span><span class="c-tun">Tuning</span><span class="c-len">Length</span></div>
+        <div class="songs-head" aria-hidden="true"><span>&#9733;</span><span>Song</span><span>Part</span><span class="c-tun">Tuning</span><span class="c-num" title="Times started">Plays</span><span class="c-num" title="Times played to the end">Finished</span><span class="c-len">Length</span></div>
         <div id="song-list" role="list"></div>
         <nav class="bar">
           <button data-act="menu"><kbd>Esc</kbd>Menu</button>
@@ -84,6 +86,7 @@
         <div id="p-title"></div>
         <div id="p-sub"></div>
       </div>
+      <button id="fav-btn" class="star" aria-label="Favorite" aria-pressed="false" title="Favorite (F)">&#9734;</button>
       <div id="p-tuning" class="chip"></div>
       <button id="tuner-btn" title="Tune with the Real Tone Cable (T)"><kbd>T</kbd>Tuner</button>
       <span class="snd-slot"></span>

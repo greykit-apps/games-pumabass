@@ -49,11 +49,18 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | , | This song's settings: audio offset, highway, volume |
 | T | The tuner |
 | B | Recorded bass: full, reduced, cut |
+| F | Make the song a favorite |
 | M | Sound on / off, anywhere |
 | Mouse wheel (paused) | Scrub |
 | Esc | Back to the song list, then the menu |
 
-In the song list: `/` searches, Up / Down move, Enter plays.
+In the song list: `/` searches, Up / Down move, Enter plays, `F` stars a favorite.
+
+**Your library.** Star songs (the ☆ on each row, `F`, or in the player) and **★ Favorites** shows only
+those. **Plays** counts each time a song is started (pause-and-continue, or Resume game, is the same
+play); **Finished** counts the times it was played through to its last note, with at least half of
+what was ahead actually played. Sort by **Most played**. These are kept in the browser, like the rest
+of your settings (and cleared by Forget everything).
 
 - **Difficulty**: 100% is the full chart; lower values use Rocksmith's simpler levels.
 - **Settings** (title menu): how far ahead notes appear, string order, whether charts without audio

@@ -16,11 +16,11 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 ## Song library
 
-- [ ] **Play counter.** Count how many times each song is played.
-- [ ] **Favorites.** A favorite button on each song, and a filter that shows only favorites, as a personal library.
+- [x] **Play counter.** Count how many times each song is played.
+- [x] **Favorites.** A favorite button on each song, and a filter that shows only favorites, as a personal library.
 - [ ] **Lessons.** Rocksmith's `etudes.psarc` holds 47 bass technique lessons with backing audio. Their names are
       references into the game's string tables (`$[33430]`), so they are skipped until those tables are read.
-- [ ] **Times finished.** A "times played" count that only counts plays where the song was *finished*.
+- [x] **Times finished.** A "times played" count that only counts plays where the song was *finished*.
 
 ## Settings and setup
 

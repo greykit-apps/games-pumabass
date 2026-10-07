@@ -66,7 +66,16 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 .seg { display: flex; gap: var(--s1); }
 .check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
 #count { padding: 0 var(--s5) var(--s2); font-size: 12px; color: var(--dim); }
-.songs-head, .song { display: grid; grid-template-columns: 40px minmax(0, 1fr) 150px 150px 56px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
+.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 130px 130px 48px 64px 52px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
+.songs-head .c-num { text-align: right; }
+.song .num { text-align: right; font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.song .num.zero { color: var(--line); }
+/* the favorite star: hollow, then amber when it's a favorite */
+button.star { background: none; border: 0; min-height: 0; padding: 2px; font-size: 18px; line-height: 1; color: var(--lit); }
+button.star:hover:not(:disabled) { color: var(--warn); }
+button.star[aria-pressed=true] { color: var(--warn); border: 0; }
+#fav-filter .star-glyph { color: var(--warn); }
+.p-top button.star { font-size: 22px; align-self: center; }
 .songs-head { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; padding-top: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
 .song { min-height: 50px; border-bottom: 1px solid var(--line); border-left: 2px solid transparent; cursor: pointer; }
 .song:hover, .song:focus { background: var(--row); outline: none; border-left-color: var(--accent); }
@@ -145,7 +154,7 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 
 @media (max-width: 720px) {
   .songs-head, .song { grid-template-columns: 28px minmax(0, 1fr) 90px; }
-  .songs-head .c-tun, .songs-head .c-len, .song .tun, .song .len { display: none; }
+  .songs-head .c-tun, .songs-head .c-len, .songs-head .c-num, .song .tun, .song .len, .song .num { display: none; }
   #library .stage { padding: var(--s3) 0; }
 }
 

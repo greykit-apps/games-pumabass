@@ -22,6 +22,8 @@ const KEY_RECENT = 'pumabass_recent_v1';    // per-song last-opened time
 const KEY_RESUME = 'pumabass_resume_v1';    // the song and spot you left off at
 const KEY_MUTED = 'pumabass_muted_v1';      // "1" muted, "0" not (§8)
 const KEY_TUNER = 'pumabass_tuner_v1';      // the day and tuning you last tuned to
+const KEY_FAVS = 'pumabass_favorites_v1';   // { id: true } for each favorite part
+const KEY_STATS = 'pumabass_stats_v1';      // { id: { plays, finished, last } }
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
@@ -58,10 +60,29 @@ const prefs = Object.assign({
   bassBoost: 12,    // dB added to the input: the cable's signal is quiet next to a finished record
   recordedBass: 'full', // the song's own bass: full, reduced or cut (RECORDED_BASS)
   autoTune: true,   // open the tuner on the day's first song and when the tuning changes
+  favOnly: false,   // the song list shows favorites only
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 delete prefs.hearLast;
 const savePrefs = () => save(KEY_PREFS, prefs);
+
+/* ---- favorites and play counts ---- */
+const isFav = id => !!load(KEY_FAVS, {})[id];
+function toggleFav(id) {
+  const favs = load(KEY_FAVS, {});
+  if (favs[id]) delete favs[id]; else favs[id] = true;
+  save(KEY_FAVS, favs);
+  return !!favs[id];
+}
+const statsOf = id => load(KEY_STATS, {})[id] || { plays: 0, finished: 0 };
+function bumpStat(id, field) {
+  const all = load(KEY_STATS, {});
+  const st = all[id] || { plays: 0, finished: 0 };
+  st[field] = (st[field] || 0) + 1;
+  st.last = Date.now();
+  all[id] = st;
+  save(KEY_STATS, all);
+}
 
 /* Settings' "Forget everything" (games-meta STANDARD.md §2): every key PumaBass
  * owns, found by its prefix, and only those -- every game on greykit.com shares
@@ -145,7 +166,7 @@ function titleCfg() {
     about: ABOUT,
     settings: { html: settingsHTML, onClick: settingsClick },
     onAct: act => {
-      if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t); }
+      if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t, { resumed: true }); }
       if (act === 'tuner') showTuner();
       if (act === 'new' && !songs.length) pickLibrary();
       else if (act === 'new') { leaveTitle(); showLibrary(); }
@@ -204,7 +225,7 @@ ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
 <h3>This browser</h3>
 <div class='gk-row'><button data-set='forget'>Forget everything</button></div>
-<p class='gk-note'>Clears everything PumaBass keeps in this browser: each song's audio offset, which songs you played last and where you left off, these settings and the sound switch. Your songs, your recordings and the decoded audio on disk are not touched.</p>`;
+<p class='gk-note'>Clears everything PumaBass keeps in this browser: your favorites, play counts, each song's audio offset, which songs you played last and where you left off, these settings and the sound switch. Your songs, your recordings and the decoded audio on disk are not touched.</p>`;
 }
 
 async function settingsClick(b, sheet) {
@@ -236,7 +257,7 @@ async function settingsClick(b, sheet) {
     case 'rb': setRecordedBass(v); break;
     case 'autotune': prefs.autoTune = v === 'true'; break;
     case 'forget':
-      if (await sheet.confirm('Forget everything PumaBass has saved in this browser: every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
+      if (await sheet.confirm('Forget everything PumaBass has saved in this browser: your favorites and play counts, every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
       return;
     default: return;
   }
@@ -559,23 +580,26 @@ function renderLibrary() {
   const q = $('search').value.trim().toLowerCase();
   const recent = load(KEY_RECENT, {});
   const ofType = songs.filter(s => prefs.type === 'all' || s.type === prefs.type);
-  let list = ofType.filter(s => prefs.showMissing || s.audio !== false);
+  const favs = load(KEY_FAVS, {}), stats = load(KEY_STATS, {});
+  let list = ofType.filter(s => (prefs.showMissing || s.audio !== false) && (!prefs.favOnly || favs[s.id]));
   if (q) list = list.filter(s => `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q));
   const cmp = {
     artist: (a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
     title: (a, b) => a.title.localeCompare(b.title),
     tuning: (a, b) => tuningName(a.tuning, stringsOf(a)).localeCompare(tuningName(b.tuning, stringsOf(b))) || a.artist.localeCompare(b.artist),
     recent: (a, b) => (recent[b.id] || 0) - (recent[a.id] || 0) || a.artist.localeCompare(b.artist),
+    plays: (a, b) => ((stats[b.id] || {}).plays || 0) - ((stats[a.id] || {}).plays || 0) || ((stats[b.id] || {}).finished || 0) - ((stats[a.id] || {}).finished || 0) || a.artist.localeCompare(b.artist),
   }[prefs.sort] || (() => 0);
   list.sort((a, b) => cmp(a, b) || arrangementLabel(a).localeCompare(arrangementLabel(b)));
 
   for (const b of document.querySelectorAll('#type-filter button')) b.setAttribute('aria-pressed', String(b.dataset.type === prefs.type));
   $('sort').value = prefs.sort;
+  $('fav-filter').setAttribute('aria-pressed', String(prefs.favOnly));
 
   const el = $('song-list');
   el.innerHTML = list.length ? '' : !songs.length
     ? '<div class="empty"><p>No songs yet. PumaBass plays your own Rocksmith 2014 song files: show it where they are.</p><button class="primary" data-act="choose">Choose your songs folder</button></div>'
-    : `<div class="empty">${q ? 'No songs match that search.' : 'No songs here.'}</div>`;
+    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Star a song (&#9733;, or F on a song) to add it.' : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
   list.forEach((s, i) => {
     const row = document.createElement('div');
@@ -584,10 +608,13 @@ function renderLibrary() {
     row.dataset.id = s.id;
     row.setAttribute('role', 'listitem');
     const tn = tuningName(s.tuning, stringsOf(s));
-    row.innerHTML = `<span class="n">${i + 1}</span>
+    const st = stats[s.id] || {}, fav = !!favs[s.id];
+    const num = v => `<span class="num${v ? '' : ' zero'}">${v || '\u2013'}</span>`;
+    row.innerHTML = `<button class="star" data-fav aria-label="Favorite" aria-pressed="${fav}" title="Favorite (F)">${fav ? '\u2605' : '\u2606'}</button>
       <div style="min-width:0"><div class="t"></div><div class="a"></div></div>
       <span class="arr"></span>
       <span class="tun${tn === 'E Standard' ? ' std' : ''}"></span>
+      ${num(st.plays)}${num(st.finished)}
       <span class="len">${formatTime(s.length)}</span>`;
     row.querySelector('.t').textContent = s.title;
     row.querySelector('.a').textContent = `${s.artist}${s.album ? ' · ' + s.album : ''}${s.year ? ' (' + s.year + ')' : ''}`;
@@ -597,19 +624,31 @@ function renderLibrary() {
     frag.appendChild(row);
   });
   el.appendChild(frag);
-  $('count').textContent = `${list.length} ${list.length === 1 ? 'part' : 'parts'}`;
+  $('count').textContent = `${list.length} ${prefs.favOnly ? (list.length === 1 ? 'favorite' : 'favorites') : list.length === 1 ? 'part' : 'parts'}`;
   const missing = ofType.filter(s => s.audio === false).length;
   $('missing-note').textContent = missing && !prefs.showMissing ? `${missing} without audio hidden (Settings)` : '';
 }
 
+/* Star a part, from its row: the row stays where it is (it only leaves the
+ * list when the favorites filter is on). */
+function starRow(row) {
+  const on = toggleFav(row.dataset.id);
+  const b = row.querySelector('[data-fav]');
+  b.setAttribute('aria-pressed', String(on));
+  b.textContent = on ? '\u2605' : '\u2606';
+  if (prefs.favOnly && !on) { const next = row.nextElementSibling || row.previousElementSibling; renderLibrary(); const n = next && $('song-list').querySelector(`.song[data-id="${CSS.escape(next.dataset.id || '')}"]`); if (n) n.focus({ preventScroll: true }); }
+}
+
 $('song-list').addEventListener('click', e => {
   if (e.target.closest('[data-act=choose]')) return pickLibrary();
+  if (e.target.closest('[data-fav]')) { starRow(e.target.closest('.song')); return; }
   const row = e.target.closest('.song');
   const s = row && songs.find(x => x.id === row.dataset.id);
   if (s && s.audio !== false) openSong(s);
 });
 $('search').addEventListener('input', renderLibrary);
 $('sort').addEventListener('change', () => { prefs.sort = $('sort').value; savePrefs(); renderLibrary(); });
+$('fav-filter').addEventListener('click', () => { prefs.favOnly = !prefs.favOnly; savePrefs(); renderLibrary(); });
 $('type-filter').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
@@ -644,6 +683,7 @@ function libraryKey(e, typing) {
   else if ((k === 't' || k === 'T') && !typing) { e.preventDefault(); showTuner(); }
   else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); rows[Math.min(rows.length - 1, i + 1)].focus(); }
   else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); (i === 0 ? $('search') : rows[i - 1]).focus(); }
+  else if ((k === 'f' || k === 'F') && !typing && i >= 0) { e.preventDefault(); starRow(rows[i]); }
   else if (k === 'Enter' && i >= 0) {
     const s = songs.find(x => x.id === rows[i].dataset.id);
     if (s && s.audio !== false) openSong(s);
@@ -657,6 +697,10 @@ let loop = null; // { a, b }
 let offsetMs = 0;
 const clock = { raw: 0, stamp: 0 };
 let lastResumeSave = 0;
+/* This sitting with the song, for the play counts: a play is counted the first
+ * time it starts (a resumed song is the same play), and a finish when playback
+ * reaches the last note having played at least half of what was ahead of it. */
+let session = null;
 /* The run-up: play after a pause starts RUNUP seconds back and counts down to
  * the spot you stopped at ("live"), so you can find the groove again. pausedAt
  * is that spot; an explicit jump while paused (click, keys, wheel) clears it,
@@ -666,7 +710,7 @@ let pausedAt = null;   // where play will count back in to, or null
 let liveAt = null;     // the spot the countdown is counting to, while it runs
 let liveShownAt = 0;   // when LIVE went up, to take it down again
 
-async function openSong(s, startAt = 0) {
+async function openSong(s, startAt = 0, { resumed = false } = {}) {
   song = s;
   screen = 'player';
   $('library').classList.add('hidden');
@@ -717,6 +761,9 @@ async function openSong(s, startAt = 0) {
   }
   audio.currentTime = startAt;
   pausedAt = startAt > 0.5 ? startAt : null; // Resume game counts back in, too
+  const last = highway.notes.slice(-40).reduce((m, n) => Math.max(m, n.t + (n.sus || 0)), 0);
+  session = { id: s.id, start: startAt, counted: resumed, finished: false, heard: 0, lastT: null, end: last || audio.duration || chart.songLength };
+  showFav();
   liveAt = null;
   setSpeed(prefs.startSpeed); // loading a new source resets the rate
   updatePlayButton();
@@ -815,9 +862,27 @@ function renderOverlay() {
 }
 
 function updatePlayButton() { $('play-label').textContent = audio.paused ? 'Play' : 'Pause'; }
-audio.addEventListener('play', updatePlayButton);
+audio.addEventListener('play', () => {
+  updatePlayButton();
+  if (session && !session.counted) { session.counted = true; bumpStat(session.id, 'plays'); }
+});
+
+function checkFinished(t) {
+  if (!session || session.finished || t < session.end) return;
+  if (session.heard < 0.5 * Math.max(1, session.end - session.start)) return;
+  session.finished = true;
+  bumpStat(session.id, 'finished');
+  toast('Finished \u2713');
+}
+
+function showFav() {
+  const on = !!song && isFav(song.id);
+  $('fav-btn').setAttribute('aria-pressed', String(on));
+  $('fav-btn').textContent = on ? '\u2605' : '\u2606';
+}
+$('fav-btn').addEventListener('click', () => { if (song) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
-audio.addEventListener('ended', () => { updatePlayButton(); pausedAt = null; liveAt = null; save(KEY_RESUME, null); });
+audio.addEventListener('ended', () => { checkFinished(Infinity); updatePlayButton(); pausedAt = null; liveAt = null; save(KEY_RESUME, null); });
 
 function currentSection(t) {
   let cur = null;
@@ -959,6 +1024,7 @@ function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
+  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2605 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);
@@ -1000,6 +1066,13 @@ function frame() {
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
     renderOverlay();
+    // How much of the song was actually played: forward steps only, so a jump counts for nothing.
+    if (session && !audio.paused) {
+      const step = session.lastT === null ? 0 : t - session.lastT;
+      if (step > 0 && step < 0.5) session.heard += step;
+      session.lastT = t;
+      checkFinished(t);
+    } else if (session) session.lastT = null;
     if (!$('settings').classList.contains('hidden')) {
       for (const [id, which] of [['song-meter', 'song'], ['bass-meter', 'bass']]) {
         const db = mixer.level(which);

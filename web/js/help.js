@@ -20,6 +20,7 @@ ${keys([
     ['Home', 'back to the loop start, or the top of the song'],
     [',', "the mix (song, recorded bass, your bass) and this song's settings"],
     ['B', 'recorded bass: full, reduced, cut'],
+    ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
     ['M', 'sound on / off, anywhere'],
     ['Esc', 'back to the song list'],
@@ -31,8 +32,18 @@ ${keys([
     ['/', 'search'],
     ['Up / Down', 'move through the list'],
     ['Enter', 'play the song'],
+    ['F', 'star the song: a favorite'],
     ['Esc', 'back to the menu'],
   ])}`],
+  ['Your library', `
+<h3>Favorites</h3>
+<p>Star a song with the <b>&#9734;</b> at the start of its row (or <kbd>F</kbd>), or in the player. <b>&#9733; Favorites</b>
+above the list shows only your favorites: your own library.</p>
+<h3>Plays and Finished</h3>
+<p><b>Plays</b> counts each time you start a song. Pausing and carrying on is the same play, and so is picking it up
+again with Resume game. <b>Finished</b> counts the times you played it through to its last note, having played at
+least half of what was left when you began: jumping to the end doesn't count. Sort by <b>Most played</b> to see your
+regulars first.</p>`],
   ['Practice', `
 <h3>Slow it down</h3>
 <p><b>Speed</b> plays the song from 25% to 120% without changing its pitch. Settings can start every song at a
