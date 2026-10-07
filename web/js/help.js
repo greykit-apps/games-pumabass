@@ -18,7 +18,7 @@ ${keys([
     ['L', 'loop the section you are in; again to stop'],
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
-    [',', 'the mix (song, recorded bass, your bass) and this song's settings'],
+    [',', "the mix (song, recorded bass, your bass) and this song's settings"],
     ['B', 'recorded bass: full, reduced, cut'],
     ['T', 'the tuner'],
     ['M', 'sound on / off, anywhere'],

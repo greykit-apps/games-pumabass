@@ -9,5 +9,5 @@ validate:
   image: node:20-alpine
   script:
     - node tools/check-assets.js
-    - for f in server/*.js; do node --check "$f"; done
+    - node tools/check-syntax.mjs
     - node tools/check-pitch.mjs
