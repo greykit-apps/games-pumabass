@@ -30,9 +30,17 @@ export class Highway {
     this.camX = 5;
     this.camWidth = MIN_VIEW;
     this.camPath = null;
+    this.marks = [];        // scoring's verdicts to show: { ev, hit, wall }
+  }
+
+  /** Show a note's verdict where it crossed the strings. */
+  mark(ev, hit) {
+    this.marks.push({ ev, hit, wall: performance.now() });
+    if (this.marks.length > 40) this.marks.splice(0, this.marks.length - 40);
   }
 
   setChart(chart, playable) {
+    this.marks = [];
     this.chart = chart;
     this.notes = playable.notes;
     this.anchors = playable.anchors;
@@ -115,6 +123,38 @@ export class Highway {
     this.drawBeats(now, zMax);
     this.drawBoard(now, anchor);
     this.drawNotes(now, zMax);
+    this.drawMarks();
+  }
+
+  // Hits ring out in the string's colour; misses get a red cross. Each fades in 0.6 s.
+  drawMarks() {
+    const { ctx } = this;
+    const nowWall = performance.now();
+    this.marks = this.marks.filter(m => nowWall - m.wall < 600);
+    for (const m of this.marks) {
+      const age = (nowWall - m.wall) / 600, alpha = 1 - age;
+      const anchor = this.anchorAt(m.ev.t);
+      for (const p of m.ev.notes || [m.ev]) {
+        const [x, y, s] = this.P(this.noteX(p.f, anchor), this.stringY(p.s), 0);
+        const r = s * (0.22 + age * 0.35);
+        ctx.globalAlpha = alpha;
+        if (m.hit) {
+          ctx.strokeStyle = STRING_COLORS[p.s];
+          ctx.lineWidth = Math.max(2, s * 0.06);
+          ctx.shadowColor = STRING_COLORS[p.s];
+          ctx.shadowBlur = 18;
+          ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+          ctx.shadowBlur = 0;
+        } else {
+          const k = s * 0.16;
+          ctx.strokeStyle = '#ff5266';
+          ctx.lineWidth = Math.max(2, s * 0.05);
+          ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke();
+        }
+        if (!m.hit) break; // one cross for a missed chord
+      }
+      ctx.globalAlpha = 1;
+    }
   }
 
   // Project a world point to the screen. Returns [x, y, scale].

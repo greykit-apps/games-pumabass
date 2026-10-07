@@ -84,6 +84,18 @@ bass always sits. Its upper overtones stay, and the kick drum loses some thump; 
 <h3>Another input</h3>
 <p>Any audio input works, e.g. an audio interface or a microphone near an acoustic bass: choose it in Settings.
 The first time, the browser asks to let PumaBass use it.</p>`],
+  ['Scoring', `
+<p>With the Real Tone Cable (or another input) open, PumaBass listens to each note as it lands: a ring in the
+string's colour is a hit, a red cross a miss, and the top bar keeps your accuracy and streak. A song's end screen
+gives your score, your best streak, whether you tend to play early or late, and a strip of the song by section, red
+where to practise.</p>
+<h3>What counts</h3>
+<p>The right note, plucked within about an eighth of a second of when it lands (slowed down, the same real time).
+Hammer-ons and pull-offs need the new pitch, with no pluck. Muted notes and harmonics need the pluck. Chords count
+on the pluck alone: one cable can't reliably tell which several notes are ringing, so a wrong chord shape isn't
+caught.</p>
+<p>Turn scoring off in Settings or the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
+input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and

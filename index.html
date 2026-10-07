@@ -88,6 +88,7 @@
       </div>
       <button id="fav-btn" class="star" aria-label="Favorite" aria-pressed="false" title="Favorite (F)">&#9734;</button>
       <div id="p-tuning" class="chip"></div>
+      <span id="score-hud" class="chip hidden" aria-live="off" title="Accuracy so far, and your current streak"></span>
       <button id="tuner-btn" title="Tune with the Real Tone Cable (T)"><kbd>T</kbd>Tuner</button>
       <span class="snd-slot"></span>
     </div>
@@ -126,6 +127,7 @@
       <label>Song <span class="mixrow"><input id="volume" type="range" min="0" max="100" value="100"><span class="meter" id="song-meter"><i></i></span></span></label>
       <div class="row" id="recorded-bass" role="group" aria-label="Recorded bass"><span class="rowlabel">Recorded bass</span><button data-rb="full">Full</button><button data-rb="reduced">Reduced</button><button data-rb="cut">Cut</button></div>
       <label class="check"><input id="hear" type="checkbox"> Hear your bass</label>
+      <label class="check"><input id="score-toggle" type="checkbox"> Score my playing <span class="muted">(with an input open)</span></label>
       <label>Your bass <b id="boost-val"></b><span class="mixrow"><input id="boost" type="range" min="0" max="30" step="1" value="12"><span class="meter" id="bass-meter"><i></i></span></span></label>
       <p class="note">Play along and set the two meters about level. <kbd>B</kbd> switches the recorded bass.</p>
       <h2>This song</h2>

@@ -123,6 +123,28 @@ found by name; any other audio input (an audio interface, a microphone) can be c
 (stiff strings, weak fundamentals, noise, fading plucks): every reading the tuner shows is within
 2 cents, nearly all within 1. CI runs it.
 
+## Scoring
+
+With the Real Tone Cable (or any input) open and **Scoring** on (Settings, or the Mix panel `,`),
+each note is judged as it lands: a ring in the string's colour for a hit, a red cross for a miss, and
+accuracy and streak in the top bar. The end screen gives the score, best streak, typical timing (early
+or late), a strip of the song coloured by section, and your best accuracy over full plays.
+
+- A note counts when the right pitch (within half a semitone, octave checked) is plucked within
+  130 ms early to 150 ms late, in real time, so slowed-down practice is judged the same. Each pluck
+  goes to its nearest note, so a fast run can't lend one note's pluck to another, and a note still
+  ringing from before never counts again.
+- Hammer-ons and pull-offs need the new pitch (and not to have been ringing already); muted notes and
+  harmonics, the pluck; chords, the pluck alone (a wrong chord shape isn't caught).
+- The input is recorded continuously on the audio thread (`web/js/capture-worklet.js`), stamped with
+  the audio clock, so judging doesn't depend on the screen's frame rate.
+
+`node tools/check-scoring.mjs` plays synthesized performances of six songs from your library (human
+timing, stiff strings, weak fundamentals, plus skipped notes, wrong frets, the octave above, and badly
+timed plucks) and a timing sweep at full and 70% speed. On 2,104 notes: 99.1% of right notes score as
+hits (hammer-ons and pull-offs 98%, chords 100%); wrong frets and skipped notes get through 0% of the
+time, the octave above 2%; the timing windows are exact. It needs the songs, so it runs locally.
+
 ## Settings file and options
 
 The songs folder you choose is saved in `config.json` beside the app. You can also edit it by hand:
@@ -190,6 +212,8 @@ That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.p
 - `web/js/chart.js`: difficulty levels, tuning names
 - `web/js/input.js`, `web/js/tuner.js`, `web/js/pitch.js`: the instrument input, the tuner, and its
   pitch detection (`node tools/check-pitch.mjs` tests it)
+- `web/js/scoring.js`, `web/js/capture-worklet.js`: scoring, and the input recorded for it
+  (`node tools/check-scoring.mjs` tests it)
 - `web/js/title.js`: the canon boot and title screen; `scene.js` is its stage backdrop; `help.js` holds Help and About
 - `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
 - `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion, audio lookup and decoding

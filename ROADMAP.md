@@ -49,7 +49,9 @@ copied over by hand.
       play it through PumaBass.
 - [x] **End screen.** At the end of a song: what was played, the song's totals, and a Score panel waiting for
       scoring. Space goes to the main menu with no game to resume; R plays again; Esc, the song list.
-- [ ] **Scoring.** Mark notes as hit or missed from the input, now that it is there, and fill in the end screen's Score.
+- [x] **Scoring.** Notes marked hit or missed from the input (on a Scoring switch); accuracy, best streak, timing and
+      a per-section strip on the end screen; best accuracy per song. Still to try with a real cable.
+- [ ] **Chords in scoring.** Chords count on the pluck alone; telling which notes are ringing would catch wrong shapes.
 - [x] **Balance.** A mix with your bass boosted (up to +30 dB) against the song, meters on both, and a limiter.
 - [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).
 - [ ] **Recorded bass: removed.** Truly taking the bass out needs stem separation (an AI model such as Demucs),

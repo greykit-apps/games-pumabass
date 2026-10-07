@@ -7,6 +7,7 @@ import { InstrumentInput, isRealTone } from './input.js';
 import { openTuner, tuningTargets, tuningKey } from './tuner.js';
 import { Mixer, RECORDED_BASS } from './mixer.js';
 import { calibrate } from './calibrate.js';
+import { Scorer } from './scoring.js';
 
 const $ = id => document.getElementById(id);
 const audio = $('audio');
@@ -63,6 +64,7 @@ const prefs = Object.assign({
   autoTune: true,   // open the tuner on the day's first song and when the tuning changes
   favOnly: false,   // the song list shows favorites only
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
+  scoring: true,    // score the playing (only ever while an instrument input is open)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 delete prefs.hearLast;
@@ -208,6 +210,9 @@ ${pick('hear', [['false', 'Off'], ['true', 'On']], prefs.hear)}
 <h3>Recorded bass</h3>
 ${pick('rb', Object.entries(RECORDED_BASS).map(([k, v]) => [k, v.label]), prefs.recordedBass)}
 <p class='gk-note'>The song's own bass can't be taken out of the record, but Reduced and Cut pull it well down so yours stands out. <kbd>B</kbd> switches it while you play.</p>
+<h3>Scoring</h3>
+${pick('scoring', [['true', 'On'], ['false', 'Off']], prefs.scoring)}
+<p class='gk-note'>Listens to the instrument input and marks each note hit or missed: the right note, plucked on time. It only runs while an input is open, so playing through an amp is never marked wrong; turn it off to practise without the marks.</p>
 <h3>Tune before playing</h3>
 ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <p class='gk-note'>Opens the tuner on your first song of the day, and when a song needs a different tuning from the last.</p>
@@ -262,6 +267,7 @@ async function settingsClick(b, sheet) {
     case 'hear': hear.set(v === 'true'); break;
     case 'rb': setRecordedBass(v); break;
     case 'autotune': prefs.autoTune = v === 'true'; break;
+    case 'scoring': prefs.scoring = v === 'true'; break;
     case 'av': prefs.avOffset = Number(v) === 0 ? 0 : prefs.avOffset + Number(v); break;
     case 'calibrate':
       sheet.close();
@@ -274,6 +280,7 @@ async function settingsClick(b, sheet) {
   }
   savePrefs();
   syncPlayerPrefs();
+  if (screen === 'player') startScoring();
   sheet.refresh();
 }
 
@@ -291,7 +298,10 @@ async function runCalibration() {
 
 /* ---- the instrument input and the tuner ---- */
 const input = new InstrumentInput(mixer);
-input.onchange = () => { if (screen === 'title' && title && !document.querySelector('.gk-sheet')) { leaveTitle(); showTitle().reveal(); } };
+input.onchange = () => {
+  if (screen === 'title' && title && !document.querySelector('.gk-sheet')) { leaveTitle(); showTitle().reveal(); }
+  if (screen === 'player') startScoring();
+};
 const shortLabel = l => (isRealTone(l) ? 'Real Tone Cable' : String(l || '').replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, ''));
 const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
 const INPUT_UNSUPPORTED = "This browser won't let PumaBass use audio inputs at this address. Open PumaBass as http://localhost:8014/ on the computer it runs on.";
@@ -462,7 +472,7 @@ async function maybeAutoTune() {
 document.addEventListener('pointerdown', () => mixer.resume(), true);
 document.addEventListener('keydown', () => mixer.resume(), true);
 // For tests: feed any MediaStream in as the instrument (e.g. an oscillator).
-window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, get session() { return session; } };
+window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b) };
 
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
@@ -793,6 +803,7 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
   updatePlayButton();
   saveResume();
   await maybeAutoTune();
+  startScoring();
 }
 
 function saveResume() {
@@ -801,6 +812,8 @@ function saveResume() {
 
 /* Stop the song and put the player away. */
 function leaveSong() {
+  scorer = null;
+  updateHud();
   audio.pause();
   audio.removeAttribute('src');
   audio.load();
@@ -821,6 +834,40 @@ function closeSong() {
 function applyDifficulty() {
   if (!chart) return;
   highway.setChart(chart, buildPlayable(chart, prefs.difficulty));
+  if (scorer) startScoring(); // new notes: score afresh
+}
+
+/* ---- scoring ---- */
+let scorer = null;
+let sync = null; // this frame's song time against the audio clock, to find the input for a note
+
+const sectionIndex = t => chart.sections.findIndex(x => x.t <= t && t < x.end);
+
+/* Score while it is on and an input is open; otherwise, not at all. */
+function startScoring() {
+  scorer = prefs.scoring && input.open && chart ? new Scorer(chart, highway.notes, sectionIndex) : null;
+  if (scorer) scorer.seek(songTime());
+  updateHud();
+}
+
+/* The input for song time t0..t1: the audio clock at song time T is this
+ * frame's clock, less how far back T is (in real time), plus the input's own
+ * delay. Returned in real time, with the song time of its first sample. */
+function inputBetween(t0, t1) {
+  if (!sync) return null;
+  const ctxOf = T => sync.ctx - (sync.song - T) / sync.rate + input.latency;
+  const seg = input.segment(ctxOf(t0), ctxOf(t1));
+  if (!seg || seg === 'later') return seg;
+  return { x: seg.x, sr: input.sampleRate, t0: sync.song - (sync.ctx - (seg.c0 - input.latency)) * sync.rate };
+}
+
+function updateHud() {
+  const el = $('score-hud');
+  el.classList.toggle('hidden', !scorer);
+  if (!scorer) return;
+  const acc = scorer.accuracy;
+  const text = acc === null ? 'Scoring' : `${Math.round(acc * 100)}% \u00b7 streak ${scorer.streak}`;
+  if (el.textContent !== text) el.textContent = text;
 }
 
 // Smooth song clock: audio.currentTime updates in coarse steps, so extrapolate between them.
@@ -839,6 +886,7 @@ function seek(t, chosen = true) {
   if (chosen) { pausedAt = null; liveAt = null; }
   audio.currentTime = Math.max(0, Math.min(t, (audio.duration || chart.songLength) - 0.05));
   clock.raw = audio.currentTime; clock.stamp = performance.now();
+  if (scorer) scorer.seek(songTime()); // carry on judging from here
 }
 
 function togglePlay() {
@@ -933,6 +981,30 @@ function showEndScreen() {
   const finished = !!(session && session.finished);
   const tn = tuningName(chart.tuning, chart.strings);
   const tile = (label, value, note = '') => `<div class="end-tile"><small>${label}</small><span>${value}</span>${note ? `<em>${note}</em>` : ''}</div>`;
+  const sc = scorer && scorer.judged ? scorer : null;
+  const pct = sc ? Math.round(sc.accuracy * 100) : null;
+  // A best only counts for a full play: finished, with most of the notes judged.
+  let best = st.best ?? null, newBest = false;
+  if (sc && finished && sc.judged >= 0.8 * highway.notes.length && (best === null || pct > best)) {
+    newBest = best !== null;
+    best = pct;
+    const all = load(KEY_STATS, {});
+    all[song.id] = { ...(all[song.id] || {}), best: pct };
+    save(KEY_STATS, all);
+  }
+  const timing = sc && sc.timing();
+  const scoreNote = sc ? `${sc.hits} of ${sc.judged} notes hit${newBest ? ' \u00b7 a new best' : ''}`
+    : !prefs.scoring ? 'Scoring is off. Turn it on in Settings, or the Mix panel (,).'
+      : !input.open ? 'Plug in the Real Tone Cable (or choose an input in Settings) to have your playing scored.'
+        : 'No notes were scored this time.';
+  // Each section's accuracy, as a strip along the song.
+  const len = chart.songLength;
+  const strip = sc ? `<div class="end-strip" aria-label="Accuracy by section">${chart.sections.map((x, i) => {
+    const r = sc.sections.get(i);
+    const a = r && r.judged ? r.hits / r.judged : null;
+    const color = a === null ? 'var(--line)' : `hsl(${Math.round(a * a * 120)}, 70%, 48%)`;
+    return `<i style="width:${((x.end - x.t) / len) * 100}%;background:${color}" title="${esc(x.name)}${a === null ? '' : ` \u00b7 ${Math.round(a * 100)}%`}"></i>`;
+  }).join('')}</div><p class="end-strip-note">by section: red is where to practise</p>` : '';
   const el = document.createElement('div');
   el.className = 'gk-sheet end-sheet';
   el.setAttribute('role', 'dialog');
@@ -946,8 +1018,9 @@ function showEndScreen() {
     </div>
     <div class="end-score">
       <small>Score</small>
-      <span class="end-score-value">&ndash;</span>
-      <em>Scoring is on its way: play along through the Real Tone Cable, and this will show how many notes you hit.</em>
+      <span class="end-score-value">${pct === null ? '&ndash;' : `${pct}%`}</span>
+      <em>${scoreNote}</em>
+      ${strip}
     </div>
     <div class="end-tiles">
       ${tile('Notes', notes, `at ${prefs.difficulty}% difficulty`)}
@@ -956,6 +1029,9 @@ function showEndScreen() {
       ${tile('Finished', finished ? 'Counted &#10003;' : 'Not counted', finished ? '' : 'less than half was played')}
       ${tile('Plays', st.plays || 0, 'all time')}
       ${tile('Times finished', st.finished || 0, 'all time')}
+      ${sc ? tile('Best streak', sc.best, `of ${sc.judged} notes`) : ''}
+      ${sc ? tile('Timing', timing ? (Math.abs(timing.ms) < 10 ? 'On the beat' : `${Math.round(Math.abs(timing.ms))} ms ${timing.ms > 0 ? 'late' : 'early'}`) : '\u2013', timing ? `typical, give or take ${Math.round(timing.spread)} ms` : 'too few plucks to tell') : ''}
+      ${sc || best !== null ? tile('Best', best === null ? '\u2013' : `${best}%`, 'full plays') : ''}
     </div>
     <div class="gk-row end-acts">
       <button class="primary" data-end="menu"><kbd>Space</kbd>Main menu</button>
@@ -1082,6 +1158,7 @@ $('hear').addEventListener('change', async () => {
   applyMix();
   syncPlayerPrefs();
 });
+$('score-toggle').addEventListener('change', () => { prefs.scoring = $('score-toggle').checked; savePrefs(); if (screen === 'player') startScoring(); });
 $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
 $('lookahead').addEventListener('input', () => { prefs.lookahead = Number($('lookahead').value); highway.lookahead = prefs.lookahead; savePrefs(); syncPlayerPrefs(); });
 $('invert').addEventListener('change', () => { prefs.invert = $('invert').checked; highway.invert = prefs.invert; savePrefs(); });
@@ -1096,6 +1173,7 @@ function syncPlayerPrefs() {
   $('invert').checked = prefs.invert;
   $('volume').value = prefs.volume;
   $('hear').checked = prefs.hear;
+  $('score-toggle').checked = prefs.scoring;
   $('boost').value = prefs.bassBoost;
   $('boost-val').textContent = `+${prefs.bassBoost} dB`;
   for (const b of document.querySelectorAll('#recorded-bass [data-rb]')) b.setAttribute('aria-pressed', String(b.dataset.rb === prefs.recordedBass));
@@ -1187,6 +1265,10 @@ function frame() {
       session.lastWall = now;
       checkFinished(t);
     } else if (session) session.lastT = null;
+    if (!audio.paused) {
+      sync = { song: t, ctx: mixer.ctx.currentTime, rate: audio.playbackRate };
+      if (scorer && input.open) { scorer.update(t, audio.playbackRate, inputBetween, (ev, r) => highway.mark(ev, r.hit)); updateHud(); }
+    }
     if (!$('settings').classList.contains('hidden')) {
       for (const [id, which] of [['song-meter', 'song'], ['bass-meter', 'bass']]) {
         const db = mixer.level(which);
