@@ -14,13 +14,21 @@ function floor(u, v) {
   return [lerp(lerp(BACK.l, BACK.r, u), lerp(FRONT.l, FRONT.r, u), v), y];
 }
 
+// An amp stack standing on the stage floor (y = 700): a 2x2 cabinet with a
+// clear gap between the cones, and the head on top.
+const CONE = 44, PITCH = 100;           // cone radius, centre-to-centre spacing (gap = PITCH - 2 * CONE)
+const CAB_W = 280, CAB_H = 210, CAB_Y = 700 - CAB_H, HEAD_H = 56, HEAD_Y = CAB_Y - 4 - HEAD_H;
 function amp(x, flip) {
-  const knobs = [0, 1, 2, 3, 4, 5].map(i => `<circle class="sd" cx="${x + 40 + i * 30}" cy="497" r="6"/>`).join('');
-  const speakers = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([i, j]) =>
-    `<circle class="sd" cx="${x + 80 + i * 120}" cy="${575 + j * 80}" r="44"/><circle class="sd" cx="${x + 80 + i * 120}" cy="${575 + j * 80}" r="12"/>`).join('');
+  const headMid = HEAD_Y + HEAD_H / 2;
+  const knobs = [0, 1, 2, 3, 4, 5].map(i => `<circle class="sd" cx="${x + 40 + i * 30}" cy="${headMid}" r="6"/>`).join('');
+  const cx0 = x + (CAB_W - PITCH) / 2, cy0 = CAB_Y + (CAB_H - PITCH) / 2;
+  const speakers = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([i, j]) => {
+    const cx = cx0 + i * PITCH, cy = cy0 + j * PITCH;
+    return `<circle class="sd" cx="${cx}" cy="${cy}" r="${CONE}"/><circle class="sd" cx="${cx}" cy="${cy}" r="12"/>`;
+  }).join('');
   const led = flip ? x + 254 : x + 26;
-  return `<rect class="sf" x="${x}" y="470" width="280" height="56" rx="4"/>${knobs}<circle class="sled" cx="${led}" cy="497" r="4"/>` +
-    `<rect class="sf" x="${x}" y="530" width="280" height="170" rx="4"/>${speakers}`;
+  return `<rect class="sf" x="${x}" y="${HEAD_Y}" width="${CAB_W}" height="${HEAD_H}" rx="4"/>${knobs}<circle class="sled" cx="${led}" cy="${headMid}" r="4"/>` +
+    `<rect class="sf" x="${x}" y="${CAB_Y}" width="${CAB_W}" height="${CAB_H}" rx="4"/>${speakers}`;
 }
 
 export function sceneSVG() {
