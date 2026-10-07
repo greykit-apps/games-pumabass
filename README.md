@@ -74,6 +74,17 @@ press **Rescan**. mp3, ogg, flac, m4a and wav work. Settings → Song list → *
 charts still waiting for a recording. Your recording probably won't line up exactly, so use the
 song's audio offset (`,`), which goes up to ±15 s for these. It is remembered per song.
 
+## Timing
+
+**Settings → Timing → Calibrate** lines the notes up with the sound on this computer: two ten-second
+tap-alongs, one listening to clicks (tap with what you hear) and one watching notes fall onto a line
+(tap as they land). Each measures how late your taps are; the sound's delay is only in the first, the
+picture's only in the second, and your own reaction is in both, so their difference is how much later
+the sound reaches you than the picture. That becomes an offset for every song (nudge it by 10 ms in
+Settings), and a song's own offset (`,`) adds to it. Tap with any key, a click or tap, or a strum on the
+Real Tone Cable. Run it again when you change speakers, headphones or screen: Bluetooth and TVs
+add delay.
+
 ## Real Tone Cable and the tuner
 
 Plug your bass into the Rocksmith Real Tone Cable and press **T** (or **Tuner** on the menu or in the

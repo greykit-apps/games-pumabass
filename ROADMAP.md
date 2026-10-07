@@ -24,7 +24,7 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 ## Settings and setup
 
-- [ ] **Calibrate the offset.** Settings gets a global audio/video offset with a calibration test: the player taps,
+- [x] **Calibrate the offset.** Settings gets a global audio/video offset with a calibration test: the player taps,
       clicks or strums along with what they see as "in time", and the measured difference sets the offset.
 - [x] **Tuner.** A tuner that appears automatically on the first song of the day and when the next song needs a
       different tuning, and can be opened by hand. Best paired with the Real Tone Cable input.

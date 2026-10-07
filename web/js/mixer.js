@@ -92,14 +92,14 @@ export class Mixer {
     this.songVolume.connect(this.songMeter);
     this.bassOn.connect(this.bassMeter);
     this.meterBuf = new Float32Array(2048);
-    this.attached = null;
+    this.attached = new WeakSet();
   }
 
-  /** Route an <audio> element through the mixer (once per element). */
+  /** Route an <audio> element through the mixer, like a song (each element once: the browser allows no more). */
   attachSong(el) {
-    if (this.attached === el) return;
+    if (this.attached.has(el)) return;
     this.ctx.createMediaElementSource(el).connect(this.song.input);
-    this.attached = el;
+    this.attached.add(el);
   }
 
   /** Where an instrument input connects to be heard. */

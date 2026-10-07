@@ -55,7 +55,11 @@ your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 <p><b>Difficulty</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
-<p>Open the song's settings with <kbd>,</kbd> and nudge the <b>audio offset</b>. It is remembered for that song.</p>`],
+<p>Speakers, TVs and Bluetooth all delay the sound a little, and screens the picture. <b>Settings → Timing →
+Calibrate</b> measures it: two ten-second tap-alongs, one listening to clicks and one watching notes land. The
+difference is set for every song. Run it again after changing speakers, headphones or screen.</p>
+<p>For one song only (say, your own recording of it), open the song's settings with <kbd>,</kbd> and nudge its
+<b>audio offset</b>; it adds to the calibrated one.</p>`],
   ['Tuner', `
 <p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd> (or <b>Tuner</b> on the menu or in the
 player). The tuner knows the tuning the song wants, including the few cents some Rocksmith songs are off A440

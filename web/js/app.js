@@ -6,6 +6,7 @@ import { HELP, ABOUT } from './help.js';
 import { InstrumentInput, isRealTone } from './input.js';
 import { openTuner, tuningTargets, tuningKey } from './tuner.js';
 import { Mixer, RECORDED_BASS } from './mixer.js';
+import { calibrate } from './calibrate.js';
 
 const $ = id => document.getElementById(id);
 const audio = $('audio');
@@ -61,6 +62,7 @@ const prefs = Object.assign({
   recordedBass: 'full', // the song's own bass: full, reduced or cut (RECORDED_BASS)
   autoTune: true,   // open the tuner on the day's first song and when the tuning changes
   favOnly: false,   // the song list shows favorites only
+  avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 delete prefs.hearLast;
@@ -209,6 +211,10 @@ ${pick('rb', Object.entries(RECORDED_BASS).map(([k, v]) => [k, v.label]), prefs.
 <h3>Tune before playing</h3>
 ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <p class='gk-note'>Opens the tuner on your first song of the day, and when a song needs a different tuning from the last.</p>
+<h3>Timing</h3>
+<p class='gk-note'>For every song, the notes land <b>${fmtMs(prefs.avOffset)}</b>${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}, to match this computer's sound and picture.</p>
+<div class='gk-row'><button data-set='calibrate'>Calibrate</button><button data-set='av' data-v='-10'>&minus;10 ms</button><button data-set='av' data-v='10'>+10 ms</button><button data-set='av' data-v='0'>Reset</button></div>
+<p class='gk-note'>Calibrate is two ten-second tap-alongs. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
 <h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 <p class='gk-note'>How far ahead the notes appear. Longer gives more warning; shorter spreads them out.</p>
@@ -256,6 +262,11 @@ async function settingsClick(b, sheet) {
     case 'hear': hear.set(v === 'true'); break;
     case 'rb': setRecordedBass(v); break;
     case 'autotune': prefs.autoTune = v === 'true'; break;
+    case 'av': prefs.avOffset = Number(v) === 0 ? 0 : prefs.avOffset + Number(v); break;
+    case 'calibrate':
+      sheet.close();
+      runCalibration();
+      return;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: your favorites and play counts, every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
       return;
@@ -264,6 +275,18 @@ async function settingsClick(b, sheet) {
   savePrefs();
   syncPlayerPrefs();
   sheet.refresh();
+}
+
+/* ---- timing ---- */
+const fmtMs = ms => `${ms > 0 ? '+' : ms < 0 ? '\u2212' : ''}${Math.abs(Math.round(ms))} ms`;
+
+async function runCalibration() {
+  const offset = await calibrate({ mixer, input: input.open ? input : null, current: prefs.avOffset });
+  if (offset === null) return;
+  prefs.avOffset = offset;
+  savePrefs();
+  showOffset();
+  await alertSheet(`Timing set: for every song, the notes land ${fmtMs(offset)}${offset ? (offset > 0 ? ' later' : ' earlier') : ''}. You can nudge it in Settings.`, 'Timing');
 }
 
 /* ---- the instrument input and the tuner ---- */
@@ -801,7 +824,7 @@ function songTime() {
     if (t !== clock.raw) { clock.raw = t; clock.stamp = now; }
     est = clock.raw + Math.min(0.25, ((now - clock.stamp) / 1000) * audio.playbackRate);
   } else { clock.raw = t; clock.stamp = now; }
-  return est - offsetMs / 1000;
+  return est - (offsetMs + prefs.avOffset) / 1000;
 }
 
 function seek(t, chosen = true) {
@@ -998,7 +1021,8 @@ function syncPlayerPrefs() {
 syncPlayerPrefs();
 
 function showOffset() {
-  $('offset-val').textContent = `${offsetMs > 0 ? '+' : ''}${offsetMs} ms (positive = notes arrive later)`;
+  $('offset-val').textContent = `${offsetMs > 0 ? '+' : ''}${offsetMs} ms (positive = notes arrive later)`
+    + (prefs.avOffset ? `, on top of ${fmtMs(prefs.avOffset)} for every song` : '');
 }
 function setOffset(ms) {
   offsetMs = Math.max(Number($('offset').min), Math.min(Number($('offset').max), ms));
