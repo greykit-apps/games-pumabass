@@ -1,22 +1,38 @@
-// Scans the Rocksmith install, builds an index of every playable arrangement,
-// and loads charts / audio for a chosen arrangement.
+// Scans a folder of Rocksmith 2014 song files (.psarc, PC or Mac, in any
+// layout: a Rocksmith install, a copied dlc folder, a mix), builds an index of
+// every playable arrangement, and loads charts / audio for a chosen one.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const { Psarc } = require('./psarc');
 const { parseSng } = require('./sng');
 
-const INDEX_VERSION = 4;
+const INDEX_VERSION = 5;
 const AUDIO_EXTS = new Set(['.mp3', '.ogg', '.oga', '.opus', '.flac', '.m4a', '.aac', '.wav', '.webm']);
+// Where each platform keeps charts and audio inside an archive.
+const LAYOUT = {
+  pc: { sng: 'songs/bin/generic', audio: 'audio/windows' },
+  mac: { sng: 'songs/bin/macos', audio: 'audio/mac' },
+};
+const WEM_RE = /^audio\/(?:windows|mac)\/(\d+)\.wem$/;
 
 class Library {
-  constructor({ rocksmithDir, cacheDir, musicDir }) {
-    this.root = rocksmithDir;
+  constructor({ libraryDir, cacheDir, musicDir }) {
+    this.root = libraryDir || null;
     this.musicDir = musicDir;
     this.cacheDir = cacheDir;
     this.indexFile = path.join(cacheDir, 'library.json');
     this.archives = new Map(); // path -> Psarc (opened lazily, kept open)
     this.songs = [];
+    this.byId = new Map();
+    this.archiveCount = 0;
+  }
+
+  setRoot(dir) {
+    for (const p of this.archives.values()) p.close();
+    this.archives.clear();
+    this._sharedWems = null;
+    this.root = dir;
   }
 
   open(file) {
@@ -25,65 +41,74 @@ class Library {
     return p;
   }
 
+  // Every .psarc under the library folder. A Mac copy (_m) is skipped when the
+  // PC copy (_p) sits beside it; on its own it is read like any other.
   archiveFiles() {
+    if (!this.root || !fs.existsSync(this.root)) return [];
     const files = [];
-    const base = path.join(this.root, 'songs.psarc');
-    if (fs.existsSync(base)) files.push(base);
-    const dlc = path.join(this.root, 'dlc');
-    if (fs.existsSync(dlc)) {
-      const walk = dir => {
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-          const full = path.join(dir, e.name);
-          if (e.isDirectory()) walk(full);
-          // PC archives end in _p.psarc; Mac duplicates (_m) are skipped.
-          else if (/_p\.psarc$/i.test(e.name)) files.push(full);
-        }
-      };
-      walk(dlc);
-    }
-    return files;
+    const walk = dir => {
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; } // unreadable folder
+      const names = new Set(entries.map(e => e.name.toLowerCase()));
+      for (const e of entries) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) { if (!e.name.startsWith('.')) walk(full); continue; }
+        if (!/\.psarc$/i.test(e.name)) continue;
+        const m = /^(.*)_m\.psarc$/i.exec(e.name);
+        if (m && names.has(`${m[1]}_p.psarc`.toLowerCase())) continue;
+        files.push(full);
+      }
+    };
+    walk(this.root);
+    return files.sort();
   }
 
-  // Map of every numbered .wem in the shared archives, used for on-disc songs.
+  // Every numbered .wem in every archive of the library. The on-disc songs keep
+  // their audio in a different archive (audio.psarc) from their charts (songs.psarc).
   sharedWems() {
     if (this._sharedWems) return this._sharedWems;
     const map = new Map();
-    for (const name of ['audio.psarc', 'songs.psarc']) {
-      const file = path.join(this.root, name);
-      if (!fs.existsSync(file)) continue;
-      const p = this.open(file);
+    for (const file of this.archiveFiles()) {
+      let p;
+      try { p = this.open(file); } catch { continue; }
       for (const n of p.list()) {
-        const m = /^audio\/windows\/(\d+)\.wem$/.exec(n);
-        if (m) map.set(Number(m[1]), { file, name: n, size: p.size(n) });
+        const m = WEM_RE.exec(n);
+        if (m && !map.has(Number(m[1]))) map.set(Number(m[1]), { file, name: n, size: p.size(n) });
       }
     }
     return (this._sharedWems = map);
   }
 
-  // Find the wem referenced by a sound bank: scan the bank for any known wem id.
-  findWem(archive, bankName) {
+  // Find the wem referenced by a sound bank: scan the bank for any known wem id,
+  // first in the bank's own archive, then anywhere in the library.
+  findWem(archive, layout, bankName) {
     const local = new Map();
     for (const n of archive.list()) {
-      const m = /^audio\/windows\/(\d+)\.wem$/.exec(n);
+      const m = WEM_RE.exec(n);
       if (m) local.set(Number(m[1]), { file: archive.path, name: n, size: archive.size(n) });
     }
-    const bankPath = `audio/windows/${bankName}`;
+    const bankPath = `${layout.audio}/${bankName}`;
     if (!archive.has(bankPath)) return null;
     const bank = archive.extract(bankPath);
-    const shared = this.sharedWems();
-    let best = null;
-    for (let o = 0; o + 4 <= bank.length; o++) {
-      const id = bank.readUInt32LE(o);
-      const hit = local.get(id) || shared.get(id);
-      if (hit && (!best || hit.size > best.size)) best = hit;
-    }
-    return best;
+    const pick = map => {
+      let best = null;
+      for (let o = 0; o + 4 <= bank.length; o++) {
+        const hit = map.get(bank.readUInt32LE(o));
+        if (hit && (!best || hit.size > best.size)) best = hit;
+      }
+      return best;
+    };
+    return pick(local) || pick(this.sharedWems());
   }
 
   scanArchive(file) {
     const p = this.open(file);
     const out = [];
-    for (const name of p.list()) {
+    const names = p.list();
+    const isMac = names.some(n => n.startsWith(LAYOUT.mac.sng + '/')) && !names.some(n => n.startsWith(LAYOUT.pc.sng + '/'));
+    const platform = isMac ? 'mac' : 'pc';
+    const layout = LAYOUT[platform];
+    for (const name of names) {
       if (!name.startsWith('manifests/') || !name.endsWith('.json')) continue;
       let attrs;
       try {
@@ -95,14 +120,15 @@ class Library {
       const type = props.pathBass ? 'bass' : props.pathLead ? 'lead' : props.pathRhythm ? 'rhythm' : null;
       if (!type) continue; // vocals, showlights, etc.
       if (/^RS2 Test/i.test(attrs.SongName || '')) continue; // internal test charts shipped with the game
+      if (/^\$\[\d+\]/.test(attrs.SongName || '')) continue; // lessons: names live in the game's string tables (roadmap)
       const sngBase = attrs.SongAsset.split(':').pop();
-      const sng = `songs/bin/generic/${sngBase}.sng`;
+      const sng = `${layout.sng}/${sngBase}.sng`;
       if (!p.has(sng)) continue;
-      // wem is null when the audio isn't installed (e.g. RS1 DLC charts); the user can supply a recording.
-      const wem = this.findWem(p, attrs.SongBank);
+      // wem is null when the audio isn't there (e.g. RS1 DLC charts); the user can supply a recording.
+      const wem = this.findWem(p, layout, attrs.SongBank);
       const tuning = attrs.Tuning || {};
       out.push({
-        id: `${path.basename(file, '.psarc')}:${sngBase}`,
+        id: `${path.basename(file, path.extname(file))}:${sngBase}`,
         songKey: attrs.SongKey,
         title: attrs.SongName,
         artist: attrs.ArtistName,
@@ -117,6 +143,7 @@ class Library {
         centOffset: attrs.CentOffset || 0,
         capo: attrs.CapoFret || 0,
         difficulty: attrs.SongDifficulty,
+        platform,
         file,
         sng,
         wem,
@@ -128,25 +155,40 @@ class Library {
   load({ onProgress } = {}) {
     let cached = null;
     try { cached = JSON.parse(fs.readFileSync(this.indexFile, 'utf8')); } catch {}
-    if (cached && cached.version !== INDEX_VERSION) cached = null;
+    if (cached && (cached.version !== INDEX_VERSION || cached.root !== this.root)) cached = null;
     const files = this.archiveFiles();
+    // When archives come or go, charts that had no audio get another look:
+    // their audio may have just arrived (audio.psarc copied after songs.psarc).
+    const sameSet = cached && Object.keys(cached.archives).sort().join('\n') === files.join('\n');
     const result = {};
     let i = 0;
     for (const file of files) {
       const st = fs.statSync(file);
       const stamp = `${st.size}:${st.mtimeMs}`;
       const prev = cached && cached.archives[file];
-      if (prev && prev.stamp === stamp) {
+      if (prev && prev.stamp === stamp && (sameSet || prev.songs.every(s => s.wem))) {
         result[file] = prev;
       } else {
         try { result[file] = { stamp, songs: this.scanArchive(file) }; }
-        catch (e) { console.warn(`Skipping ${file}: ${e.message}`); result[file] = { stamp, songs: [] }; }
+        catch (e) {
+          // Rocksmith's Tmp folder holds non-archives named .psarc: skip those quietly.
+          if (!/^Not a PSARC/.test(e.message)) console.warn(`Skipping ${file}: ${e.message}`);
+          result[file] = { stamp, songs: [] };
+        }
       }
       if (onProgress) onProgress(++i, files.length);
     }
     fs.mkdirSync(this.cacheDir, { recursive: true });
-    fs.writeFileSync(this.indexFile, JSON.stringify({ version: INDEX_VERSION, archives: result }));
-    this.songs = Object.values(result).flatMap(a => a.songs);
+    fs.writeFileSync(this.indexFile, JSON.stringify({ version: INDEX_VERSION, root: this.root, archives: result }));
+    // The same arrangement in a PC and a Mac archive: keep the PC one.
+    const seen = new Map();
+    for (const s of Object.values(result).flatMap(a => a.songs)) {
+      const key = s.id.replace(/_[pm]:/, ':');
+      const prev = seen.get(key);
+      if (!prev || (prev.platform === 'mac' && s.platform === 'pc')) seen.set(key, s);
+    }
+    this.songs = [...seen.values()];
+    this.archiveCount = files.length;
     this.matchUserAudio();
     this.byId = new Map(this.songs.map(s => [s.id, s]));
     return this.songs;
@@ -183,7 +225,7 @@ class Library {
   chart(id) {
     const entry = this.get(id);
     if (!entry) return null;
-    const sng = parseSng(this.open(entry.file).extract(entry.sng));
+    const sng = parseSng(this.open(entry.file).extract(entry.sng), entry.platform);
     return buildChart(entry, sng);
   }
 
@@ -194,7 +236,7 @@ class Library {
     if (!entry.wem) return entry.userAudio;
     const wavDir = path.join(this.cacheDir, 'audio');
     fs.mkdirSync(wavDir, { recursive: true });
-    const key = `${path.basename(entry.wem.file, '.psarc')}_${path.basename(entry.wem.name, '.wem')}`;
+    const key = `${path.basename(entry.wem.file, path.extname(entry.wem.file))}_${path.basename(entry.wem.name, '.wem')}`;
     const wav = path.join(wavDir, `${key}.wav`);
     if (fs.existsSync(wav)) return wav;
     const wemTmp = path.join(wavDir, `${key}.wem`);

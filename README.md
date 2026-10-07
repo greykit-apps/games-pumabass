@@ -1,16 +1,39 @@
 # PumaBass
 
-A note highway for the Rocksmith 2014 songs you already own, read straight out of your Rocksmith
-install. Bass first; lead and rhythm guitar charts load too. Part of the greykit.games portfolio,
-in its Tactical tribe.
+A note highway for the Rocksmith 2014 songs you already own. It ships with no songs: point it at a
+folder of your own song files (`.psarc`) and it plays them, no Steam or Rocksmith needed. Bass
+first; lead and rhythm guitar charts load too. Runs on Linux and Windows. Part of the
+greykit.games portfolio, in its Tactical tribe.
 
-## Start
+## Set up
 
-Double-click **start.bat**. It opens the app in your browser at http://localhost:8014/.
-Close the black console window to quit.
+You need [Node.js](https://nodejs.org) 18 or newer, and vgmstream, which decodes the songs' audio.
 
-The boot plays, then the title: **Learn a song** (`N`) opens the song list, **Resume game** (`R`)
-picks up where you left off (with a 6-second count-in), and **Settings** (`S`), **Help** (`?`) and **About** (`A`) are below.
+**Linux** (e.g. a set-top PC):
+
+```bash
+./tools/get-vgmstream.sh
+./start.sh
+```
+
+**Windows**: run `tools/get-vgmstream.sh` once from Git Bash (or unzip `vgmstream-win64.zip` from
+[vgmstream's releases](https://github.com/vgmstream/vgmstream/releases) into `tools/vgmstream/`),
+then double-click **start.bat**.
+
+Either way the app opens in your browser at http://localhost:8014/ (without a desktop, open that
+address yourself). On first run, **Learn a song** asks for your songs folder.
+
+## Your songs
+
+PumaBass reads Rocksmith 2014 song files (`.psarc`) from one folder, and the folders inside it:
+a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose or change it in
+**Settings → Song library**, and press **Rescan** after adding songs.
+
+- PC (`_p.psarc`) and Mac (`_m.psarc`) files both work; when both are there, the PC one is used.
+- The songs on the Rocksmith disc keep their charts in `songs.psarc` and their audio in
+  `audio.psarc`. Copy both, anywhere in the folder.
+- Nothing is copied or changed in your songs folder. Decoded audio is cached in `cache/audio`
+  (kept under ~3 GB).
 
 ## Playing
 
@@ -42,19 +65,36 @@ press **Rescan**. mp3, ogg, flac, m4a and wav work. Settings → Song list → *
 charts still waiting for a recording. Your recording probably won't line up exactly, so use the
 song's audio offset (`,`), which goes up to ±15 s for these. It is remembered per song.
 
-## Setup notes
+## Settings file and options
 
-- The Rocksmith folder defaults to `D:/SteamLibrary/steamapps/common/Rocksmith2014`.
-  To change it (or the port / music folder), create `config.json`:
-  ```json
-  { "rocksmithDir": "D:/SteamLibrary/steamapps/common/Rocksmith2014", "port": 8014, "musicDir": "C:/Music/Bass" }
-  ```
-  `node server/server.js --port 8015` overrides the port for one run.
-- Song audio is decoded with [vgmstream](https://github.com/vgmstream/vgmstream)
-  the first time you open a song and cached in `cache/audio` (kept under ~3 GB).
-  It isn't stored in git: on a fresh copy, unzip `vgmstream-win64.zip` from its releases page
-  into `tools/vgmstream/` so that `tools/vgmstream/vgmstream-cli.exe` exists.
-- The server only hands the browser `index.html`, its icons and manifest, and `web/`.
+The songs folder you choose is saved in `config.json` beside the app. You can also edit it by hand:
+
+```json
+{ "libraryDir": "/media/me/songs", "port": 8014, "host": "127.0.0.1", "musicDir": "/home/me/bass-recordings" }
+```
+
+| Key | What | Default |
+| --- | --- | --- |
+| `libraryDir` | your songs folder | none: chosen in Settings |
+| `port` | the address's port | 8014 |
+| `host` | who may connect: `127.0.0.1` is this computer only; `0.0.0.0` lets other devices on your network in (they can then see your folder names in the picker) | `127.0.0.1` |
+| `musicDir` | recordings for charts without audio | `music/` |
+| `cacheDir` | decoded audio and the song index | `cache/` |
+| `openBrowser` | open a browser on start | `true` |
+
+For one run: `./start.sh --port 8015 --library /path/to/songs --no-open` (start.bat takes the same).
+
+### Starting with the computer (Linux)
+
+`tools/pumabass.service` runs PumaBass as a systemd user service; the steps are in the file. Point
+a full-screen browser at it, e.g. `chromium --kiosk http://localhost:8014/`.
+
+### Notes
+
+- vgmstream is found in `tools/vgmstream/`, or on your `PATH`. The release is pinned in
+  `tools/get-vgmstream.sh`; its Linux build is for x86-64 (on ARM, build it from source).
+- The server only hands the browser `index.html`, its icons and manifest, and `web/`, and only
+  answers to `localhost` unless `host` says otherwise.
 
 ## The greykit.games standard
 
@@ -92,6 +132,7 @@ That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.p
 - `web/js/chart.js`: difficulty levels, tuning names
 - `web/js/title.js`: the canon boot and title screen; `scene.js` is its stage backdrop; `help.js` holds Help and About
 - `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
-- `server/library.js`: song index, chart conversion, audio lookup and decoding
-- `server/server.js`: the local web server
+- `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion, audio lookup and decoding
+- `server/server.js`: the local web server, settings, the folder picker
+- `start.sh`, `start.bat`; `tools/get-vgmstream.sh`; `tools/pumabass.service`
 - [`ROADMAP.md`](ROADMAP.md): what's next

@@ -1,0 +1,21 @@
+# PumaBass as a systemd user service, so it is running whenever you log in.
+#
+#   1. Edit WorkingDirectory below to where PumaBass is.
+#   2. mkdir -p ~/.config/systemd/user && cp tools/pumabass.service ~/.config/systemd/user/
+#   3. systemctl --user daemon-reload && systemctl --user enable --now pumabass
+#
+# To keep it running without a login session: sudo loginctl enable-linger $USER
+# Logs: journalctl --user -u pumabass -f
+# Then open http://localhost:8014/ in the browser (e.g. chromium --kiosk http://localhost:8014/).
+
+[Unit]
+Description=PumaBass note highway
+After=network.target
+
+[Service]
+WorkingDirectory=%h/PumaBass
+ExecStart=/usr/bin/env node server/server.js --no-open
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

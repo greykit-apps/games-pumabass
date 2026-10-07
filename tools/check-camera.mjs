@@ -7,7 +7,8 @@
 // Fails if any fretted note is off screen as it lands, or only comes into view
 // in its last half second. Reports how fast the view's edges move (lower is
 // calmer), how often the camera moves, and how long it spends zoomed out.
-// Needs the songs (config.json's rocksmithDir), so it runs locally, not in CI.
+// Needs the songs (config.json's libraryDir, or a folder given after the script),
+// so it runs locally, not in CI.
 import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
 import path from 'path';
@@ -20,8 +21,10 @@ const { buildPlayable } = await import(pathToFileURL(path.join(root, 'web/js/cha
 const { Highway } = await import(pathToFileURL(path.join(root, 'web/js/highway.js')));
 
 const cfgFile = path.join(root, 'config.json');
-const cfg = Object.assign({ rocksmithDir: 'D:/SteamLibrary/steamapps/common/Rocksmith2014' }, fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, 'utf8')) : {});
-const lib = new Library({ rocksmithDir: cfg.rocksmithDir, cacheDir: path.join(root, 'cache') });
+const cfg = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, 'utf8')) : {};
+const libraryDir = process.argv[2] || cfg.libraryDir || cfg.rocksmithDir;
+if (!libraryDir) { console.error('no songs folder: choose one in Settings, or pass it: node tools/check-camera.mjs /path/to/songs'); process.exit(1); }
+const lib = new Library({ libraryDir, cacheDir: path.join(root, 'cache') });
 lib.load();
 const songs = lib.songs.filter(s => s.type === 'bass' && s.wem);
 if (!songs.length) { console.error('no bass charts with audio found -- nothing checked'); process.exit(1); }

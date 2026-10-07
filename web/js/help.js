@@ -60,8 +60,12 @@ ${keys([
     ['a box round notes', 'play them together (a chord or double stop)'],
   ])}`],
   ['Your songs', `
-<p>PumaBass reads the songs straight out of your Rocksmith 2014 install: the songs on the disc, your DLC and the
-Rocksmith 1 import packs. Nothing is copied or changed there.</p>
+<p>PumaBass plays your own Rocksmith 2014 song files (<code>.psarc</code>). Choose the folder that holds them in
+<b>Settings → Song library</b>; the folders inside it are searched too, so a whole Rocksmith folder, a copied
+<code>dlc</code> folder or a USB stick all work. Nothing in it is copied or changed. Press <b>Rescan</b> after
+adding songs.</p>
+<p>The songs from the Rocksmith disc need both <code>songs.psarc</code> and <code>audio.psarc</code>: the first has
+their charts, the second their audio.</p>
 <h3>Charts without audio</h3>
 <p>Some charts arrive without their audio (the Rocksmith 1 DLC pack, for one). Drop your own recording into the
 PumaBass <code>music</code> folder, named like <code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press
@@ -73,7 +77,7 @@ goes up to 15 seconds either way for these.</p>`],
 export const ABOUT = `
 <p><b>PumaBass</b> is a note highway for the Rocksmith 2014 songs you already own, for when the game itself will
 not behave. Bass first; lead and rhythm guitar charts load too.</p>
-<p>It reads your install through a small server on this computer, and nothing leaves it. Audio is decoded with
-vgmstream. Not affiliated with Ubisoft; Rocksmith is theirs.</p>
+<p>It reads your song files through a small server on this computer, and nothing leaves it. It ships with no
+songs. Audio is decoded with vgmstream. Not affiliated with Ubisoft; Rocksmith is theirs.</p>
 <p>Developed entirely with Claude Code.</p>
 <p class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;

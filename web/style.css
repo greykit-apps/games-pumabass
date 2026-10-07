@@ -148,3 +148,13 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
   .songs-head .c-tun, .songs-head .c-len, .song .tun, .song .len { display: none; }
   #library .stage { padding: var(--s3) 0; }
 }
+
+/* the songs-folder picker */
+.gk-sheet .folder-path { display: flex; gap: 6px; margin: 4px 0 8px; }
+.gk-sheet .folder-path input { flex: 1; min-width: 0; }
+.gk-sheet .folders { display: flex; flex-direction: column; gap: 2px; max-height: min(42vh, 360px); overflow-y: auto; margin: 0 0 12px;
+  border: 1px solid var(--line); border-radius: 2px; padding: 4px; background: var(--bg); }
+.gk-sheet .folders button { text-align: left; min-height: 30px; border-color: transparent; background: none; }
+.gk-sheet .folders button:hover, .gk-sheet .folders button:focus-visible { background: var(--row); border-color: var(--lit); }
+.gk-sheet .warn { color: var(--warn); }
+.empty p { margin: 0 0 12px; }

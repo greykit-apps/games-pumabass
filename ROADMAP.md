@@ -18,6 +18,8 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 - [ ] **Play counter.** Count how many times each song is played.
 - [ ] **Favorites.** A favorite button on each song, and a filter that shows only favorites, as a personal library.
+- [ ] **Lessons.** Rocksmith's `etudes.psarc` holds 47 bass technique lessons with backing audio. Their names are
+      references into the game's string tables (`$[33430]`), so they are skipped until those tables are read.
 - [ ] **Times finished.** A "times played" count that only counts plays where the song was *finished*.
 
 ## Settings and setup
@@ -32,13 +34,13 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 PumaBass's eventual home is a Linux set-top PC with no Steam or Rocksmith on it; the song files will be
 copied over by hand.
 
-- [ ] **Ship without songs.** The app carries no song files. It is pointed at a library folder holding the
+- [x] **Ship without songs.** The app carries no song files. It is pointed at a library folder holding the
       user's own songs, chosen in Settings rather than hard-coded.
-- [ ] **Any folder of songs.** Scan the chosen folder (and its subfolders) for `.psarc` files, rather than
+- [x] **Any folder of songs.** Scan the chosen folder (and its subfolders) for `.psarc` files, rather than
       expecting a Rocksmith install's layout. Note: the on-disc songs need `songs.psarc` *and* `audio.psarc`
       copied together, since their audio lives in the second one.
-- [ ] **Runs on Linux.** A `start.sh` beside `start.bat`, the Linux build of vgmstream, and no Windows-only
-      paths or commands (today the default Rocksmith path is `D:/…` and the browser is opened with `cmd`).
+- [x] **Runs on Linux.** A `start.sh` beside `start.bat`, the Linux build of vgmstream, and no Windows-only
+      paths or commands. Tested in WSL Ubuntu 24.04; still to try on the set-top PC itself.
 
 ## Later (from earlier conversations)
 

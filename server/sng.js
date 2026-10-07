@@ -1,16 +1,19 @@
-// Decrypts and parses Rocksmith 2014 SNG (binary arrangement) files, PC flavour.
+// Decrypts and parses Rocksmith 2014 SNG (binary arrangement) files, PC or Mac.
 'use strict';
 const zlib = require('zlib');
 const crypto = require('crypto');
 
-const SNG_KEY_PC = Buffer.from('CB648DF3D12A16BF71701414E69619EC171CCA5D2A142E3E59DE7ADDA18A3A30', 'hex');
+const SNG_KEYS = {
+  pc: Buffer.from('CB648DF3D12A16BF71701414E69619EC171CCA5D2A142E3E59DE7ADDA18A3A30', 'hex'),
+  mac: Buffer.from('9821330E34B91F70D0A48CBD625993126970CEA09192C0E6CDA676CC9838289D', 'hex'),
+};
 
-function decryptSng(buf) {
+function decryptSng(buf, platform = 'pc') {
   if (buf.readUInt32LE(0) !== 0x4a) throw new Error('Bad SNG magic');
   const flags = buf.readUInt32LE(4);
   const iv = buf.subarray(8, 24);
   const payload = buf.subarray(24, buf.length - 56); // last 56 bytes are a signature
-  const d = crypto.createDecipheriv('aes-256-ctr', SNG_KEY_PC, iv);
+  const d = crypto.createDecipheriv('aes-256-ctr', SNG_KEYS[platform], iv);
   const plain = Buffer.concat([d.update(payload), d.final()]);
   if (flags & 1) {
     // Compressed: uint32 uncompressed length, then zlib stream.
@@ -38,8 +41,8 @@ function readBend(r) {
   return { time: r.f32(), step: r.f32(), _u1: r.i16(), _u2: r.u8(), _u3: r.u8() };
 }
 
-function parseSng(raw) {
-  const r = new Reader(decryptSng(raw));
+function parseSng(raw, platform = 'pc') {
+  const r = new Reader(decryptSng(raw, platform));
 
   const beats = r.arr(() => ({ time: r.f32(), measure: r.i16(), beat: r.i16(), phraseIteration: r.i32(), mask: r.i32() }));
   const phrases = r.arr(() => ({ solo: r.u8(), disparity: r.u8(), ignore: r.u8(), _pad: r.u8(), maxDifficulty: r.i32(), links: r.i32(), name: r.str(32) }));

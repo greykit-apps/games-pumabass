@@ -98,7 +98,7 @@ function titleCfg() {
     name: 'PumaBass',
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
-      { act: 'new', label: 'Learn a song', key: 'N', meta: `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` },
+      { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` : 'choose your songs folder' },
       'gap',
       { act: 'settings', label: 'Settings', key: 'S' },
       { act: 'help', label: 'Help', key: '?' },
@@ -111,7 +111,8 @@ function titleCfg() {
     settings: { html: settingsHTML, onClick: settingsClick },
     onAct: act => {
       if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t); }
-      if (act === 'new') { leaveTitle(); showLibrary(); }
+      if (act === 'new' && !songs.length) pickLibrary();
+      else if (act === 'new') { leaveTitle(); showLibrary(); }
     },
   };
 }
@@ -133,15 +134,20 @@ function settingsHTML() {
   const pick = (set, opts, cur) => `<div class='gk-row'>${opts.map(([v, l]) =>
     `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const missing = songs.filter(s => s.audio === false).length;
-  return `<h3>Highway</h3>
+  const where = !info.libraryDir ? 'No songs folder chosen yet.'
+    : `<code>${esc(info.libraryDir)}</code> · ${info.libraryFound ? `${info.archives} song ${info.archives === 1 ? 'file' : 'files'}` : 'that folder is missing'}`;
+  return `<h3>Song library</h3>
+<p class='gk-note'>${where}</p>
+<div class='gk-row'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>
+<p class='gk-note'>The folder with your Rocksmith 2014 song files (<code>.psarc</code>); the folders inside it are searched too. Rescan after adding songs.</p>
+<h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 <p class='gk-note'>How far ahead the notes appear. Longer gives more warning; shorter spreads them out.</p>
 <h3>Strings</h3>
 ${pick('invert', [['false', 'Low string at the bottom'], ['true', 'Low string on top']], prefs.invert)}
 <h3>Song list</h3>
 ${pick('missing', [['false', 'Hide charts without audio'], ['true', 'Show them']], prefs.showMissing)}
-<div class='gk-row'><button data-set='rescan'>Rescan</button></div>
-<p class='gk-note'>${missing} ${missing === 1 ? 'chart has' : 'charts have'} no audio. Recordings go in <code>${esc(info.musicDir || 'music')}</code>, named like <code>Artist - Title.mp3</code>; then Rescan. Songs are read from <code>${esc(info.rocksmithDir || '')}</code>.</p>
+<p class='gk-note'>${missing} ${missing === 1 ? 'chart has' : 'charts have'} no audio. Recordings go in <code>${esc(info.musicDir || 'music')}</code>, named like <code>Artist - Title.mp3</code>; then Rescan.</p>
 <h3>Sound</h3>
 ${pick('sound', [['on', 'On'], ['off', 'Off']], muted ? 'off' : 'on')}
 <p class='gk-note'><kbd>M</kbd> switches it anywhere, and the player's header has a switch too.</p>
@@ -166,6 +172,10 @@ async function settingsClick(b, sheet) {
       await fetch('/api/rescan');
       await loadLibrary();
       break;
+    case 'library':
+      sheet.close();
+      pickLibrary();
+      return;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
       return;
@@ -174,6 +184,82 @@ async function settingsClick(b, sheet) {
   savePrefs();
   syncPlayerPrefs();
   sheet.refresh();
+}
+
+/* The songs folder, picked from this computer's folders through the server,
+ * then scanned. From Settings, the title (with no songs yet) or the empty list. */
+async function pickLibrary() {
+  const chosen = await chooseFolder();
+  if (!chosen) return;
+  await loadLibrary();
+  const playable = songs.filter(s => s.audio !== false);
+  const bass = playable.filter(s => s.type === 'bass').length;
+  await alertSheet(chosen.songs
+    ? `Found ${new Set(playable.map(s => s.songKey)).size} songs with ${bass} bass parts in ${chosen.archives} song ${chosen.archives === 1 ? 'file' : 'files'}.`
+    : `No Rocksmith 2014 songs were found in ${chosen.libraryDir} or the folders inside it. Choose the folder that holds your .psarc song files.`, 'Songs folder');
+  if (screen === 'title') { leaveTitle(); showTitle().reveal(); }
+  else if (screen === 'library') renderLibrary();
+}
+
+function chooseFolder() {
+  return new Promise(async resolve => {
+    if (document.querySelector('.gk-sheet')) return resolve(null);
+    const { roots, start } = await fetch('/api/folders').then(r => r.json());
+    const home = roots[0];
+    let cur = null, err = '';
+    const back = document.activeElement;
+    const el = document.createElement('div');
+    el.className = 'gk-sheet';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Songs folder');
+    const into = d => cur.path + (cur.path.endsWith(cur.sep) ? '' : cur.sep) + d;
+    const draw = () => {
+      const n = cur.psarc, k = cur.dirs.length;
+      el.innerHTML = `<div class="gk-box"><div class="gk-head"><h2>Songs folder</h2><button data-x aria-label="Close">&times;</button></div>
+      <div class="gk-body">
+        <p>Pick the folder with your Rocksmith 2014 song files (<code>.psarc</code>). The folders inside it are searched too,
+        so a whole Rocksmith folder, a copied <code>dlc</code> folder or a USB stick all work.</p>
+        <div class="gk-row">${roots.map(r => `<button data-go="${esc(r)}">${esc(r === home ? 'Home' : r)}</button>`).join('')}</div>
+        <form class="folder-path"><input name="p" value="${esc(cur.path)}" aria-label="Folder" spellcheck="false" autocomplete="off"><button>Go</button></form>
+        ${err ? `<p class="gk-note warn">${esc(err)}</p>` : ''}
+        <p class="gk-note">${n ? `<b>${n}</b> song ${n === 1 ? 'file' : 'files'} right here` : 'No song files right here'}${k ? `, and ${k} ${k === 1 ? 'folder' : 'folders'} inside` : ''}.</p>
+        <div class="folders">${cur.parent ? `<button data-go="${esc(cur.parent)}">.. up</button>` : ''}${cur.dirs.map(d => `<button data-go="${esc(into(d))}">${esc(d)}</button>`).join('')}</div>
+        <div class="gk-row"><button class="primary" data-use>Use this folder</button><button data-x>Cancel</button></div>
+      </div></div>`;
+      (el.querySelector('.folders button') || el.querySelector('[data-use]')).focus({ preventScroll: true });
+    };
+    const go = async dir => {
+      const j = await fetch(`/api/folders?path=${encodeURIComponent(dir)}`).then(r => r.json()).catch(() => ({ error: "Can't reach the PumaBass server." }));
+      if (j.error) err = j.error; else { cur = j; err = ''; }
+      draw();
+    };
+    const close = v => {
+      document.removeEventListener('keydown', onKey, true);
+      el.remove();
+      if (back && back.isConnected) back.focus({ preventScroll: true });
+      resolve(v);
+    };
+    const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(null); } };
+    el.addEventListener('submit', e => { e.preventDefault(); go(el.querySelector('input[name=p]').value.trim()); });
+    el.addEventListener('click', async e => {
+      if (e.target === el) return close(null);
+      const b = e.target.closest('button');
+      if (!b || b.closest('form')) return; // the form's Go button submits it
+      if (b.hasAttribute('data-x')) return close(null);
+      if (b.dataset.go) return go(b.dataset.go);
+      if (b.hasAttribute('data-use')) {
+        b.textContent = 'Scanning';
+        const r = await fetch('/api/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dir: cur.path }) })
+          .then(r => r.json()).catch(() => ({ error: "Can't reach the PumaBass server." }));
+        if (r.error) { err = r.error; draw(); return; }
+        close(r);
+      }
+    });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(el);
+    await go(start);
+  });
 }
 
 /* Help from the song list or the player, in the title's sheet style. */
@@ -244,7 +330,9 @@ function renderLibrary() {
   $('sort').value = prefs.sort;
 
   const el = $('song-list');
-  el.innerHTML = list.length ? '' : `<div class="empty">${q ? 'No songs match that search.' : 'No songs here.'}</div>`;
+  el.innerHTML = list.length ? '' : !songs.length
+    ? '<div class="empty"><p>No songs yet. PumaBass plays your own Rocksmith 2014 song files: show it where they are.</p><button class="primary" data-act="choose">Choose your songs folder</button></div>'
+    : `<div class="empty">${q ? 'No songs match that search.' : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
   list.forEach((s, i) => {
     const row = document.createElement('div');
@@ -272,6 +360,7 @@ function renderLibrary() {
 }
 
 $('song-list').addEventListener('click', e => {
+  if (e.target.closest('[data-act=choose]')) return pickLibrary();
   const row = e.target.closest('.song');
   const s = row && songs.find(x => x.id === row.dataset.id);
   if (s && s.audio !== false) openSong(s);
@@ -376,6 +465,15 @@ async function openSong(s, startAt = 0) {
     audio.addEventListener('canplay', done); audio.addEventListener('error', done);
   });
   $('loading').classList.add('hidden');
+  if (audio.error) {
+    info = await fetch('/api/info').then(r => r.json()).catch(() => info);
+    chart = null; // nothing to resume
+    closeSong();
+    await alertSheet(info.vgmstream === false
+      ? `Song audio needs vgmstream, which isn't installed yet. In the PumaBass folder run tools/get-vgmstream.sh (on Windows, see README.md), then open "${s.title}" again.`
+      : `The audio for "${s.title}" couldn't be played.`, "Can't play the song");
+    return;
+  }
   audio.currentTime = startAt;
   pausedAt = startAt > 0.5 ? startAt : null; // Resume game counts back in, too
   liveAt = null;
@@ -656,6 +754,9 @@ loadLibrary().then(() => {
   const bass = playable.filter(s => s.type === 'bass').length;
   const waiting = songs.filter(s => s.audio === false && s.type === 'bass').length;
   showTitle();
-  return boot.finish([`${new Set(playable.map(s => s.songKey)).size} songs, ${bass} bass parts`,
-    waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio']);
+  const lines = !info.libraryDir ? ['no songs folder chosen yet']
+    : !info.libraryFound ? ['songs folder not found']
+    : [`${new Set(playable.map(s => s.songKey)).size} songs, ${bass} bass parts`, waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
+  if (!info.vgmstream) lines.push('vgmstream missing: no song audio');
+  return boot.finish(lines);
 }).then(() => title && title.reveal());
