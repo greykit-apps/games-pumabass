@@ -12,9 +12,11 @@ const MARGIN = 2;       // frets of room either side of the notes in view
 const COMFORT = 7;      // hand positions whose notes fit in this many frets share one view: no move at all
 const MAX_SPAN = 14;    // the widest a view may get to save a move
 const MIN_HOLD = 3;     // a view held for less than this is worth merging into a neighbour
-const GLIDE_GAP = 1.6;  // with at least this long between positions, glide straight across
-const ZOOM_OUT = 0.9;   // seconds to pull back before a quick jump
-const ZOOM_IN = 0.9;    // seconds to settle in after it
+const GLIDE_GAP = 3;    // with at least this long between positions, glide straight across
+const LEAD = 0.6;       // a widening edge is in place this long before the first new note
+const MOVE_MIN = 2;     // an edge takes this long to move a short way...
+const MOVE_MAX = 3.5;   // ...and this long to move a long way
+const moveTime = frets => Math.min(MOVE_MAX, Math.max(MOVE_MIN, 1.4 + 0.18 * Math.abs(frets)));
 
 export class Highway {
   constructor(canvas) {
@@ -27,7 +29,7 @@ export class Highway {
     this.invert = false;    // true = low string on top
     this.camX = 5;
     this.camWidth = MIN_VIEW;
-    this.camPath = [];
+    this.camPath = null;
   }
 
   setChart(chart, playable) {
@@ -40,17 +42,9 @@ export class Highway {
   // The camera window (centre and visible width, in frets) at song time t,
   // read off the planned path so it is the same however you got to t.
   camAt(t) {
-    const keys = this.camPath;
-    if (!keys.length) return { c: 4.5, w: MIN_VIEW };
-    if (t <= keys[0].t) return keys[0];
-    let i = 1;
-    while (i < keys.length && keys[i].t <= t) i++;
-    if (i === keys.length) return keys[keys.length - 1];
-    const a = keys[i - 1], b = keys[i];
-    const u = ease((t - a.t) / (b.t - a.t));
-    // Interpolate the edges, not centre and width: a window that contains a
-    // range at both ends then contains it all the way between.
-    const l = lerp(a.c - a.w / 2, b.c - b.w / 2, u), r = lerp(a.c + a.w / 2, b.c + b.w / 2, u);
+    const path = this.camPath;
+    if (!path) return { c: 4.5, w: MIN_VIEW };
+    const l = edgeAt(path.L, path.l0, t), r = edgeAt(path.R, path.r0, t);
     return { c: (l + r) / 2, w: r - l };
   }
 
@@ -443,10 +437,11 @@ const ease = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u)); // smoothstep
  *    COMFORT frets (no move at all). Then a shot held for less than MIN_HOLD
  *    merges into a neighbour, up to MAX_SPAN frets wide: staying zoomed out
  *    beats moving back and forth.
- * 3. Between shots, with time to spare the camera glides across the gap. On
- *    a quick jump it pulls back until both ends are in view, arriving there
- *    as the last note of the old position lands, then eases in on the new one.
- * Returns keyframes { t, c, w }: the window's centre and width in frets. */
+ * 3. Between shots, each edge of the view moves once, slowly (MOVE_MIN to
+ *    MOVE_MAX seconds). The edge that widens the view moves early, so the new
+ *    spot is on screen before its notes arrive; the edge that narrows it waits
+ *    until the old spot is finished. A long gap gets one glide instead.
+ * Returns { l0, r0, L, R }: each edge's starting fret and its moves. */
 function planCamera(notes, anchors) {
   const anchorIndex = t => {
     let lo = 0, hi = anchors.length - 1, found = 0;
@@ -497,26 +492,75 @@ function planCamera(notes, anchors) {
   // The window that shows a span of frets, kept from sliding past the nut.
   const view = (lo, hi) => {
     const w = Math.max(hi - lo + 2 * MARGIN, MIN_VIEW);
-    return { c: Math.max((lo + hi) / 2, w / 2 - 0.6), w };
+    const c = Math.max((lo + hi) / 2, w / 2 - 0.6);
+    return { l: c - w / 2, r: c + w / 2 };
   };
-  const keys = [{ t: shots[0].first - 1, ...view(shots[0].lo, shots[0].hi) }];
+
+  // Each edge of the window moves on its own track of { t0, t1, from, to } moves.
+  const first = view(shots[0].lo, shots[0].hi);
+  const path = { l0: first.l, r0: first.r, L: [], R: [] };
+  const at = { l: first.l, r: first.r }; // where each edge ends up after its last move
+  // A move starts from wherever the edge is at t0, taking over from any move
+  // still under way, so a widening edge is never late waiting its turn.
+  const move = (edge, t0, dur, to) => {
+    const track = edge === 'l' ? path.L : path.R;
+    while (track.length && track[track.length - 1].t0 >= t0) track.pop();
+    track.push({ t0, t1: t0 + dur, from: edgeAt(track, path[edge + '0'], t0), to });
+    at[edge] = to;
+    return t0 + dur;
+  };
+
   for (let i = 1; i < shots.length; i++) {
     const A = shots[i - 1], B = shots[i];
-    const a = view(A.lo, A.hi), b = view(B.lo, B.hi);
-    const prev = keys[keys.length - 1].t;
-    const tA = Math.max(A.last, prev + 0.05), tB = Math.max(B.first, tA + 0.05);
-    if (tB - tA >= GLIDE_GAP) {
-      // Time to spare: hold, then glide across, settled a little before the first new note.
-      const end = tB - 0.4, start = Math.max(tA + 0.05, end - 1.4);
-      keys.push({ t: start, ...a }, { t: end, ...b });
-    } else {
-      // A quick jump: pull back to show both ends, then ease in.
-      const both = view(Math.min(A.lo, B.lo), Math.max(A.hi, B.hi));
-      const start = Math.max(prev + 0.01, tA - ZOOM_OUT);
-      if (start < tA) keys.push({ t: start, ...a });
-      keys.push({ t: tA, ...both }, { t: Math.max(tB + 0.2, tA + ZOOM_IN), ...b });
+    const b = view(B.lo, B.hi);
+    const tA = A.last, tB = Math.max(B.first, tA);
+    const dl = b.l - at.l, dr = b.r - at.r;
+    if (!dl && !dr) continue;
+    const dur = moveTime(Math.max(Math.abs(dl), Math.abs(dr)));
+    const start = tA + 0.1;
+    if (tB - tA >= GLIDE_GAP && Math.sign(dl) === Math.sign(dr) && start + dur <= tB - LEAD + 1e-9) {
+      // Time to spare between the two: one glide across, both edges together.
+      const t0 = Math.max(start, tB - LEAD - dur - 0.5);
+      move('l', t0, dur, b.l);
+      move('r', t0, dur, b.r);
+      continue;
     }
+    // Otherwise each edge moves once. An edge that has to widen the view goes
+    // early, so the new spot is in view as its notes come in; an edge that
+    // narrows it waits until the old spot's last note is played, and until the
+    // widening is done, so the view never shrinks past either spot.
+    let widened = -Infinity;
+    if (dl < 0) widened = Math.max(widened, move('l', tB - LEAD - moveTime(dl), moveTime(dl), b.l));
+    if (dr > 0) widened = Math.max(widened, move('r', tB - LEAD - moveTime(dr), moveTime(dr), b.r));
+    if (dl > 0) move('l', Math.max(tA + 0.1, widened), moveTime(dl), b.l);
+    if (dr < 0) move('r', Math.max(tA + 0.1, widened), moveTime(dr), b.r);
   }
-  return keys;
+  // A narrowing that the next move would reverse before it finished is just
+  // wobble: drop it, and let the edge wait where it was. (Narrowing is never
+  // what keeps a note on screen, so this is always safe.)
+  for (const [track, start] of [[path.L, path.l0], [path.R, path.r0]]) {
+    const inward = (m, edgeSign) => Math.sign(m.to - m.from) === edgeSign;
+    const sign = track === path.L ? 1 : -1; // inward is up for the left edge, down for the right
+    for (let i = 1; i < track.length; i++) {
+      const prev = track[i - 1], m = track[i];
+      if (m.t0 < prev.t1 && inward(prev, sign) && !inward(m, sign)) {
+        track.splice(i - 1, 1);
+        i = Math.max(0, i - 2);
+      }
+    }
+    // Every move starts from where the edge really is by then.
+    for (let i = 0; i < track.length; i++) track[i].from = edgeAt(track.slice(0, i), start, track[i].t0);
+  }
+  return path;
 }
+
+// An edge's position at time t: the latest move begun by then decides it.
+function edgeAt(track, start, t) {
+  let lo = 0, hi = track.length - 1, m = null;
+  while (lo <= hi) { const mid = (lo + hi) >> 1; if (track[mid].t0 <= t) { m = track[mid]; lo = mid + 1; } else hi = mid - 1; }
+  if (!m) return start;
+  if (t >= m.t1) return m.to;
+  return lerp(m.from, m.to, ease((t - m.t0) / (m.t1 - m.t0)));
+}
+
 export { planCamera }; // for checking camera paths from Node

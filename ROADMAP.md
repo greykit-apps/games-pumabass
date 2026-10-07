@@ -27,6 +27,19 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 - [ ] **Tuner.** A tuner that appears automatically on the first song of the day and when the next song needs a
       different tuning, and can be opened by hand. Best paired with the Real Tone Cable input.
 
+## Platform: the Linux set-top PC
+
+PumaBass's eventual home is a Linux set-top PC with no Steam or Rocksmith on it; the song files will be
+copied over by hand.
+
+- [ ] **Ship without songs.** The app carries no song files. It is pointed at a library folder holding the
+      user's own songs, chosen in Settings rather than hard-coded.
+- [ ] **Any folder of songs.** Scan the chosen folder (and its subfolders) for `.psarc` files, rather than
+      expecting a Rocksmith install's layout. Note: the on-disc songs need `songs.psarc` *and* `audio.psarc`
+      copied together, since their audio lives in the second one.
+- [ ] **Runs on Linux.** A `start.sh` beside `start.bat`, the Linux build of vgmstream, and no Windows-only
+      paths or commands (today the default Rocksmith path is `D:/…` and the browser is opened with `cmd`).
+
 ## Later (from earlier conversations)
 
 - [ ] **Real Tone Cable.** Listen to the bass through the Real Tone Cable or an audio interface and mark notes as hit or missed.

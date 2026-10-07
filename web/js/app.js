@@ -1,6 +1,6 @@
 import { Highway } from './highway.js';
 import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel } from './chart.js';
-import { runBoot, mountTitle, bootReloadLine, injectTitleCSS } from './title.js';
+import { runBoot, mountTitle, bootReloadLine, injectTitleCSS, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
 
@@ -343,7 +343,17 @@ async function openSong(s, startAt = 0) {
   $('p-sub').textContent = `${s.artist} · ${arrangementLabel(s)}`;
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
-  chart = await (await fetch(`/api/chart/${encodeURIComponent(s.id)}`)).json();
+  try {
+    const res = await fetch(`/api/chart/${encodeURIComponent(s.id)}`);
+    if (!res.ok) throw new Error(`server said ${res.status}`);
+    chart = await res.json();
+  } catch (e) {
+    // Most likely the server's console window was closed.
+    $('loading').classList.add('hidden');
+    showLibrary();
+    await alertSheet(`PumaBass can't reach its server, so "${s.title}" didn't open. Start it again with start.bat (and leave its window open), then try once more.`, "Can't open the song");
+    return;
+  }
   const tn = tuningName(chart.tuning, chart.strings);
   const notes = tuningNotes(chart.tuning, chart.strings).join(' ');
   $('p-tuning').textContent = (tn.includes(' ') && !tn.startsWith('Drop') && !tn.endsWith('Standard') ? tn : `${tn} · ${notes}`)
