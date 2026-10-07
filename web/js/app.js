@@ -63,6 +63,24 @@ function forgetEverything() {
   location.reload();
 }
 
+/* Every request to the PumaBass server goes through api(). When one fails it
+ * throws an Error whose message is ready to show the player: the server isn't
+ * running, or it is older than this page (the page is always read fresh from
+ * disk, the server only when it starts). Nothing fails silently. */
+const START_AGAIN = 'start it again (start.bat on Windows, ./start.sh on Linux)';
+const SERVER_DOWN = `PumaBass can't reach its server: its window may have been closed. Please ${START_AGAIN} and leave that window open.`;
+const SERVER_API = 2; // must match API_VERSION in server/server.js
+const SERVER_OLD = `PumaBass was updated while it was running. To finish the update, close its window and ${START_AGAIN}.`;
+async function api(path, opts) {
+  let res;
+  try { res = await fetch(path, opts); } catch (e) { throw new Error(SERVER_DOWN); }
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* not JSON */ }
+  if (res.status === 404 && !body) throw new Error(SERVER_OLD); // an address this server doesn't know yet
+  if (!res.ok) throw new Error((body && body.error) || `The PumaBass server answered ${res.status}.`);
+  return body;
+}
+
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ---- sound (games-meta STANDARD.md §8): M anywhere, saved as "1" or "0".
@@ -169,8 +187,8 @@ async function settingsClick(b, sheet) {
     case 'sound': setMuted(v === 'off'); break;
     case 'rescan':
       b.textContent = 'Scanning';
-      await fetch('/api/rescan');
-      await loadLibrary();
+      try { await api('/api/rescan'); await loadLibrary(); }
+      catch (e) { sheet.close(); await alertSheet(e.message, "Can't rescan"); return; }
       break;
     case 'library':
       sheet.close();
@@ -189,9 +207,15 @@ async function settingsClick(b, sheet) {
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
 async function pickLibrary() {
-  const chosen = await chooseFolder();
-  if (!chosen) return;
-  await loadLibrary();
+  let chosen;
+  try {
+    chosen = await chooseFolder();
+    if (!chosen) return;
+    await loadLibrary();
+  } catch (e) {
+    await alertSheet(e.message, "Can't choose the songs folder");
+    return;
+  }
   const playable = songs.filter(s => s.audio !== false);
   const bass = playable.filter(s => s.type === 'bass').length;
   await alertSheet(chosen.songs
@@ -202,17 +226,21 @@ async function pickLibrary() {
 }
 
 function chooseFolder() {
-  return new Promise(async resolve => {
+  return new Promise(async (resolve, reject) => {
     if (document.querySelector('.gk-sheet')) return resolve(null);
-    const { roots, start } = await fetch('/api/folders').then(r => r.json());
-    const home = roots[0];
-    let cur = null, err = '';
     const back = document.activeElement;
+    // Up at once, so a click always shows something, then filled in.
     const el = document.createElement('div');
     el.className = 'gk-sheet';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', 'Songs folder');
+    el.innerHTML = '<div class="gk-box"><div class="gk-head"><h2>Songs folder</h2></div><div class="gk-body"><p>Reading your folders…</p></div></div>';
+    document.body.appendChild(el);
+    let roots, start;
+    try { ({ roots, start } = await api('/api/folders')); } catch (e) { el.remove(); return reject(e); }
+    const home = roots[0];
+    let cur = null, err = '';
     const into = d => cur.path + (cur.path.endsWith(cur.sep) ? '' : cur.sep) + d;
     const draw = () => {
       const n = cur.psarc, k = cur.dirs.length;
@@ -230,7 +258,7 @@ function chooseFolder() {
       (el.querySelector('.folders button') || el.querySelector('[data-use]')).focus({ preventScroll: true });
     };
     const go = async dir => {
-      const j = await fetch(`/api/folders?path=${encodeURIComponent(dir)}`).then(r => r.json()).catch(() => ({ error: "Can't reach the PumaBass server." }));
+      const j = await api(`/api/folders?path=${encodeURIComponent(dir)}`).catch(e => ({ error: e.message }));
       if (j.error) err = j.error; else { cur = j; err = ''; }
       draw();
     };
@@ -250,14 +278,13 @@ function chooseFolder() {
       if (b.dataset.go) return go(b.dataset.go);
       if (b.hasAttribute('data-use')) {
         b.textContent = 'Scanning';
-        const r = await fetch('/api/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dir: cur.path }) })
-          .then(r => r.json()).catch(() => ({ error: "Can't reach the PumaBass server." }));
+        const r = await api('/api/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dir: cur.path }) })
+          .catch(e => ({ error: e.message }));
         if (r.error) { err = r.error; draw(); return; }
         close(r);
       }
     });
     document.addEventListener('keydown', onKey, true);
-    document.body.appendChild(el);
     await go(start);
   });
 }
@@ -298,7 +325,7 @@ function openHelp() {
 
 /* ---- the song list ---- */
 async function loadLibrary() {
-  [songs, info] = await Promise.all([fetch('/api/songs').then(r => r.json()), fetch('/api/info').then(r => r.json())]);
+  [songs, info] = await Promise.all([api('/api/songs'), api('/api/info')]);
   if (screen === 'library') renderLibrary();
 }
 
@@ -381,8 +408,8 @@ $('library').querySelector('.bar').addEventListener('click', async e => {
   else if (b.dataset.act === 'help') openHelp();
   else if (b.dataset.act === 'rescan') {
     b.textContent = 'Scanning';
-    await fetch('/api/rescan');
-    await loadLibrary();
+    try { await api('/api/rescan'); await loadLibrary(); }
+    catch (err) { await alertSheet(err.message, "Can't rescan"); }
     b.textContent = 'Rescan';
   }
 });
@@ -433,14 +460,11 @@ async function openSong(s, startAt = 0) {
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
   try {
-    const res = await fetch(`/api/chart/${encodeURIComponent(s.id)}`);
-    if (!res.ok) throw new Error(`server said ${res.status}`);
-    chart = await res.json();
+    chart = await api(`/api/chart/${encodeURIComponent(s.id)}`);
   } catch (e) {
-    // Most likely the server's console window was closed.
     $('loading').classList.add('hidden');
     showLibrary();
-    await alertSheet(`PumaBass can't reach its server, so "${s.title}" didn't open. Start it again with start.bat (and leave its window open), then try once more.`, "Can't open the song");
+    await alertSheet(e.message, `Can't open "${s.title}"`);
     return;
   }
   const tn = tuningName(chart.tuning, chart.strings);
@@ -466,7 +490,7 @@ async function openSong(s, startAt = 0) {
   });
   $('loading').classList.add('hidden');
   if (audio.error) {
-    info = await fetch('/api/info').then(r => r.json()).catch(() => info);
+    info = await api('/api/info').catch(() => info);
     chart = null; // nothing to resume
     closeSong();
     await alertSheet(info.vgmstream === false
@@ -749,14 +773,22 @@ requestAnimationFrame(frame);
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'));
 const boot = runBoot({ lines: [bootReloadLine(), 'local server: your Rocksmith 2014 install'] });
-loadLibrary().then(() => {
+let startProblem = null;
+loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   const playable = songs.filter(s => s.audio !== false);
   const bass = playable.filter(s => s.type === 'bass').length;
   const waiting = songs.filter(s => s.audio === false && s.type === 'bass').length;
+  // A server older than this page: its code changed since it started, or it
+  // speaks an older version than this page needs.
+  if (!startProblem && (info.stale || !(info.api >= SERVER_API))) startProblem = SERVER_OLD;
   showTitle();
-  const lines = !info.libraryDir ? ['no songs folder chosen yet']
+  const lines = startProblem ? ['server: needs attention']
+    : !info.libraryDir ? ['no songs folder chosen yet']
     : !info.libraryFound ? ['songs folder not found']
     : [`${new Set(playable.map(s => s.songKey)).size} songs, ${bass} bass parts`, waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
-  if (!info.vgmstream) lines.push('vgmstream missing: no song audio');
+  if (!startProblem && !info.vgmstream) lines.push('vgmstream missing: no song audio');
   return boot.finish(lines);
-}).then(() => title && title.reveal());
+}).then(async () => {
+  if (title) title.reveal();
+  if (startProblem) await alertSheet(startProblem, 'PumaBass needs a restart');
+});

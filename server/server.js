@@ -16,6 +16,16 @@ const { Library } = require('./library');
 const APP_DIR = path.resolve(__dirname, '..');
 const CONFIG_FILE = path.join(APP_DIR, 'config.json');
 
+// The page is read fresh from disk on every load, but this code only when the
+// server starts. If it changes on disk while running (an update), say so, so
+// the page can ask for a restart rather than talk to an older server.
+const codeStamp = () => fs.readdirSync(__dirname).filter(f => f.endsWith('.js'))
+  .map(f => `${f}:${fs.statSync(path.join(__dirname, f)).mtimeMs}`).join('|');
+const STARTED_WITH = codeStamp();
+// What the page and this server agree on. Raise it, here and in web/js/app.js,
+// when the page starts needing something an older server doesn't have.
+const API_VERSION = 2;
+
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
 }
@@ -152,6 +162,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, {
         libraryDir: lib.root, libraryFound: !!(lib.root && fs.existsSync(lib.root)), archives: lib.archiveCount,
         musicDir: lib.musicDir, platform: process.platform, vgmstream: !!findVgmstream(),
+        stale: codeStamp() !== STARTED_WITH,
+        api: API_VERSION,
       });
     }
     if (p === '/api/rescan') {
