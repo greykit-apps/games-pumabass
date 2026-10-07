@@ -81,14 +81,21 @@ song's audio offset (`,`), which goes up to ±15 s for these. It is remembered p
 
 ## Timing
 
-**Settings → Timing → Calibrate** lines the notes up with the sound on this computer: two ten-second
-tap-alongs, one listening to clicks (tap with what you hear) and one watching notes fall onto a line
-(tap as they land). Each measures how late your taps are; the sound's delay is only in the first, the
-picture's only in the second, and your own reaction is in both, so their difference is how much later
-the sound reaches you than the picture. That becomes an offset for every song (nudge it by 10 ms in
-Settings), and a song's own offset (`,`) adds to it. Tap with any key, a click or tap, or a strum on the
-Real Tone Cable. Run it again when you change speakers, headphones or screen: Bluetooth and TVs
-add delay.
+**Settings → Timing → Sync test** lines up the notes, the sound and the cable, in half a minute on
+the highway itself. It plays like a short song in two passes:
+
+- **Watch:** no sound; notes at the 12th fret on the D and G strings (where a pluck is clearest).
+  Play each one as it lands.
+- **Listen:** no notes; clicks. Close your eyes and play along.
+
+Each pass measures how late your playing is. Your own feel and the cable's delay are in both; the
+picture's delay only in Watch, the sound's only in Listen. So Listen minus Watch is how much later the
+sound reaches you than the picture: the offset for every song's notes (nudge it by 10 ms in Settings;
+a song's own offset, `,`, adds to it). And with the Real Tone Cable open, Watch is how late your plucks
+reach PumaBass against the notes you see: the allowance scoring makes for the cable. Plucks are found
+the way scoring finds them, through the same clock, so what the test measures is what scoring sees.
+Without the cable, tap any key or click; that sets the notes' offset only. Run it again when you change
+speakers, headphones or screen: Bluetooth and TVs add delay.
 
 ## Real Tone Cable and the tuner
 
@@ -138,12 +145,22 @@ or late), a strip of the song coloured by section, and your best accuracy over f
   harmonics, the pluck; chords, the pluck alone (a wrong chord shape isn't caught).
 - The input is recorded continuously on the audio thread (`web/js/capture-worklet.js`), stamped with
   the audio clock, so judging doesn't depend on the screen's frame rate.
+- A pluck is a jump in the input's high end against the stretch just before it, averaged over more than
+  a period of the lowest string: a low note's waveform spikes once a period, and those spikes must not
+  count as plucks (`node tools/check-plucks.mjs` checks this, from a 5-string's low B to the 12th fret).
+- Run the **Sync test** with the cable first: it sets how late your plucks reach PumaBass.
+
+**Takes, for tuning.** If notes you played are marked missed, **Save take** (on the end screen with `S`,
+or in the Mix panel) writes what the cable heard, with the song's notes and each verdict, to `takes/` in
+the PumaBass folder (your playing stays on your computer; git ignores it). Then
+`node tools/replay-take.mjs "takes/<name>.json" --notes` replays it through scoring exactly as it ran and
+shows, note by note and by string and fret, why each miss was a miss.
 
 `node tools/check-scoring.mjs` plays synthesized performances of six songs from your library (human
 timing, stiff strings, weak fundamentals, plus skipped notes, wrong frets, the octave above, and badly
 timed plucks) and a timing sweep at full and 70% speed. On 2,104 notes: 99.1% of right notes score as
-hits (hammer-ons and pull-offs 98%, chords 100%); wrong frets and skipped notes get through 0% of the
-time, the octave above 2%; the timing windows are exact. It needs the songs, so it runs locally.
+hits (hammer-ons and pull-offs 94 to 98%, chords 100%); wrong frets and skipped notes get through 0% of
+the time, the octave above 2%; the timing windows are exact. It needs the songs, so it runs locally.
 
 ## Settings file and options
 

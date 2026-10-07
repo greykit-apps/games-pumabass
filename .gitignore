@@ -12,3 +12,6 @@ tools/vgmstream/
 config.json
 
 node_modules/
+
+# Takes saved for tuning the scoring (your playing)
+takes/

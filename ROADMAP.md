@@ -26,6 +26,8 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 - [x] **Calibrate the offset.** Settings gets a global audio/video offset with a calibration test: the player taps,
       clicks or strums along with what they see as "in time", and the measured difference sets the offset.
+- [x] **Sync test on the highway.** The calibration plays on the real highway: 12th-fret notes to pluck as they land,
+      then clicks with eyes closed. With the cable it also sets scoring's allowance for the cable's delay.
 - [x] **Tuner.** A tuner that appears automatically on the first song of the day and when the next song needs a
       different tuning, and can be opened by hand. Best paired with the Real Tone Cable input.
       Done with the Real Tone Cable input; still to try with a real cable.
@@ -51,6 +53,9 @@ copied over by hand.
       scoring. Space goes to the main menu with no game to resume; R plays again; Esc, the song list.
 - [x] **Scoring.** Notes marked hit or missed from the input (on a Scoring switch); accuracy, best streak, timing and
       a per-section strip on the end screen; best accuracy per song. Still to try with a real cable.
+- [x] **Low notes in scoring.** The pluck detector took a low string's once-a-period spike for new plucks, so low
+      notes went missed; it now compares against more than a period. Takes (`Save take`) and
+      `tools/replay-take.mjs` show why any miss was a miss, to tune against a real cable.
 - [ ] **Chords in scoring.** Chords count on the pluck alone; telling which notes are ringing would catch wrong shapes.
 - [x] **Balance.** A mix with your bass boosted (up to +30 dB) against the song, meters on both, and a limiter.
 - [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).

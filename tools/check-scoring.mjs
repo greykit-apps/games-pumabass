@@ -35,7 +35,10 @@ const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.
 function voice(buf, t, dur, freq, { click = true, weak = false, amp = 0.25 } = {}) {
   const i0 = Math.round(t * SR), n = Math.round((dur + 0.02) * SR);
   const harm = weak ? [0.3, 1, 0.6, 0.4, 0.25, 0.15] : [1, 0.65, 0.4, 0.25, 0.15, 0.1];
-  const B = 0.00025, ph = harm.map(() => rnd() * 6.28);
+  // A plucked string's harmonics start in step: its waveform has a sharp spike
+  // once a period, which a low note spaces far apart (and a pluck detector must
+  // not take for plucks).
+  const B = 0.00025, ph = harm.map(() => 0);
   for (let k = 0; k < n && i0 + k < buf.length; k++) {
     if (i0 + k < 0) continue;
     const tt = k / SR;

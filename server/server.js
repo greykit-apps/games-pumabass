@@ -24,7 +24,7 @@ const codeStamp = () => fs.readdirSync(__dirname).filter(f => f.endsWith('.js'))
 const STARTED_WITH = codeStamp();
 // What the page and this server agree on. Raise it, here and in web/js/app.js,
 // when the page starts needing something an older server doesn't have.
-const API_VERSION = 2;
+const API_VERSION = 3;
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
@@ -109,6 +109,39 @@ function readBody(req) {
   });
 }
 
+/* A request's raw bytes, up to max. */
+function readRaw(req, max) {
+  return new Promise((resolve, reject) => {
+    const parts = [];
+    let n = 0;
+    req.on('data', c => { n += c.length; if (n > max) { req.destroy(); reject(new Error('too big')); } else parts.push(c); });
+    req.on('end', () => resolve(Buffer.concat(parts)));
+    req.on('error', reject);
+  });
+}
+
+/* A take: what the instrument input heard during a play, saved so scoring can
+ * be studied and tuned against real playing. The body is a 4-byte length, that
+ * much JSON (the chart, the clock and the verdicts), then 16-bit samples.
+ * Written as a WAV and a JSON side by side in takes/. */
+const TAKES_DIR = path.join(APP_DIR, 'takes');
+function saveTake(body) {
+  const len = body.readUInt32LE(0);
+  const meta = JSON.parse(body.subarray(4, 4 + len).toString('utf8'));
+  const pcm = body.subarray(4 + len);
+  const sr = Number(meta.sampleRate) || 48000;
+  const head = Buffer.alloc(44);
+  head.write('RIFF', 0); head.writeUInt32LE(36 + pcm.length, 4); head.write('WAVE', 8); head.write('fmt ', 12);
+  head.writeUInt32LE(16, 16); head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22); head.writeUInt32LE(sr, 24);
+  head.writeUInt32LE(sr * 2, 28); head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34); head.write('data', 36); head.writeUInt32LE(pcm.length, 40);
+  fs.mkdirSync(TAKES_DIR, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+  const name = `${stamp} ${String(meta.title || 'take').replace(/[^\w .()&'-]+/g, '').slice(0, 60).trim()}`;
+  fs.writeFileSync(path.join(TAKES_DIR, `${name}.wav`), Buffer.concat([head, pcm]));
+  fs.writeFileSync(path.join(TAKES_DIR, `${name}.json`), JSON.stringify(meta));
+  return path.join(TAKES_DIR, `${name}.wav`);
+}
+
 /* Places to start looking for a songs folder: home, removable drives and
  * mounts on Linux, drive letters on Windows. */
 function folderRoots() {
@@ -185,6 +218,13 @@ const server = http.createServer(async (req, res) => {
       lib.setRoot(full);
       loadLibrary();
       return sendJson(res, { libraryDir: full, songs: lib.songs.length, archives: lib.archiveCount });
+    }
+    if (p === '/api/takes' && req.method === 'POST') {
+      // Raw bytes only: a cross-site form cannot send this type without asking first.
+      if (req.headers['content-type'] !== 'application/octet-stream') return sendJson(res, { error: 'bytes only' }, 415);
+      const file = saveTake(await readRaw(req, 300e6));
+      console.log(`Saved a take: ${file}`);
+      return sendJson(res, { file });
     }
     let m;
     if ((m = /^\/api\/chart\/(.+)$/.exec(p))) {

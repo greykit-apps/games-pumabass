@@ -58,9 +58,11 @@ your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 <p><b>Difficulty</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
-<p>Speakers, TVs and Bluetooth all delay the sound a little, and screens the picture. <b>Settings → Timing →
-Calibrate</b> measures it: two ten-second tap-alongs, one listening to clicks and one watching notes land. The
-difference is set for every song. Run it again after changing speakers, headphones or screen.</p>
+<p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
+<b>Settings → Timing → Sync test</b> measures all three, on the highway: first play the notes as they land
+(12th fret, D and G strings), then close your eyes and play along with clicks. With the Real Tone Cable open,
+pluck; it sets the notes' timing for every song and scoring's timing for the cable. Without it, tap any key or
+click, and it sets the notes' timing. Run it again after changing speakers, headphones or screen.</p>
 <p>For one song only (say, your own recording of it), open the song's settings with <kbd>,</kbd> and nudge its
 <b>audio offset</b>; it adds to the calibrated one.</p>`],
   ['Tuner', `
@@ -95,7 +97,11 @@ Hammer-ons and pull-offs need the new pitch, with no pluck. Muted notes and harm
 on the pluck alone: one cable can't reliably tell which several notes are ringing, so a wrong chord shape isn't
 caught.</p>
 <p>Turn scoring off in Settings or the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
-input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>`],
+input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
+<h3>Many misses?</h3>
+<p>Run the <b>Sync test</b> (Settings → Timing) with the cable open: it measures how late your plucks reach
+PumaBass, and scoring allows for it. If right notes are still marked missed, <b>Save take</b> (<kbd>S</kbd> on the end
+screen, or in the Mix panel) keeps what the cable heard in the PumaBass folder, to find out why.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and

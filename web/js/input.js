@@ -5,6 +5,8 @@
 /** The Real Tone Cable calls itself "Rocksmith Guitar Adapter" to the computer. */
 export const isRealTone = label => /rocksmith|guitar adapter|real\s*tone/i.test(label || '');
 
+const TAPE_MAX = 20 * 60; // s: the longest take kept
+
 export class InstrumentInput {
   /** mixer: where the input goes to be heard (its context is used too). */
   constructor(mixer) {
@@ -23,6 +25,10 @@ export class InstrumentInput {
     this.ringT0 = 0;
     this.capture = null;
     this.buf = null;
+    // A take: the whole of a play's input, kept (as 16-bit samples) while
+    // taping is on, so it can be saved and studied. { chunks, t0s, samples }
+    this.taping = false;
+    this.tape = null;
     this.onchange = null;    // called when the input opens, closes or is unplugged
   }
 
@@ -117,7 +123,17 @@ export class InstrumentInput {
     if (this.written === 0 || Math.abs(this.ringT0 + this.written / sr - t0) > 0.002) { this.written = 0; this.ringT0 = t0; }
     for (let i = 0; i < x.length; i++) this.ring[(this.written + i) % this.ring.length] = x[i];
     this.written += x.length;
+    if (this.taping && this.tape && this.tape.samples < TAPE_MAX * sr) {
+      const q = new Int16Array(x.length);
+      for (let i = 0; i < x.length; i++) q[i] = Math.max(-32768, Math.min(32767, Math.round(x[i] * 32767)));
+      this.tape.chunks.push(q);
+      this.tape.t0s.push(t0);
+      this.tape.samples += x.length;
+    }
   }
+
+  /** Start a new take (any earlier one is dropped). */
+  startTape() { this.tape = { chunks: [], t0s: [], samples: 0 }; }
 
   /**
    * The input between audio-clock times c0 and c1: { x, c0 }; 'later' when

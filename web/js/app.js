@@ -6,7 +6,7 @@ import { HELP, ABOUT } from './help.js';
 import { InstrumentInput, isRealTone } from './input.js';
 import { openTuner, tuningTargets, tuningKey } from './tuner.js';
 import { Mixer, RECORDED_BASS } from './mixer.js';
-import { calibrate } from './calibrate.js';
+import { syncTest, SyncMeter, syncCue, syncResult } from './calibrate.js';
 import { Scorer } from './scoring.js';
 
 const $ = id => document.getElementById(id);
@@ -65,6 +65,7 @@ const prefs = Object.assign({
   favOnly: false,   // the song list shows favorites only
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
   scoring: true,    // score the playing (only ever while an instrument input is open)
+  inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 delete prefs.hearLast;
@@ -110,7 +111,7 @@ function forgetEverything() {
  * disk, the server only when it starts). Nothing fails silently. */
 const START_AGAIN = 'start it again (start.bat on Windows, ./start.sh on Linux)';
 const SERVER_DOWN = `PumaBass can't reach its server: its window may have been closed. Please ${START_AGAIN} and leave that window open.`;
-const SERVER_API = 2; // must match API_VERSION in server/server.js
+const SERVER_API = 3; // must match API_VERSION in server/server.js
 const SERVER_OLD = `PumaBass was updated while it was running. To finish the update, close its window and ${START_AGAIN}.`;
 async function api(path, opts) {
   let res;
@@ -217,9 +218,9 @@ ${pick('scoring', [['true', 'On'], ['false', 'Off']], prefs.scoring)}
 ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <p class='gk-note'>Opens the tuner on your first song of the day, and when a song needs a different tuning from the last.</p>
 <h3>Timing</h3>
-<p class='gk-note'>For every song, the notes land <b>${fmtMs(prefs.avOffset)}</b>${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}, to match this computer's sound and picture.</p>
-<div class='gk-row'><button data-set='calibrate'>Calibrate</button><button data-set='av' data-v='-10'>&minus;10 ms</button><button data-set='av' data-v='10'>+10 ms</button><button data-set='av' data-v='0'>Reset</button></div>
-<p class='gk-note'>Calibrate is two ten-second tap-alongs. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
+<p class='gk-note'>For every song, the notes land <b>${fmtMs(prefs.avOffset)}</b>${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}, to match this computer's sound and picture. Scoring allows <b>${fmtMs(prefs.inputOffset)}</b> for the cable.</p>
+<div class='gk-row'><button data-set='calibrate'>Sync test</button><button data-set='av' data-v='-10'>&minus;10 ms</button><button data-set='av' data-v='10'>+10 ms</button><button data-set='av' data-v='0'>Reset</button></div>
+<p class='gk-note'>Half a minute on the highway: play the notes as they land, then play along with clicks, eyes closed. With the Real Tone Cable open it sets scoring's timing too; without it, tap any key. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
 <h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 <p class='gk-note'>How far ahead the notes appear. Longer gives more warning; shorter spreads them out.</p>
@@ -268,7 +269,9 @@ async function settingsClick(b, sheet) {
     case 'rb': setRecordedBass(v); break;
     case 'autotune': prefs.autoTune = v === 'true'; break;
     case 'scoring': prefs.scoring = v === 'true'; break;
-    case 'av': prefs.avOffset = Number(v) === 0 ? 0 : prefs.avOffset + Number(v); break;
+    case 'av':
+      if (Number(v) === 0) { prefs.avOffset = 0; prefs.inputOffset = 0; } else prefs.avOffset += Number(v);
+      break;
     case 'calibrate':
       sheet.close();
       runCalibration();
@@ -287,13 +290,78 @@ async function settingsClick(b, sheet) {
 /* ---- timing ---- */
 const fmtMs = ms => `${ms > 0 ? '+' : ms < 0 ? '\u2212' : ''}${Math.abs(Math.round(ms))} ms`;
 
+/* The sync test (web/js/calibrate.js) runs in the player as a short song of
+ * its own; calib holds it while it runs, and the screen to go back to. */
+let calib = null;
+
 async function runCalibration() {
-  const offset = await calibrate({ mixer, input: input.open ? input : null, current: prefs.avOffset });
-  if (offset === null) return;
-  prefs.avOffset = offset;
-  savePrefs();
-  showOffset();
-  await alertSheet(`Timing set: for every song, the notes land ${fmtMs(offset)}${offset ? (offset > 0 ? ' later' : ' earlier') : ''}. You can nudge it in Settings.`, 'Timing');
+  if (prefs.input) await ensureInput({ ask: false }); // the cable, if it was chosen and is plugged in
+  const test = syncTest();
+  calib = { test, meter: new SyncMeter(test.targets), back: screen };
+  if (screen === 'title') leaveTitle();
+  closeEndScreen();
+  song = { id: test.chart.id, title: 'Sync test', artist: 'PumaBass', type: 'bass', calib: true };
+  chart = test.chart;
+  screen = 'player';
+  $('library').classList.add('hidden');
+  $('player').classList.remove('hidden');
+  $('loading').classList.remove('hidden');
+  $('p-title').textContent = 'Sync test';
+  $('p-sub').textContent = input.open ? 'Pluck along: it times the highway, the sound and the cable' : 'Tap along: it times the highway and the sound';
+  $('p-tuning').textContent = '12th fret \u00b7 D and G strings';
+  offsetMs = 0;
+  $('offset').value = 0; showOffset();
+  loop = null;
+  renderLoop();
+  applyDifficulty();
+  buildSectionBar();
+  audio.src = test.url;
+  await new Promise(resolve => { audio.addEventListener('canplay', resolve, { once: true }); });
+  $('loading').classList.add('hidden');
+  audio.currentTime = 0;
+  pausedAt = null;
+  liveAt = null;
+  session = null;
+  showFav();
+  setSpeed(100);
+  updatePlayButton();
+  startScoring();
+}
+
+/* A tap (a key or a click) during the test, at the event's moment. */
+function syncTap(e) {
+  if (!calib || audio.paused) return;
+  const t = songTime() - ((performance.now() - e.timeStamp) / 1000) * audio.playbackRate;
+  const tg = calib.meter.tap(t, audio.playbackRate);
+  if (tg && tg.ev && !input.open) highway.mark(tg.ev, true);
+}
+
+async function finishSync() {
+  const current = { av: prefs.avOffset, input: prefs.inputOffset };
+  const res = calib.meter.result(current, input.open);
+  const choice = await syncResult(res, current);
+  if (choice === 'retry') {
+    calib.meter.reset();
+    seek(0);
+    return;
+  }
+  if (choice === 'use') {
+    if (res.av !== null) prefs.avOffset = res.av;
+    if (res.input !== null) prefs.inputOffset = res.input;
+    savePrefs();
+  }
+  endSync();
+  if (choice === 'use') {
+    await alertSheet(`Timing set. For every song, the notes land ${fmtMs(prefs.avOffset)}${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}${res.input !== null ? `, and scoring allows ${fmtMs(prefs.inputOffset)} for the cable` : ''}. You can nudge the notes in Settings.`, 'Sync test');
+  }
+}
+
+function endSync() {
+  const { back, test } = calib;
+  calib = null;
+  leaveSong();
+  URL.revokeObjectURL(test.url);
+  if (back === 'title') showTitle().reveal(); else showLibrary();
 }
 
 /* ---- the instrument input and the tuner ---- */
@@ -472,7 +540,7 @@ async function maybeAutoTune() {
 document.addEventListener('pointerdown', () => mixer.resume(), true);
 document.addEventListener('keydown', () => mixer.resume(), true);
 // For tests: feed any MediaStream in as the instrument (e.g. an oscillator).
-window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b) };
+window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
@@ -807,12 +875,14 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
 }
 
 function saveResume() {
-  if (song && chart) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
+  if (song && chart && !song.calib) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
 }
 
 /* Stop the song and put the player away. */
 function leaveSong() {
   scorer = null;
+  input.tape = null; input.taping = false; take = null;
+  $('calib-cue').classList.add('hidden');
   updateHud();
   audio.pause();
   audio.removeAttribute('src');
@@ -824,6 +894,7 @@ function leaveSong() {
 }
 
 function closeSong() {
+  if (calib) { endSync(); return; }
   saveResume();
   leaveSong();
   showLibrary();
@@ -845,9 +916,41 @@ const sectionIndex = t => chart.sections.findIndex(x => x.t <= t && t < x.end);
 
 /* Score while it is on and an input is open; otherwise, not at all. */
 function startScoring() {
-  scorer = prefs.scoring && input.open && chart ? new Scorer(chart, highway.notes, sectionIndex) : null;
+  scorer = prefs.scoring && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex) : null;
   if (scorer) scorer.seek(songTime());
+  // The take: what the input heard, with the clock and the verdicts, to save for tuning.
+  if (scorer) { input.startTape(); take = { syncs: [], verdicts: [] }; } else { input.tape = null; take = null; }
   updateHud();
+}
+let take = null;
+
+/* Save the take so far to the PumaBass folder (takes/): the playing, the song's
+ * notes and how each was judged, to study and tune scoring with. */
+async function saveTake() {
+  const tape = input.tape;
+  if (!tape || !tape.samples || !take || !chart) { toast('Nothing to save yet: play with scoring on.'); return false; }
+  const { levels, ...songChart } = chart;
+  const meta = {
+    title: `${song.title} (${arrangementLabel(song)})`, artist: song.artist, songId: song.id,
+    difficulty: prefs.difficulty, sampleRate: input.sampleRate, input: input.label,
+    latency: input.latency, inputOffset: prefs.inputOffset, avOffset: prefs.avOffset, offsetMs, bassBoost: prefs.bassBoost,
+    chunks: tape.chunks.map(c => c.length), t0s: tape.t0s,
+    syncs: take.syncs, verdicts: take.verdicts, chart: songChart, notes: highway.notes,
+  };
+  const json = new TextEncoder().encode(JSON.stringify(meta));
+  const len = new DataView(new ArrayBuffer(4));
+  len.setUint32(0, json.length, true);
+  toast('Saving the take\u2026');
+  try {
+    const r = await fetch('/api/takes', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: new Blob([len, json, ...tape.chunks]) });
+    if (!r.ok) throw new Error(r.status === 404 ? SERVER_OLD : `The server said ${r.status}.`);
+    const { file } = await r.json();
+    toast(`Take saved: takes/${file.split(/[\\/]/).pop()}`);
+    return true;
+  } catch (e) {
+    await alertSheet(e.message === 'Failed to fetch' ? SERVER_DOWN : e.message, "Can't save the take");
+    return false;
+  }
 }
 
 /* The input for song time t0..t1: the audio clock at song time T is this
@@ -855,10 +958,11 @@ function startScoring() {
  * delay. Returned in real time, with the song time of its first sample. */
 function inputBetween(t0, t1) {
   if (!sync) return null;
-  const ctxOf = T => sync.ctx - (sync.song - T) / sync.rate + input.latency;
+  const lat = input.latency + prefs.inputOffset / 1000;
+  const ctxOf = T => sync.ctx - (sync.song - T) / sync.rate + lat;
   const seg = input.segment(ctxOf(t0), ctxOf(t1));
   if (!seg || seg === 'later') return seg;
-  return { x: seg.x, sr: input.sampleRate, t0: sync.song - (sync.ctx - (seg.c0 - input.latency)) * sync.rate };
+  return { x: seg.x, sr: input.sampleRate, t0: sync.song - (sync.ctx - (seg.c0 - lat)) * sync.rate };
 }
 
 function updateHud() {
@@ -887,6 +991,7 @@ function seek(t, chosen = true) {
   audio.currentTime = Math.max(0, Math.min(t, (audio.duration || chart.songLength) - 0.05));
   clock.raw = audio.currentTime; clock.stamp = performance.now();
   if (scorer) scorer.seek(songTime()); // carry on judging from here
+  if (calib) calib.meter.seek(songTime());
 }
 
 function togglePlay() {
@@ -914,8 +1019,8 @@ function renderOverlay() {
   else if (audio.paused) {
     mode = 'paused';
     liveShownAt = 0;
-    big = 'PAUSED';
-    small = pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
+    big = calib && pausedAt === null && audio.currentTime < 0.5 ? 'SYNC TEST' : 'PAUSED';
+    small = big === 'SYNC TEST' ? `Press <kbd>Space</kbd> to start &middot; ${input.open ? 'pluck' : 'tap any key'} as each note lands, then with the clicks` : pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
   } else if (liveAt !== null) {
     const left = (liveAt - audio.currentTime) / audio.playbackRate;
     if (left > 0) { mode = 'count'; big = String(Math.ceil(left)); small = 'back in at ' + formatTime(liveAt); liveShownAt = 0; }
@@ -955,13 +1060,15 @@ function checkFinished(t) {
 }
 
 function showFav() {
+  $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
   $('fav-btn').textContent = on ? '\u2605' : '\u2606';
 }
-$('fav-btn').addEventListener('click', () => { if (song) { toggleFav(song.id); showFav(); } });
+$('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
 audio.addEventListener('ended', () => {
+  if (calib) { updatePlayButton(); finishSync(); return; }
   checkFinished(Infinity);
   updatePlayButton();
   pausedAt = null;
@@ -1037,6 +1144,7 @@ function showEndScreen() {
       <button class="primary" data-end="menu"><kbd>Space</kbd>Main menu</button>
       <button data-end="again"><kbd>R</kbd>Play again</button>
       <button data-end="list"><kbd>Esc</kbd>Song list</button>
+      ${input.tape && input.tape.samples ? '<button data-end="take" title="Saves what the cable heard, with how each note was judged, in the PumaBass folder (takes), for tuning the scoring"><kbd>S</kbd>Save take</button>' : ''}
     </div>
   </div>`;
   const act = what => {
@@ -1044,6 +1152,10 @@ function showEndScreen() {
     if (what === 'menu') { leaveSong(); showTitle().reveal(); }
     else if (what === 'list') { leaveSong(); showLibrary(); }
     else if (what === 'again') { leaveSong(); openSong(s); }
+    else if (what === 'take') {
+      const b = el.querySelector('[data-end="take"]');
+      if (b && !b.disabled) { b.disabled = true; saveTake().then(ok => { if (ok) b.innerHTML = 'Take saved &#10003;'; else b.disabled = false; }); }
+    }
   };
   el.addEventListener('click', e => { const b = e.target.closest('[data-end]'); if (b) act(b.dataset.end); });
   el.onKey = e => {
@@ -1052,6 +1164,7 @@ function showEndScreen() {
     const k = e.key;
     if (k === ' ' || (k === 'Enter' && !e.target.closest('button'))) { e.preventDefault(); act('menu'); }
     else if (k === 'r' || k === 'R') { e.preventDefault(); act('again'); }
+    else if (k === 's' || k === 'S') { e.preventDefault(); act('take'); }
     else if (k === 'Escape') { e.preventDefault(); act('list'); }
   };
   document.addEventListener('keydown', el.onKey, true);
@@ -1158,6 +1271,7 @@ $('hear').addEventListener('change', async () => {
   applyMix();
   syncPlayerPrefs();
 });
+$('save-take').addEventListener('click', () => saveTake());
 $('score-toggle').addEventListener('change', () => { prefs.scoring = $('score-toggle').checked; savePrefs(); if (screen === 'player') startScoring(); });
 $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
 $('lookahead').addEventListener('input', () => { prefs.lookahead = Number($('lookahead').value); highway.lookahead = prefs.lookahead; savePrefs(); syncPlayerPrefs(); });
@@ -1189,9 +1303,11 @@ function showOffset() {
 function setOffset(ms) {
   offsetMs = Math.max(Number($('offset').min), Math.min(Number($('offset').max), ms));
   $('offset').value = offsetMs;
-  const all = load(KEY_OFFSETS, {});
-  if (offsetMs) all[song.id] = offsetMs; else delete all[song.id];
-  save(KEY_OFFSETS, all);
+  if (!song.calib) {
+    const all = load(KEY_OFFSETS, {});
+    if (offsetMs) all[song.id] = offsetMs; else delete all[song.id];
+    save(KEY_OFFSETS, all);
+  }
   showOffset();
 }
 for (const b of document.querySelectorAll('[data-nudge]')) b.addEventListener('click', () => setOffset(offsetMs + Number(b.dataset.nudge)));
@@ -1228,10 +1344,16 @@ document.addEventListener('keydown', e => {
   if (document.querySelector('.gk-sheet')) return; // an open sheet has the keys
   const typing = !!(e.target.closest && e.target.closest('input[type=search],input[type=text],select'));
   if ((e.key === 'm' || e.key === 'M') && !typing) { e.preventDefault(); setMuted(!muted); return; }
+  if (calib && screen === 'player' && !audio.paused && e.key !== ' ' && e.key !== 'Escape') {
+    e.preventDefault();
+    if (!e.repeat) syncTap(e);
+    return;
+  }
   if (screen === 'library') libraryKey(e, typing);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
 
+$('highway').addEventListener('pointerdown', e => { if (calib) syncTap(e); });
 $('highway').addEventListener('wheel', e => {
   if (!chart || !audio.paused) return;
   e.preventDefault();
@@ -1267,7 +1389,22 @@ function frame() {
     } else if (session) session.lastT = null;
     if (!audio.paused) {
       sync = { song: t, ctx: mixer.ctx.currentTime, rate: audio.playbackRate };
-      if (scorer && input.open) { scorer.update(t, audio.playbackRate, inputBetween, (ev, r) => highway.mark(ev, r.hit)); updateHud(); }
+      if (scorer && input.open) {
+        if (take) take.syncs.push([Math.round(t * 1e4) / 1e4, Math.round(sync.ctx * 1e5) / 1e5, sync.rate]);
+        scorer.update(t, audio.playbackRate, inputBetween, (ev, r) => {
+          highway.mark(ev, r.hit);
+          if (take) take.verdicts.push([ev.t, r.hit ? 1 : 0, r.why || '', r.offset === null ? null : Math.round(r.offset * 1e4) / 1e4]);
+        });
+        updateHud();
+      }
+      if (calib && input.open) calib.meter.update(t, audio.playbackRate, inputBetween, (tg, heard) => { if (tg.ev) highway.mark(tg.ev, heard); });
+    }
+    input.taping = !!(scorer && !audio.paused);
+    if (calib) {
+      const cue = $('calib-cue'), c = syncCue(t, calib.meter, input.open);
+      cue.classList.toggle('hidden', audio.paused);
+      if (cue.dataset.big !== c.big) { cue.dataset.big = c.big; cue.firstElementChild.textContent = c.big; }
+      if (cue.lastElementChild.textContent !== c.small) cue.lastElementChild.textContent = c.small;
     }
     if (!$('settings').classList.contains('hidden')) {
       for (const [id, which] of [['song-meter', 'song'], ['bass-meter', 'bass']]) {

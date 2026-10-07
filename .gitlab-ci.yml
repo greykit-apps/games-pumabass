@@ -11,3 +11,5 @@ validate:
     - node tools/check-assets.js
     - node tools/check-syntax.mjs
     - node tools/check-pitch.mjs
+    - node tools/check-sync.mjs
+    - node tools/check-plucks.mjs

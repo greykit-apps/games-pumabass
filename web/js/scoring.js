@@ -33,9 +33,14 @@ export function noteFreq(part, chart) {
  * Plucks in a stretch of samples: times (s from the stretch's start) where
  * the first difference's energy -- the high end, where a pluck's click is --
  * jumps well above what it was just before.
+ * "Just before" is averaged over BEFORE, longer than a period of the lowest
+ * bass string: a low note's waveform has a sharp spike once a period, and
+ * against a quiet moment between two spikes, every spike would look like a
+ * pluck. Each window is long enough to hold a good part of a period, too.
  */
+const BEFORE = 0.044;
 export function onsets(x, sr) {
-  const hop = Math.round(0.004 * sr), win = Math.round(0.008 * sr);
+  const hop = Math.round(0.004 * sr), win = Math.round(0.012 * sr);
   const env = [];
   for (let i = 1; i + win < x.length; i += hop) {
     let e = 0;
@@ -44,21 +49,24 @@ export function onsets(x, sr) {
   }
   const sorted = [...env].sort((a, b) => a - b);
   const floor = Math.max(1e-7, sorted[Math.floor(sorted.length * 0.2)] * 4);
+  const gap = Math.ceil(win / hop), span = Math.round(BEFORE * sr / hop); // windows clear of this one; how many to average
   const out = [];
   let last = -1;
-  for (let i = 3; i < env.length; i++) {
-    let before = Infinity;
-    for (let j = Math.max(0, i - 10); j <= i - 3; j++) before = Math.min(before, env[j]);
+  for (let i = gap; i < env.length; i++) {
+    let sum = 0, n = 0;
+    for (let j = Math.max(0, i - gap - span + 1); j <= i - gap; j++) { sum += env[j]; n++; }
+    const before = sum / n;
     if (env[i] > floor && env[i] > 4 * before && env[i] >= env[i - 1] && i - last > 12) {
       // back up to where the rise began
       let s = i;
       while (s > 0 && env[s - 1] > 2 * before && env[s - 1] < env[s]) s--;
-      out.push((1 + s * hop) / sr);
+      out.push((1 + s * hop + LEAD_IN * win) / sr);
       last = i;
     }
   }
   return out;
 }
+const LEAD_IN = 0.8; // where in the first loud window the pluck is taken to be: about where the click is
 
 /** Normalised correlation (-1..1) of x with itself shifted by lag samples, over n samples. */
 function nsdf(x, lag, n) {
