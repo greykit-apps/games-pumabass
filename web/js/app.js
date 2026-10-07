@@ -462,7 +462,7 @@ async function maybeAutoTune() {
 document.addEventListener('pointerdown', () => mixer.resume(), true);
 document.addEventListener('keydown', () => mixer.resume(), true);
 // For tests: feed any MediaStream in as the instrument (e.g. an oscillator).
-window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer };
+window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, get session() { return session; } };
 
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
@@ -734,6 +734,7 @@ let liveAt = null;     // the spot the countdown is counting to, while it runs
 let liveShownAt = 0;   // when LIVE went up, to take it down again
 
 async function openSong(s, startAt = 0, { resumed = false } = {}) {
+  closeEndScreen();
   song = s;
   screen = 'player';
   $('library').classList.add('hidden');
@@ -798,13 +799,20 @@ function saveResume() {
   if (song && chart) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
 }
 
-function closeSong() {
-  saveResume();
+/* Stop the song and put the player away. */
+function leaveSong() {
   audio.pause();
   audio.removeAttribute('src');
   audio.load();
   chart = null;
+  session = null;
+  closeEndScreen();
   $('settings').classList.add('hidden');
+}
+
+function closeSong() {
+  saveResume();
+  leaveSong();
   showLibrary();
   const row = $('song-list').querySelector(`.song[data-id="${CSS.escape(song.id)}"]`);
   if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'center' }); }
@@ -854,7 +862,7 @@ function togglePlay() {
 function renderOverlay() {
   const el = $('overlay');
   let big = '', small = '', mode = '';
-  if (!$('loading').classList.contains('hidden')) { /* nothing over the loading message */ }
+  if (!$('loading').classList.contains('hidden') || endScreen) { /* nothing over the loading message or the end screen */ }
   else if (audio.paused) {
     mode = 'paused';
     liveShownAt = 0;
@@ -905,7 +913,83 @@ function showFav() {
 }
 $('fav-btn').addEventListener('click', () => { if (song) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
-audio.addEventListener('ended', () => { checkFinished(Infinity); updatePlayButton(); pausedAt = null; liveAt = null; save(KEY_RESUME, null); });
+audio.addEventListener('ended', () => {
+  checkFinished(Infinity);
+  updatePlayButton();
+  pausedAt = null;
+  liveAt = null;
+  save(KEY_RESUME, null); // a song played to the end leaves nothing to resume
+  showEndScreen();
+});
+
+/* ---- the end screen: what this play was, and (to come) its score ---- */
+let endScreen = null;
+
+function showEndScreen() {
+  if (endScreen || !song || !chart) return;
+  const st = statsOf(song.id);
+  const notes = highway.notes.reduce((n, e) => n + (e.notes ? e.notes.length : 1), 0);
+  const played = session ? session.heard : 0;
+  const finished = !!(session && session.finished);
+  const tn = tuningName(chart.tuning, chart.strings);
+  const tile = (label, value, note = '') => `<div class="end-tile"><small>${label}</small><span>${value}</span>${note ? `<em>${note}</em>` : ''}</div>`;
+  const el = document.createElement('div');
+  el.className = 'gk-sheet end-sheet';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', 'Song complete');
+  el.innerHTML = `<div class="gk-box end">
+    <div class="end-head">
+      <p class="end-kicker">Song complete</p>
+      <h2 class="end-title">${esc(song.title)}</h2>
+      <p class="end-sub">${esc(song.artist)} &middot; ${esc(arrangementLabel(song))} &middot; ${esc(tn)}</p>
+    </div>
+    <div class="end-score">
+      <small>Score</small>
+      <span class="end-score-value">&ndash;</span>
+      <em>Scoring is on its way: play along through the Real Tone Cable, and this will show how many notes you hit.</em>
+    </div>
+    <div class="end-tiles">
+      ${tile('Notes', notes, `at ${prefs.difficulty}% difficulty`)}
+      ${tile('Speed', `${$('speed').value}%`)}
+      ${tile('Played', formatTime(played), `of ${formatTime(session ? session.end - session.start : chart.songLength)}`)}
+      ${tile('Finished', finished ? 'Counted &#10003;' : 'Not counted', finished ? '' : 'less than half was played')}
+      ${tile('Plays', st.plays || 0, 'all time')}
+      ${tile('Times finished', st.finished || 0, 'all time')}
+    </div>
+    <div class="gk-row end-acts">
+      <button class="primary" data-end="menu"><kbd>Space</kbd>Main menu</button>
+      <button data-end="again"><kbd>R</kbd>Play again</button>
+      <button data-end="list"><kbd>Esc</kbd>Song list</button>
+    </div>
+  </div>`;
+  const act = what => {
+    const s = song;
+    if (what === 'menu') { leaveSong(); showTitle().reveal(); }
+    else if (what === 'list') { leaveSong(); showLibrary(); }
+    else if (what === 'again') { leaveSong(); openSong(s); }
+  };
+  el.addEventListener('click', e => { const b = e.target.closest('[data-end]'); if (b) act(b.dataset.end); });
+  el.onKey = e => {
+    e.stopPropagation(); // nothing reaches the player behind
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    if (k === ' ' || (k === 'Enter' && !e.target.closest('button'))) { e.preventDefault(); act('menu'); }
+    else if (k === 'r' || k === 'R') { e.preventDefault(); act('again'); }
+    else if (k === 'Escape') { e.preventDefault(); act('list'); }
+  };
+  document.addEventListener('keydown', el.onKey, true);
+  $('player').appendChild(el);
+  endScreen = el;
+  el.querySelector('[data-end="menu"]').focus({ preventScroll: true });
+}
+
+function closeEndScreen() {
+  if (!endScreen) return;
+  document.removeEventListener('keydown', endScreen.onKey, true);
+  endScreen.remove();
+  endScreen = null;
+}
 
 function currentSection(t) {
   let cur = null;
@@ -1090,11 +1174,17 @@ function frame() {
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
     renderOverlay();
-    // How much of the song was actually played: forward steps only, so a jump counts for nothing.
+    // How much of the song was actually played: each step forward, measured
+    // against the clock, so a jump (far more song than time passed) counts for
+    // nothing, while a slow or throttled frame still counts in full.
     if (session && !audio.paused) {
-      const step = session.lastT === null ? 0 : t - session.lastT;
-      if (step > 0 && step < 0.5) session.heard += step;
+      const now = performance.now();
+      if (session.lastT !== null) {
+        const step = t - session.lastT, allowed = ((now - session.lastWall) / 1000) * audio.playbackRate + 0.25;
+        if (step > 0 && step <= allowed) session.heard += step;
+      }
       session.lastT = t;
+      session.lastWall = now;
       checkFinished(t);
     } else if (session) session.lastT = null;
     if (!$('settings').classList.contains('hidden')) {

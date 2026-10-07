@@ -25,6 +25,9 @@ ${keys([
     ['M', 'sound on / off, anywhere'],
     ['Esc', 'back to the song list'],
   ])}
+<h3>At the end of a song</h3>
+<p>The end screen shows what you played, with room for your score once scoring arrives. <kbd>Space</kbd> goes to the
+main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
 <p>Click the bar along the bottom to jump; it is split into the song's sections. Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
 <h3>Keys in the song list</h3>

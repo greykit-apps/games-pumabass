@@ -47,7 +47,9 @@ copied over by hand.
 
 - [x] **Real Tone Cable input.** The cable (or any audio input) is found and read, with "Hear your bass" to
       play it through PumaBass.
-- [ ] **Scoring.** Mark notes as hit or missed from the input, now that it is there.
+- [x] **End screen.** At the end of a song: what was played, the song's totals, and a Score panel waiting for
+      scoring. Space goes to the main menu with no game to resume; R plays again; Esc, the song list.
+- [ ] **Scoring.** Mark notes as hit or missed from the input, now that it is there, and fill in the end screen's Score.
 - [x] **Balance.** A mix with your bass boosted (up to +30 dB) against the song, meters on both, and a limiter.
 - [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).
 - [ ] **Recorded bass: removed.** Truly taking the bass out needs stem separation (an AI model such as Demucs),

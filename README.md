@@ -54,6 +54,11 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Mouse wheel (paused) | Scrub |
 | Esc | Back to the song list, then the menu |
 
+At the end of a song an end screen shows what you played (notes, difficulty, speed, how much you
+played, whether it counted as finished, and the song's totals), with the score panel reserved for
+scoring. `Space` goes to the main menu with nothing left to resume, `R` plays it again, `Esc` goes
+to the song list.
+
 In the song list: `/` searches, Up / Down move, Enter plays, `F` stars a favorite.
 
 **Your library.** Star songs (the ☆ on each row, `F`, or in the player) and **★ Favorites** shows only
