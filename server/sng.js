@@ -1,0 +1,127 @@
+// Decrypts and parses Rocksmith 2014 SNG (binary arrangement) files, PC flavour.
+'use strict';
+const zlib = require('zlib');
+const crypto = require('crypto');
+
+const SNG_KEY_PC = Buffer.from('CB648DF3D12A16BF71701414E69619EC171CCA5D2A142E3E59DE7ADDA18A3A30', 'hex');
+
+function decryptSng(buf) {
+  if (buf.readUInt32LE(0) !== 0x4a) throw new Error('Bad SNG magic');
+  const flags = buf.readUInt32LE(4);
+  const iv = buf.subarray(8, 24);
+  const payload = buf.subarray(24, buf.length - 56); // last 56 bytes are a signature
+  const d = crypto.createDecipheriv('aes-256-ctr', SNG_KEY_PC, iv);
+  const plain = Buffer.concat([d.update(payload), d.final()]);
+  if (flags & 1) {
+    // Compressed: uint32 uncompressed length, then zlib stream.
+    return zlib.inflateSync(plain.subarray(4));
+  }
+  return plain;
+}
+
+class Reader {
+  constructor(buf) { this.b = buf; this.o = 0; }
+  u8() { return this.b.readUInt8(this.o++); }
+  i8() { return this.b.readInt8(this.o++); }
+  i16() { const v = this.b.readInt16LE(this.o); this.o += 2; return v; }
+  u32() { const v = this.b.readUInt32LE(this.o); this.o += 4; return v; }
+  i32() { const v = this.b.readInt32LE(this.o); this.o += 4; return v; }
+  f32() { const v = this.b.readFloatLE(this.o); this.o += 4; return v; }
+  f64() { const v = this.b.readDoubleLE(this.o); this.o += 8; return v; }
+  bytes(n) { const v = this.b.subarray(this.o, this.o + n); this.o += n; return v; }
+  str(n) { const raw = this.bytes(n); const z = raw.indexOf(0); return raw.toString('utf8', 0, z < 0 ? n : z); }
+  skip(n) { this.o += n; }
+  arr(fn) { const n = this.i32(); const out = new Array(n); for (let i = 0; i < n; i++) out[i] = fn(); return out; }
+}
+
+function readBend(r) {
+  return { time: r.f32(), step: r.f32(), _u1: r.i16(), _u2: r.u8(), _u3: r.u8() };
+}
+
+function parseSng(raw) {
+  const r = new Reader(decryptSng(raw));
+
+  const beats = r.arr(() => ({ time: r.f32(), measure: r.i16(), beat: r.i16(), phraseIteration: r.i32(), mask: r.i32() }));
+  const phrases = r.arr(() => ({ solo: r.u8(), disparity: r.u8(), ignore: r.u8(), _pad: r.u8(), maxDifficulty: r.i32(), links: r.i32(), name: r.str(32) }));
+  const chordTemplates = r.arr(() => {
+    const mask = r.u32();
+    const frets = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
+    const fingers = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
+    for (let i = 0; i < 6; i++) r.i32(); // midi notes
+    return { mask, frets, fingers, name: r.str(32) };
+  });
+  const chordNotes = r.arr(() => {
+    const noteMask = []; for (let i = 0; i < 6; i++) noteMask.push(r.u32());
+    for (let i = 0; i < 6; i++) { for (let j = 0; j < 32; j++) readBend(r); r.i32(); }
+    const slideTo = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
+    const slideUnpitchTo = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
+    const vibrato = []; for (let i = 0; i < 6; i++) vibrato.push(r.i16());
+    return { noteMask, slideTo, slideUnpitchTo, vibrato };
+  });
+  const vocals = r.arr(() => ({ time: r.f32(), note: r.i32(), length: r.f32(), lyric: r.str(48) }));
+  if (vocals.length > 0) {
+    // Symbol header / texture / definition tables only exist in vocal arrangements.
+    r.arr(() => r.skip(32));
+    r.arr(() => r.skip(128 + 4 + 4 + 4 + 4));
+    r.arr(() => r.skip(12 + 16 + 16));
+  }
+  const phraseIterations = r.arr(() => {
+    const it = { phraseId: r.i32(), startTime: r.f32(), nextPhraseTime: r.f32() };
+    it.difficulty = [r.i32(), r.i32(), r.i32()];
+    return it;
+  });
+  r.arr(() => r.skip(16)); // phrase extra info
+  r.arr(() => { r.i32(); const n = r.i32(); r.skip(n * 4); }); // linked difficulties
+  r.arr(() => r.skip(260)); // actions
+  const events = r.arr(() => ({ time: r.f32(), name: r.str(256) }));
+  const tones = r.arr(() => ({ time: r.f32(), id: r.i32() }));
+  r.arr(() => r.skip(8)); // DNA
+  const sections = r.arr(() => {
+    const s = { name: r.str(32), number: r.i32(), startTime: r.f32(), endTime: r.f32(), startPhraseIteration: r.i32(), endPhraseIteration: r.i32() };
+    r.skip(36);
+    return s;
+  });
+  const levels = r.arr(() => {
+    const difficulty = r.i32();
+    const anchors = r.arr(() => {
+      const a = { startTime: r.f32(), endTime: r.f32(), _firstNote: r.f32(), _lastNote: r.f32(), fret: r.u8() };
+      r.skip(3);
+      a.width = r.i32();
+      a.phraseIteration = r.i32();
+      return a;
+    });
+    r.arr(() => r.skip(12)); // anchor extensions
+    const handShapes = r.arr(() => ({ chordId: r.i32(), startTime: r.f32(), endTime: r.f32(), _u3: r.f32(), _u4: r.f32() }));
+    const arpeggios = r.arr(() => ({ chordId: r.i32(), startTime: r.f32(), endTime: r.f32(), _u3: r.f32(), _u4: r.f32() }));
+    const notes = r.arr(() => {
+      const n = {
+        mask: r.u32(), flags: r.u32(), hash: r.u32(), time: r.f32(),
+        string: r.u8(), fret: r.u8(), anchorFret: r.u8(), anchorWidth: r.u8(),
+        chordId: r.i32(), chordNotesId: r.i32(), phraseId: r.i32(), phraseIteration: r.i32(),
+      };
+      r.skip(4 + 6); // fingerprint ids, next/prev/parent note links
+      n.slideTo = r.u8(); n.slideUnpitchTo = r.u8(); n.leftHand = r.u8(); n.tap = r.u8();
+      n.pickDirection = r.u8(); n.slap = r.u8(); n.pluck = r.u8();
+      n.vibrato = r.i16(); n.sustain = r.f32(); n.maxBend = r.f32();
+      n.bends = r.arr(() => readBend(r));
+      return n;
+    });
+    const nPhrases = r.i32(); r.skip(nPhrases * 4);
+    const n1 = r.i32(); r.skip(n1 * 4);
+    const n2 = r.i32(); r.skip(n2 * 4);
+    return { difficulty, anchors, handShapes, arpeggios, notes };
+  });
+  const meta = {
+    maxScore: r.f64(), maxNotesAndChords: r.f64(), maxNotesAndChordsReal: r.f64(), pointsPerNote: r.f64(),
+    firstBeatLength: r.f32(), startTime: r.f32(), capo: r.u8(), lastConversion: r.str(32), part: r.i16(),
+    songLength: r.f32(),
+  };
+  const stringCount = r.i32();
+  meta.tuning = []; for (let i = 0; i < stringCount; i++) meta.tuning.push(r.i16());
+  meta.firstNoteTime = r.f32(); r.f32(); meta.maxDifficulty = r.i32();
+  meta.trailingBytes = r.b.length - r.o;
+
+  return { beats, phrases, chordTemplates, chordNotes, phraseIterations, events, tones, sections, levels, meta };
+}
+
+module.exports = { parseSng, decryptSng };

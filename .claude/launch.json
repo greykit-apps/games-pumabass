@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pumabass",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/server.js", "--no-open"],
+      "port": 8014
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+# Generated song index and decoded audio
+cache/
+
+# Your own recordings (not shared)
+music/*
+!music/.gitkeep
+
+# Third-party decoder binaries (download from https://github.com/vgmstream/vgmstream/releases)
+tools/vgmstream/
+
+# Local settings
+config.json
+
+node_modules/
