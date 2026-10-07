@@ -14,9 +14,14 @@ const config = Object.assign({
   port: 8014,
   openBrowser: true,
 }, fs.existsSync(CONFIG_FILE) ? JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) : {});
+const portArg = process.argv.indexOf('--port');
+if (portArg > 0) config.port = Number(process.argv[portArg + 1]);
 
 const VGMSTREAM = path.join(APP_DIR, 'tools', 'vgmstream', 'vgmstream-cli.exe');
-const WEB_DIR = path.join(APP_DIR, 'web');
+// What the browser may fetch: the page, its icons and manifest, and web/.
+// Never the server code, the cache, your music folder or tools/.
+const PUBLIC_FILES = new Set(['index.html', 'manifest.webmanifest', 'icon.svg', 'favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png', 'og.png']);
+const PUBLIC_DIRS = ['web'];
 const lib = new Library({ rocksmithDir: config.rocksmithDir, cacheDir: path.join(APP_DIR, 'cache'), musicDir: config.musicDir || path.join(APP_DIR, 'music') });
 fs.mkdirSync(lib.musicDir, { recursive: true });
 
@@ -24,7 +29,7 @@ console.log(`Reading songs from ${config.rocksmithDir} ...`);
 lib.load();
 console.log(`Found ${lib.songs.length} arrangements (${lib.songs.filter(s => !s.wem && s.userAudio).length} using your own recordings, ${lib.songs.filter(s => !s.wem && !s.userAudio).length} without audio).`);
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
 const AUDIO_MIME = { '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.oga': 'audio/ogg', '.opus': 'audio/ogg', '.flac': 'audio/flac', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.webm': 'audio/webm' };
 
@@ -55,6 +60,9 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/songs') {
       return sendJson(res, lib.songs.map(({ file, sng, wem, userAudio, ...s }) => ({ ...s, audio: wem ? 'game' : userAudio ? 'user' : false })));
     }
+    if (p === '/api/info') {
+      return sendJson(res, { rocksmithDir: config.rocksmithDir, musicDir: lib.musicDir });
+    }
     if (p === '/api/rescan') {
       lib.load();
       return sendJson(res, { count: lib.songs.length });
@@ -70,8 +78,10 @@ const server = http.createServer(async (req, res) => {
       return sendFileRange(req, res, wav, AUDIO_MIME[path.extname(wav).toLowerCase()] || 'application/octet-stream');
     }
     // Static files.
-    const file = path.join(WEB_DIR, p === '/' ? 'index.html' : p);
-    if (!file.startsWith(WEB_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    const rel = path.normalize(p === '/' ? 'index.html' : p.replace(/^\/+/, ''));
+    const allowed = PUBLIC_FILES.has(rel) || PUBLIC_DIRS.some(d => rel.startsWith(d + path.sep));
+    const file = path.join(APP_DIR, rel);
+    if (!allowed || !file.startsWith(APP_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.writeHead(404); return res.end('Not found');
     }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });

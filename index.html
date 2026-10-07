@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PumaBass</title>
+<meta name="description" content="Play the Rocksmith 2014 songs you own on a note highway, straight from your install: bass first, with slow-down, section loops and Rocksmith&#x27;s own difficulty levels.">
+<meta name="theme-color" content="#05070f">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<meta property="og:title" content="PumaBass">
+<meta property="og:description" content="Play the Rocksmith 2014 songs you own on a note highway, straight from your install: bass first, with slow-down, section loops and Rocksmith&#x27;s own difficulty levels.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://greykit.com/games/pumabass/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Play the Rocksmith 2014 songs you own on a note highway, straight from your install: bass first, with slow-down, section loops and Rocksmith&#x27;s own difficulty levels.">
+<meta property="og:url" content="https://greykit.com/games/pumabass/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PumaBass">
+<meta name="twitter:description" content="Play the Rocksmith 2014 songs you own on a note highway, straight from your install: bass first, with slow-down, section loops and Rocksmith&#x27;s own difficulty levels.">
+<meta name="twitter:image" content="https://greykit.com/games/pumabass/og.png">
+<meta name="twitter:image:alt" content="Play the Rocksmith 2014 songs you own on a note highway, straight from your install: bass first, with slow-down, section loops and Rocksmith&#x27;s own difficulty levels.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+  <!-- The boot and title screen (the greykit.games Tactical canon) mount here. -->
+  <div id="title-host"></div>
+
+  <!-- Song list -->
+  <section id="library" class="screen hidden" aria-label="Songs">
+    <div class="scene under" aria-hidden="true"></div>
+    <div class="stage">
+      <div class="pb">
+        <header class="top">
+          <h1>Songs</h1>
+          <span id="count" class="muted small"></span>
+          <span class="grow"></span>
+          <span class="snd-slot"></span>
+          <span class="brand">PumaBass</span>
+        </header>
+        <div class="topline"><i></i></div>
+        <div class="tools">
+          <input id="search" type="search" placeholder="Search songs, artists, albums  ( / )" autocomplete="off" aria-label="Search">
+          <div id="type-filter" class="seg" role="group" aria-label="Instrument">
+            <button data-type="bass">Bass</button>
+            <button data-type="lead">Lead</button>
+            <button data-type="rhythm">Rhythm</button>
+            <button data-type="all">All</button>
+          </div>
+          <select id="sort" aria-label="Sort">
+            <option value="artist">Artist</option>
+            <option value="title">Title</option>
+            <option value="tuning">Tuning</option>
+            <option value="recent">Recently played</option>
+          </select>
+        </div>
+        <div class="songs-head" aria-hidden="true"><span>#</span><span>Song</span><span>Part</span><span class="c-tun">Tuning</span><span class="c-len">Length</span></div>
+        <div id="song-list" role="list"></div>
+        <nav class="bar">
+          <button data-act="menu"><kbd>Esc</kbd>Menu</button>
+          <span class="grow"></span>
+          <span id="missing-note" class="muted small"></span>
+          <button data-act="rescan" title="Look for new songs and for recordings in the music folder">Rescan</button>
+          <button data-act="help" aria-label="Help" title="How to play (?)">?</button>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+  <!-- Player -->
+  <section id="player" class="screen hidden" aria-label="Player">
+    <canvas id="highway"></canvas>
+    <div class="p-top">
+      <button id="back" title="Back to the song list (Esc)"><kbd>Esc</kbd>Songs</button>
+      <div class="song-info">
+        <div id="p-title"></div>
+        <div id="p-sub"></div>
+      </div>
+      <div id="p-tuning" class="chip"></div>
+      <span class="snd-slot"></span>
+    </div>
+    <div id="section-name"></div>
+    <div id="loading" class="hidden">Loading</div>
+
+    <div class="p-bottom">
+      <div id="progress" title="Click to jump; Shift+click moves the nearest loop edge">
+        <div id="sections"></div>
+        <div id="loop-region" class="hidden"></div>
+        <div id="playhead"></div>
+      </div>
+      <div class="controls">
+        <button id="play" class="primary" title="Play / pause (Space)"><kbd>Space</kbd><span id="play-label">Play</span></button>
+        <span id="time">0:00 / 0:00</span>
+        <button id="loop" title="Loop the current section (L)"><kbd>L</kbd>Loop section</button>
+        <label title="Playback speed (Up / Down)">Speed
+          <input id="speed" type="range" min="25" max="120" step="5" value="100"><b id="speed-val">100%</b>
+        </label>
+        <label title="Note difficulty">Difficulty
+          <input id="difficulty" type="range" min="0" max="100" step="5" value="100"><b id="diff-val">100%</b>
+        </label>
+        <span class="grow"></span>
+        <button id="settings-btn" title="This song's settings"><kbd>,</kbd>Song settings</button>
+      </div>
+    </div>
+
+    <div id="settings" class="panel hidden" role="dialog" aria-label="Song settings">
+      <h2>This song</h2>
+      <h3>Audio offset</h3>
+      <label><input id="offset" type="range" min="-500" max="500" step="5" value="0"><span id="offset-val"></span></label>
+      <div class="row"><button data-nudge="-1000">-1s</button><button data-nudge="-100">-100</button><button data-nudge="-10">-10</button><button data-nudge="10">+10</button><button data-nudge="100">+100</button><button data-nudge="1000">+1s</button></div>
+      <p class="note">Remembered for this song. Use it when the notes land early or late.</p>
+      <h3>Highway</h3>
+      <label>Note lookahead <input id="lookahead" type="range" min="1.5" max="6" step="0.25" value="3"><span id="lookahead-val"></span></label>
+      <label class="check"><input id="invert" type="checkbox"> Low string on top</label>
+      <h3>Sound</h3>
+      <label>Song volume <input id="volume" type="range" min="0" max="100" value="100"></label>
+      <div class="acts"><button id="settings-close"><kbd>Esc</kbd>Close</button></div>
+    </div>
+  </section>
+
+  <audio id="audio" preload="auto"></audio>
+  <script type="module" src="web/js/app.js"></script>
+</body>
+</html>

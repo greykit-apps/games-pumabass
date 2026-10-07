@@ -1,0 +1,12 @@
+stages:
+  - validate
+
+# PumaBass runs on your own computer (a small Node server reads your Rocksmith
+# install), so there is nothing to deploy yet: only the validate stage, which
+# every greykit.games Tactical game runs (games-meta STANDARD.md §10).
+validate:
+  stage: validate
+  image: node:20-alpine
+  script:
+    - node tools/check-assets.js
+    - for f in server/*.js; do node --check "$f"; done

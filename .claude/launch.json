@@ -4,8 +4,8 @@
     {
       "name": "pumabass",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server/server.js", "--no-open"],
-      "port": 8014
+      "runtimeArgs": ["server/server.js", "--no-open", "--port", "8015"],
+      "port": 8015
     }
   ]
 }

@@ -1,40 +1,46 @@
 # PumaBass
 
-A no-frills Rocksmith 2014 style note highway that plays the songs you already own,
-reading them straight out of your Rocksmith install. Bass by default; lead and rhythm
-guitar charts are listed too.
+A note highway for the Rocksmith 2014 songs you already own, read straight out of your Rocksmith
+install. Bass first; lead and rhythm guitar charts load too. Part of the greykit.games portfolio,
+in its Tactical tribe.
 
 ## Start
 
 Double-click **start.bat**. It opens the app in your browser at http://localhost:8014/.
 Close the black console window to quit.
 
+The boot plays, then the title: **Learn a song** (`N`) opens the song list, **Resume game** (`R`)
+picks up where you left off, and **Settings** (`S`), **Help** (`?`) and **About** (`A`) are below.
+
 ## Playing
 
 | Key | Action |
 | --- | --- |
 | Space | Play / pause |
-| ← / → | Skip back / forward 5 seconds |
-| ↑ / ↓ | Speed up / slow down (pitch stays the same) |
+| Left / Right | Back / forward 5 seconds |
+| Up / Down | Faster / slower (pitch stays the same) |
 | L | Loop the current section (again to stop) |
-| [ / ] | Set custom loop start / end at the current spot |
+| [ / ] | Set loop start / end at the current spot |
 | Shift + click progress bar | Move the nearest loop edge there |
 | Home | Back to loop start (or song start) |
+| , | This song's settings: audio offset, highway, volume |
+| M | Sound on / off, anywhere |
 | Mouse wheel (paused) | Scrub |
-| Esc | Back to the song list |
+| Esc | Back to the song list, then the menu |
 
-- **Difficulty** slider: 100% is the full chart; lower values use Rocksmith's simpler levels.
-- **⚙ Settings**: volume, how far ahead notes appear, inverted strings, and a per-song
-  audio offset if the notes feel early or late.
+In the song list: `/` searches, Up / Down move, Enter plays.
+
+- **Difficulty**: 100% is the full chart; lower values use Rocksmith's simpler levels.
+- **Settings** (title menu): how far ahead notes appear, string order, whether charts without audio
+  are listed, sound, the speed songs start at, and Forget everything.
 
 ## Songs without audio
 
-Some charts (e.g. the Rocksmith 1 import pack) ship without their audio. To play one,
-drop your own recording into the `music` folder named like `Artist - Title.mp3`
-(or just `Title.mp3`), then click **Rescan**. mp3, ogg, flac, m4a and wav work.
-Tick **Show songs without audio** to see which charts are waiting for a recording.
-Your recording probably won't line up exactly, so use the per-song audio offset in ⚙ Settings
-(−1s / +1s / ±100 / ±10 ms buttons) until the notes land on the beat. It is remembered per song.
+Some charts (e.g. the Rocksmith 1 import pack) ship without their audio. To play one, drop your
+own recording into the `music` folder named like `Artist - Title.mp3` (or just `Title.mp3`), then
+press **Rescan**. mp3, ogg, flac, m4a and wav work. Settings → Song list → **Show them** lists the
+charts still waiting for a recording. Your recording probably won't line up exactly, so use the
+song's audio offset (`,`), which goes up to ±15 s for these. It is remembered per song.
 
 ## Setup notes
 
@@ -43,15 +49,48 @@ Your recording probably won't line up exactly, so use the per-song audio offset 
   ```json
   { "rocksmithDir": "D:/SteamLibrary/steamapps/common/Rocksmith2014", "port": 8014, "musicDir": "C:/Music/Bass" }
   ```
+  `node server/server.js --port 8015` overrides the port for one run.
 - Song audio is decoded with [vgmstream](https://github.com/vgmstream/vgmstream)
   the first time you open a song and cached in `cache/audio` (kept under ~3 GB).
   It isn't stored in git: on a fresh copy, unzip `vgmstream-win64.zip` from its releases page
   into `tools/vgmstream/` so that `tools/vgmstream/vgmstream-cli.exe` exists.
+- The server only hands the browser `index.html`, its icons and manifest, and `web/`.
+
+## The greykit.games standard
+
+PumaBass follows games-meta's `STANDARD.md` for Tactical games:
+
+- §1 the credit, on the title and in About;
+- §2 Settings → This browser → Forget everything, which removes only `pumabass*` keys;
+- §3 the boot and title screen: `web/js/title.js` carries `canon/gk-title.js` byte for byte;
+- §4 the palette: `web/style.css` opens with `canon/gk-tokens.css` byte for byte;
+- §5 storage keys `pumabass_<feature>_v<n>` (prefs, offsets, recent, resume, muted);
+- §6 the title menu, §7 Settings in order, §8 sound (`M`, `pumabass_muted_v1`, a header switch named Sound);
+- §9 page metadata and icons, §10 `tools/check-assets.js` byte for byte, run by CI's validate stage;
+- §11 no native dialogs.
+
+The one deliberate gap: CI has no deploy stage, because PumaBass runs on your own computer.
+Don't edit the canon copies here; change them in games-meta and copy them back.
+
+### Icon and share card
+
+`icon.svg` is drawn by hand. Everything else in the `<head>` is rendered from it:
+
+```bash
+bash tools/render-icons.sh
+```
+
+That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.png` and
+`apple-touch-icon.png`. It needs headless Chrome or Edge and Python with Pillow.
 
 ## Layout
 
-- `server/psarc.js` – reads Rocksmith `.psarc` archives
-- `server/sng.js` – decrypts and parses `.sng` note charts
-- `server/library.js` – song index, chart conversion, audio lookup/decoding
-- `server/server.js` – local web server
-- `web/` – the player (song list, 3D highway in `web/js/highway.js`)
+- `index.html`: the page (head tags generated by greykit-meta's `head-tags.sh`)
+- `web/js/app.js`: screens, song list, player, settings, storage
+- `web/js/highway.js`: the 3D note highway
+- `web/js/chart.js`: difficulty levels, tuning names
+- `web/js/title.js`: the canon boot and title screen; `scene.js` is its stage backdrop; `help.js` holds Help and About
+- `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
+- `server/library.js`: song index, chart conversion, audio lookup and decoding
+- `server/server.js`: the local web server
+- [`ROADMAP.md`](ROADMAP.md): what's next
