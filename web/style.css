@@ -158,3 +158,34 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 .gk-sheet .folders button:hover, .gk-sheet .folders button:focus-visible { background: var(--row); border-color: var(--lit); }
 .gk-sheet .warn { color: var(--warn); }
 .empty p { margin: 0 0 12px; }
+
+/* ---- the tuner ---- */
+.tuner-sheet .gk-box.tuner { width: min(560px, 100%); }
+.tn-tuning { color: var(--text); margin: 0 0 12px; }
+.tn-off { color: var(--warn); font-size: 12px; margin-left: 6px; }
+.tn-strings { display: flex; gap: 8px; margin: 0 0 14px; }
+.tn-str { flex: 1; position: relative; text-align: center; padding: 8px 4px 6px; border: 1px solid var(--line); border-radius: 3px;
+  border-top: 3px solid var(--c); background: var(--bg); }
+.tn-str span { display: block; font-size: 20px; color: var(--text); font-weight: 600; }
+.tn-str small { display: block; font-size: 11px; color: var(--dim); }
+.tn-str em { position: absolute; top: 2px; right: 6px; font-style: normal; color: var(--good); opacity: 0; font-weight: 700; }
+.tn-str.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.tn-str.done em { opacity: 1; }
+.tn-read { display: flex; align-items: baseline; justify-content: center; gap: 14px; min-height: 76px; }
+.tn-name { font-size: 64px; line-height: 1; font-weight: 700; color: var(--text); }
+.tuner-sheet.good .tn-name { color: var(--good); text-shadow: 0 0 18px rgba(74, 222, 106, .45); }
+.tn-hz { font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; min-width: 170px; }
+.tn-meter { position: relative; height: 46px; margin: 6px 6px 22px; border-bottom: 1px solid var(--lit); }
+.tn-meter i { position: absolute; bottom: 0; width: 1px; height: 12px; background: var(--lit); }
+.tn-meter b { position: absolute; bottom: -18px; transform: translateX(-50%); font-size: 10px; font-weight: 400; color: var(--dim); }
+.tn-zone { position: absolute; left: 47%; width: 6%; top: 0; bottom: 0; background: rgba(74, 222, 106, .14); border-left: 1px solid rgba(74, 222, 106, .5); border-right: 1px solid rgba(74, 222, 106, .5); }
+.tn-needle { position: absolute; left: 50%; top: 0; bottom: -4px; width: 3px; margin-left: -1.5px; background: var(--warn); box-shadow: 0 0 10px var(--warn);
+  opacity: 0; transition: left .12s ease-out, opacity .2s; }
+.tuner-sheet.good .tn-needle { background: var(--good); box-shadow: 0 0 10px var(--good); }
+.tn-hint { text-align: center; color: var(--text); font-size: 15px; letter-spacing: .06em; min-height: 1.5em; }
+.tuner-sheet.good .tn-hint { color: var(--good); }
+.tn-input { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; font-size: 12px; color: var(--dim); }
+.tn-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tn-level { width: 140px; height: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
+.tn-level i { display: block; height: 100%; width: 0; background: var(--good); transition: width .08s linear; }
+@media (prefers-reduced-motion: reduce) { .tn-needle, .tn-level i { transition: none; } }

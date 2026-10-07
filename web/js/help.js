@@ -19,6 +19,7 @@ ${keys([
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
     [',', "this song's settings: audio offset, highway, volume"],
+    ['T', 'the tuner'],
     ['M', 'sound on / off, anywhere'],
     ['Esc', 'back to the song list'],
   ])}
@@ -43,6 +44,19 @@ your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
 <p>Open the song's settings with <kbd>,</kbd> and nudge the <b>audio offset</b>. It is remembered for that song.</p>`],
+  ['Tuner', `
+<p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd> (or <b>Tuner</b> on the menu or in the
+player). The tuner knows the tuning the song wants, including the few cents some Rocksmith songs are off A440
+because their recording was. Play each open string: the needle shows how far off it is, and a string is ticked
+once it holds in tune.</p>
+<p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Settings can
+turn that off.</p>
+<h3>Hearing your bass</h3>
+<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner, or Settings)
+plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp has none.</p>
+<h3>Another input</h3>
+<p>Any audio input works, e.g. an audio interface or a microphone near an acoustic bass: choose it in Settings.
+The first time, the browser asks to let PumaBass use it.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and

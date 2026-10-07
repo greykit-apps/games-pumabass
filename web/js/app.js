@@ -3,6 +3,8 @@ import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel } 
 import { runBoot, mountTitle, bootReloadLine, injectTitleCSS, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
+import { InstrumentInput, isRealTone } from './input.js';
+import { openTuner, tuningTargets, tuningKey } from './tuner.js';
 
 const $ = id => document.getElementById(id);
 const audio = $('audio');
@@ -15,6 +17,7 @@ const KEY_OFFSETS = 'pumabass_offsets_v1';  // per-song audio offset, ms
 const KEY_RECENT = 'pumabass_recent_v1';    // per-song last-opened time
 const KEY_RESUME = 'pumabass_resume_v1';    // the song and spot you left off at
 const KEY_MUTED = 'pumabass_muted_v1';      // "1" muted, "0" not (§8)
+const KEY_TUNER = 'pumabass_tuner_v1';      // the day and tuning you last tuned to
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
@@ -44,7 +47,13 @@ function save(key, value) {
   } catch (e) { /* no storage */ }
 })();
 
-const prefs = Object.assign({ type: 'bass', sort: 'artist', showMissing: false, difficulty: 100, lookahead: 3, invert: false, volume: 100, startSpeed: 100 }, load(KEY_PREFS, {}));
+const prefs = Object.assign({
+  type: 'bass', sort: 'artist', showMissing: false, difficulty: 100, lookahead: 3, invert: false, volume: 100, startSpeed: 100,
+  input: null,      // { id, label } of the instrument input
+  hear: 0,          // play the input through the speakers, 0..1
+  hearLast: 0.6,    // the volume "Hear your bass" comes back on at
+  autoTune: true,   // open the tuner on the day's first song and when the tuning changes
+}, load(KEY_PREFS, {}));
 const savePrefs = () => save(KEY_PREFS, prefs);
 
 /* Settings' "Forget everything" (games-meta STANDARD.md §2): every key PumaBass
@@ -117,6 +126,7 @@ function titleCfg() {
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` : 'choose your songs folder' },
+      { act: 'tuner', label: 'Tuner', key: 'T', meta: prefs.input ? shortLabel(prefs.input.label) : 'Real Tone Cable' },
       'gap',
       { act: 'settings', label: 'Settings', key: 'S' },
       { act: 'help', label: 'Help', key: '?' },
@@ -129,6 +139,7 @@ function titleCfg() {
     settings: { html: settingsHTML, onClick: settingsClick },
     onAct: act => {
       if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t); }
+      if (act === 'tuner') showTuner();
       if (act === 'new' && !songs.length) pickLibrary();
       else if (act === 'new') { leaveTitle(); showLibrary(); }
     },
@@ -158,6 +169,15 @@ function settingsHTML() {
 <p class='gk-note'>${where}</p>
 <div class='gk-row'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>
 <p class='gk-note'>The folder with your Rocksmith 2014 song files (<code>.psarc</code>); the folders inside it are searched too. Rescan after adding songs.</p>
+<h3>Instrument input</h3>
+<p class='gk-note'>${inputStatus()}</p>
+<div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button></div>
+<h3>Hear your bass</h3>
+${pick('hear', [[0, 'Off'], [0.35, 'Quiet'], [0.6, 'Medium'], [0.9, 'Loud']], prefs.hear)}
+<p class='gk-note'>Plays the input through PumaBass, for a bass plugged into the cable rather than an amp. There is a short delay on the way.</p>
+<h3>Tune before playing</h3>
+${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
+<p class='gk-note'>Opens the tuner on your first song of the day, and when a song needs a different tuning from the last.</p>
 <h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 <p class='gk-note'>How far ahead the notes appear. Longer gives more warning; shorter spreads them out.</p>
@@ -194,6 +214,16 @@ async function settingsClick(b, sheet) {
       sheet.close();
       pickLibrary();
       return;
+    case 'input':
+      sheet.close();
+      chooseInput();
+      return;
+    case 'tuner':
+      sheet.close();
+      showTuner();
+      return;
+    case 'hear': hear.set(Number(v)); break;
+    case 'autotune': prefs.autoTune = v === 'true'; break;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
       return;
@@ -203,6 +233,159 @@ async function settingsClick(b, sheet) {
   syncPlayerPrefs();
   sheet.refresh();
 }
+
+/* ---- the instrument input and the tuner ---- */
+const input = new InstrumentInput();
+input.onchange = () => { if (screen === 'title' && title && !document.querySelector('.gk-sheet')) { leaveTitle(); showTitle().reveal(); } };
+const shortLabel = l => (isRealTone(l) ? 'Real Tone Cable' : String(l || '').replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, ''));
+const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
+const INPUT_UNSUPPORTED = "This browser won't let PumaBass use audio inputs at this address. Open PumaBass as http://localhost:8014/ on the computer it runs on.";
+
+function inputStatus() {
+  if (!InstrumentInput.supported()) return INPUT_UNSUPPORTED;
+  if (!prefs.input) return 'None chosen yet. Plug in the Real Tone Cable and choose it here.';
+  return `<b>${esc(shortLabel(prefs.input.label))}</b>${isRealTone(prefs.input.label) ? '' : ` (${esc(prefs.input.label)})`}${input.open ? ' · listening' : ''}`;
+}
+
+function inputError(e) {
+  if (e && e.name === 'NotAllowedError') return "PumaBass wasn't allowed to use audio inputs. Allow it in the browser's settings for this site (the icon left of the address), then try again.";
+  if (e && (e.name === 'NotFoundError' || e.name === 'OverconstrainedError')) return "That input isn't connected. Plug it in, or choose another.";
+  return (e && e.message) || "The input couldn't be opened.";
+}
+
+/* "Hear your bass": the input through the speakers, at prefs.hear. */
+const hear = {
+  get volume() { return prefs.hear; },
+  get last() { return prefs.hearLast; },
+  set(v) {
+    prefs.hear = v;
+    if (v) prefs.hearLast = v;
+    savePrefs();
+    applyHear();
+  },
+};
+async function applyHear() {
+  if (prefs.hear > 0 && !input.open) await ensureInput({ ask: false });
+  input.setMonitor(prefs.hear);
+}
+
+/* Open the chosen input, or the Real Tone Cable if none was chosen and one is
+ * plugged in. ask: when nothing suitable is there, offer the list of inputs. */
+async function ensureInput({ ask = true } = {}) {
+  if (input.open) return true;
+  if (!InstrumentInput.supported()) { if (ask) await alertSheet(INPUT_UNSUPPORTED, 'No instrument input'); return false; }
+  try {
+    const list = await input.devices();
+    const d = prefs.input
+      ? list.find(x => x.id === prefs.input.id) || list.find(x => x.label === prefs.input.label)
+      : list.find(x => x.realTone);
+    if (d) {
+      await input.openDevice(d.id);
+      prefs.input = { id: d.id, label: d.label };
+      savePrefs();
+      input.setMonitor(prefs.hear);
+      return true;
+    }
+  } catch (e) {
+    if (ask) await alertSheet(inputError(e), 'No instrument input');
+    return false;
+  }
+  return ask ? chooseInput() : false;
+}
+
+/* The audio inputs to choose from, the Real Tone Cable marked. Resolves true once one is open. */
+function chooseInput() {
+  return new Promise(async resolve => {
+    if (document.querySelector('.gk-sheet')) return resolve(false);
+    if (!InstrumentInput.supported()) { await alertSheet(INPUT_UNSUPPORTED, 'No instrument input'); return resolve(false); }
+    const back = document.activeElement;
+    const el = document.createElement('div');
+    el.className = 'gk-sheet';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'Instrument input');
+    const frame = body => `<div class="gk-box"><div class="gk-head"><h2>Instrument input</h2><button data-x aria-label="Close">&times;</button></div><div class="gk-body">${body}</div></div>`;
+    el.innerHTML = frame('<p>Looking for audio inputs\u2026 The browser may ask to let PumaBass use them.</p>');
+    document.body.appendChild(el);
+    const close = v => { document.removeEventListener('keydown', onKey, true); el.remove(); if (back && back.isConnected) back.focus({ preventScroll: true }); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(false); } else e.stopPropagation(); };
+    document.addEventListener('keydown', onKey, true);
+    let list;
+    try { list = await input.devices(); } catch (e) {
+      el.innerHTML = frame(`<p>${esc(inputError(e))}</p><div class="gk-row"><button data-x>OK</button></div>`);
+      el.addEventListener('click', ev => { if (ev.target === el || ev.target.closest('[data-x]')) close(false); });
+      el.querySelector('[data-x]').focus();
+      return;
+    }
+    list.sort((a, b) => b.realTone - a.realTone);
+    const draw = (note = '') => {
+      el.innerHTML = frame(`<p>${list.some(d => d.realTone) ? 'Your Real Tone Cable is listed first.' : 'No Real Tone Cable is plugged in. Plug it in and press Look again, or choose another input.'}</p>
+        <div class="folders">${list.map(d => `<button data-id="${esc(d.id)}" aria-pressed="${!!(prefs.input && prefs.input.id === d.id)}">${esc(d.label)}${d.realTone ? ' \u00b7 Real Tone Cable' : ''}</button>`).join('') || '<p class="gk-note">No audio inputs found.</p>'}</div>
+        ${note ? `<p class="gk-note warn">${esc(note)}</p>` : ''}
+        <div class="gk-row"><button data-again>Look again</button><button data-x>Cancel</button></div>`);
+      (el.querySelector('.folders button') || el.querySelector('[data-again]')).focus();
+    };
+    el.addEventListener('click', async ev => {
+      if (ev.target === el) return close(false);
+      const b = ev.target.closest('button');
+      if (!b) return;
+      if (b.hasAttribute('data-x')) return close(false);
+      if (b.hasAttribute('data-again')) { list = (await input.devices()).sort((a, c) => c.realTone - a.realTone); return draw(); }
+      if (b.dataset.id) {
+        try {
+          await input.openDevice(b.dataset.id);
+          prefs.input = { id: b.dataset.id, label: list.find(d => d.id === b.dataset.id).label };
+          savePrefs();
+          input.setMonitor(prefs.hear);
+          close(true);
+        } catch (e) { draw(inputError(e)); }
+      }
+    });
+    draw();
+  });
+}
+
+/* The tuning the tuner aims for: the open song's, else the last song you played, else standard. */
+function tunerContext() {
+  const ofSong = s => ({ tuning: s.tuning, strings: s.strings || (s.type === 'bass' ? 4 : 6), centOffset: s.centOffset || 0 });
+  const resume = load(KEY_RESUME, null);
+  const last = resume && songs.find(x => x.id === resume.id);
+  const c = chart ? ofSong(chart) : last ? ofSong(last) : { tuning: [0, 0, 0, 0, 0, 0], strings: prefs.type === 'lead' || prefs.type === 'rhythm' ? 6 : 4, centOffset: 0 };
+  const name = tuningName(c.tuning, c.strings);
+  const notes = tuningNotes(c.tuning, c.strings).join(' ');
+  c.label = name.endsWith('Standard') || name.startsWith('Drop') ? `${name} · ${notes}` : name;
+  if (chart && song) c.label += ` · for ${song.title}`;
+  else if (last) c.label += ` · as ${last.title}, your last song`;
+  return c;
+}
+
+async function showTuner() {
+  if (document.querySelector('.gk-sheet')) return;
+  if (!(await ensureInput())) return;
+  const c = tunerContext();
+  const result = await openTuner({
+    input, label: c.label, centOffset: c.centOffset, hear,
+    targets: tuningTargets(c.tuning, c.strings, c.centOffset),
+    onInput: async () => { input.close(); if (await chooseInput()) showTuner(); },
+  });
+  save(KEY_TUNER, { day: today(), tuning: tuningKey(c.tuning, c.strings, c.centOffset) });
+  return result;
+}
+
+/* The tuner by itself: on the day's first song, and when the tuning changes.
+ * Only when an input was chosen before and is plugged in now: never a nag. */
+async function maybeAutoTune() {
+  if (!prefs.autoTune || !prefs.input || !chart) return;
+  const last = load(KEY_TUNER, {});
+  if (last.day === today() && last.tuning === tuningKey(chart.tuning, chart.strings, chart.centOffset)) return;
+  if (await ensureInput({ ask: false })) await showTuner();
+}
+
+// The browser lets audio start only after a click or key.
+document.addEventListener('pointerdown', () => input.resume(), true);
+document.addEventListener('keydown', () => input.resume(), true);
+// For tests: feed any MediaStream in as the instrument (e.g. an oscillator).
+window.pumabassDebug = { useInput: stream => { input.useStream(stream); input.setMonitor(prefs.hear); }, input };
 
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
@@ -425,6 +608,7 @@ function libraryKey(e, typing) {
     else showTitle().reveal();
   } else if (k === '/' && !typing) { e.preventDefault(); $('search').focus(); }
   else if ((k === '?' || k === 'h') && !typing) { e.preventDefault(); openHelp(); }
+  else if ((k === 't' || k === 'T') && !typing) { e.preventDefault(); showTuner(); }
   else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); rows[Math.min(rows.length - 1, i + 1)].focus(); }
   else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); (i === 0 ? $('search') : rows[i - 1]).focus(); }
   else if (k === 'Enter' && i >= 0) {
@@ -504,6 +688,7 @@ async function openSong(s, startAt = 0) {
   setSpeed(prefs.startSpeed); // loading a new source resets the rate
   updatePlayButton();
   saveResume();
+  await maybeAutoTune();
 }
 
 function saveResume() {
@@ -659,6 +844,7 @@ function renderLoop() {
 }
 
 $('back').addEventListener('click', closeSong);
+$('tuner-btn').addEventListener('click', showTuner);
 $('play').addEventListener('click', togglePlay);
 $('loop').addEventListener('click', toggleSectionLoop);
 
@@ -725,6 +911,7 @@ function playerKey(e) {
   else if (k === ']') setLoopPoint(songTime(), 'b');
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
+  else if (k === 't' || k === 'T') showTuner();
   else if (k === '?' || k === 'h') openHelp();
   else if (k === 'Escape') {
     if (!$('settings').classList.contains('hidden')) $('settings').classList.add('hidden');
@@ -773,6 +960,7 @@ requestAnimationFrame(frame);
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'));
 const boot = runBoot({ lines: [bootReloadLine(), 'local server: your Rocksmith 2014 install'] });
+if (prefs.hear > 0 && prefs.input) applyHear();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   const playable = songs.filter(s => s.audio !== false);

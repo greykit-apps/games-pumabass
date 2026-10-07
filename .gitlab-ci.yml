@@ -10,3 +10,4 @@ validate:
   script:
     - node tools/check-assets.js
     - for f in server/*.js; do node --check "$f"; done
+    - node tools/check-pitch.mjs

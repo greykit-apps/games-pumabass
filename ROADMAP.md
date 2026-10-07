@@ -26,8 +26,9 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 - [ ] **Calibrate the offset.** Settings gets a global audio/video offset with a calibration test: the player taps,
       clicks or strums along with what they see as "in time", and the measured difference sets the offset.
-- [ ] **Tuner.** A tuner that appears automatically on the first song of the day and when the next song needs a
+- [x] **Tuner.** A tuner that appears automatically on the first song of the day and when the next song needs a
       different tuning, and can be opened by hand. Best paired with the Real Tone Cable input.
+      Done with the Real Tone Cable input; still to try with a real cable.
 
 ## Platform: the Linux set-top PC
 
@@ -44,5 +45,7 @@ copied over by hand.
 
 ## Later (from earlier conversations)
 
-- [ ] **Real Tone Cable.** Listen to the bass through the Real Tone Cable or an audio interface and mark notes as hit or missed.
+- [x] **Real Tone Cable input.** The cable (or any audio input) is found and read, with "Hear your bass" to
+      play it through PumaBass.
+- [ ] **Scoring.** Mark notes as hit or missed from the input, now that it is there.
 - [ ] **Guitar parts.** Lead and rhythm already load and render on six strings; polish them as first-class parts.

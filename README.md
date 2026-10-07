@@ -47,6 +47,7 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Shift + click progress bar | Move the nearest loop edge there |
 | Home | Back to loop start (or song start) |
 | , | This song's settings: audio offset, highway, volume |
+| T | The tuner |
 | M | Sound on / off, anywhere |
 | Mouse wheel (paused) | Scrub |
 | Esc | Back to the song list, then the menu |
@@ -64,6 +65,31 @@ own recording into the `music` folder named like `Artist - Title.mp3` (or just `
 press **Rescan**. mp3, ogg, flac, m4a and wav work. Settings → Song list → **Show them** lists the
 charts still waiting for a recording. Your recording probably won't line up exactly, so use the
 song's audio offset (`,`), which goes up to ±15 s for these. It is remembered per song.
+
+## Real Tone Cable and the tuner
+
+Plug your bass into the Rocksmith Real Tone Cable and press **T** (or **Tuner** on the menu or in the
+player). The first time, the browser asks to let PumaBass use audio inputs; allow it. The cable is
+found by name; any other audio input (an audio interface, a microphone) can be chosen in
+**Settings → Instrument input**.
+
+- The tuner aims for the song's tuning, including the few cents some Rocksmith songs sit off A440
+  (Dream On, for one, is +17). It ticks each string off once it holds within 3 cents.
+- It opens by itself on the first song of the day and when a song needs a different tuning from the
+  last; **Settings → Tune before playing** turns that off. It only does so once an input has been
+  chosen and is plugged in.
+- **Hear your bass** plays the input through PumaBass, for a bass plugged into the cable instead of
+  an amp. There's a short delay on the way (the browser's audio path); a splitter to an amp has none.
+- Inputs only work when the page is opened as `http://localhost:…` on the computer PumaBass runs
+  on: browsers refuse microphones to plain-http addresses elsewhere.
+- **Kiosk browsers** (e.g. `chromium --kiosk` on a set-top PC) may have nowhere to show the
+  permission question. Either allow it once in a normal window first (Chromium remembers it), or
+  allow it by policy: put `{ "AudioCaptureAllowedUrls": ["http://localhost:8014"] }` in
+  `/etc/chromium/policies/managed/pumabass.json`.
+
+`node tools/check-pitch.mjs` tests the pitch detector on 2,597 synthesized bass and guitar notes
+(stiff strings, weak fundamentals, noise, fading plucks): every reading the tuner shows is within
+2 cents, nearly all within 1. CI runs it.
 
 ## Settings file and options
 
@@ -130,6 +156,8 @@ That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.p
 - `web/js/highway.js`: the 3D note highway, and the camera path planned for each song
   (`node tools/check-camera.mjs` measures it across your library after any tuning)
 - `web/js/chart.js`: difficulty levels, tuning names
+- `web/js/input.js`, `web/js/tuner.js`, `web/js/pitch.js`: the instrument input, the tuner, and its
+  pitch detection (`node tools/check-pitch.mjs` tests it)
 - `web/js/title.js`: the canon boot and title screen; `scene.js` is its stage backdrop; `help.js` holds Help and About
 - `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
 - `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion, audio lookup and decoding
