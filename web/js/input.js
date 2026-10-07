@@ -1,17 +1,18 @@
 // The instrument input: the Real Tone Cable, or any other audio input, read
-// through Web Audio for the tuner, and optionally played back so you can hear
-// your bass when it is plugged into the cable rather than an amp.
+// through Web Audio for the tuner, and fed to the mixer (web/js/mixer.js) so
+// you can hear your bass when it is plugged into the cable, not an amp.
 
 /** The Real Tone Cable calls itself "Rocksmith Guitar Adapter" to the computer. */
 export const isRealTone = label => /rocksmith|guitar adapter|real\s*tone/i.test(label || '');
 
 export class InstrumentInput {
-  constructor() {
-    this.ctx = null;
+  /** mixer: where the input goes to be heard (its context is used too). */
+  constructor(mixer) {
+    this.mixer = mixer;
+    this.ctx = mixer.ctx;
     this.stream = null;
     this.source = null;
     this.analyser = null;
-    this.monitor = null;     // gain node to the speakers
     this.label = '';
     this.deviceId = null;
     this.buf = null;
@@ -56,9 +57,6 @@ export class InstrumentInput {
   /** Use any MediaStream as the input (also how tests feed in a test tone). */
   useStream(stream) {
     this.close();
-    // 48 kHz everywhere (the Real Tone Cable's own rate), whatever the sound
-    // card runs at, so the tuner's window is always the same 0.34 s.
-    if (!this.ctx) this.ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
     this.stream = stream;
     const track = stream.getAudioTracks()[0];
     this.label = track ? track.label : 'Test input';
@@ -68,17 +66,15 @@ export class InstrumentInput {
     this.analyser = this.ctx.createAnalyser();
     this.analyser.fftSize = 16384; // 0.34 s at 48 kHz: enough cycles of a low bass string
     this.source.connect(this.analyser);
-    this.monitor = this.ctx.createGain();
-    this.monitor.gain.value = 0;
-    this.source.connect(this.monitor).connect(this.ctx.destination);
+    this.source.connect(this.mixer.bassIn);
     this.buf = new Float32Array(this.analyser.fftSize);
     if (this.onchange) this.onchange('open');
   }
 
   /** The browser only lets audio start after a click or key: call from one. */
-  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  resume() { this.mixer.resume(); }
 
-  get sampleRate() { return this.ctx ? this.ctx.sampleRate : 48000; }
+  get sampleRate() { return this.ctx.sampleRate; }
 
   /** The latest stretch of input, newest last. */
   read() {
@@ -87,16 +83,9 @@ export class InstrumentInput {
     return this.buf;
   }
 
-  /** Play the input through the speakers (0 = off, 1 = full). */
-  setMonitor(volume) {
-    if (!this.monitor) return;
-    this.monitor.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.02);
-  }
-
   close() {
     if (this.stream) this.stream.getTracks().forEach(t => t.stop());
     if (this.source) this.source.disconnect();
-    if (this.monitor) this.monitor.disconnect();
-    this.stream = this.source = this.analyser = this.monitor = null;
+    this.stream = this.source = this.analyser = null;
   }
 }

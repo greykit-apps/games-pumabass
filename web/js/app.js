@@ -5,9 +5,13 @@ import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
 import { InstrumentInput, isRealTone } from './input.js';
 import { openTuner, tuningTargets, tuningKey } from './tuner.js';
+import { Mixer, RECORDED_BASS } from './mixer.js';
 
 const $ = id => document.getElementById(id);
 const audio = $('audio');
+// The song and your bass both play through the mixer, so they can be balanced.
+const mixer = new Mixer();
+mixer.attachSong(audio);
 const highway = new Highway($('highway'));
 
 /* ---- storage (games-meta STANDARD.md §5): every key is pumabass_<feature>_v<n>,
@@ -50,10 +54,13 @@ function save(key, value) {
 const prefs = Object.assign({
   type: 'bass', sort: 'artist', showMissing: false, difficulty: 100, lookahead: 3, invert: false, volume: 100, startSpeed: 100,
   input: null,      // { id, label } of the instrument input
-  hear: 0,          // play the input through the speakers, 0..1
-  hearLast: 0.6,    // the volume "Hear your bass" comes back on at
+  hear: false,      // play the input through the speakers
+  bassBoost: 12,    // dB added to the input: the cable's signal is quiet next to a finished record
+  recordedBass: 'full', // the song's own bass: full, reduced or cut (RECORDED_BASS)
   autoTune: true,   // open the tuner on the day's first song and when the tuning changes
 }, load(KEY_PREFS, {}));
+if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
+delete prefs.hearLast;
 const savePrefs = () => save(KEY_PREFS, prefs);
 
 /* Settings' "Forget everything" (games-meta STANDARD.md §2): every key PumaBass
@@ -95,10 +102,10 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 /* ---- sound (games-meta STANDARD.md §8): M anywhere, saved as "1" or "0".
  * PumaBass's only sound is the song, so muting it mutes the song. */
 let muted = (() => { try { return localStorage.getItem(KEY_MUTED) === '1'; } catch (e) { return false; } })();
-audio.muted = muted;
+mixer.setMuted(muted);
 function setMuted(m) {
   muted = m;
-  audio.muted = m;
+  mixer.setMuted(m);
   try { localStorage.setItem(KEY_MUTED, m ? '1' : '0'); } catch (e) { /* no storage */ }
   renderSoundButtons();
 }
@@ -173,8 +180,11 @@ function settingsHTML() {
 <p class='gk-note'>${inputStatus()}</p>
 <div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button></div>
 <h3>Hear your bass</h3>
-${pick('hear', [[0, 'Off'], [0.35, 'Quiet'], [0.6, 'Medium'], [0.9, 'Loud']], prefs.hear)}
-<p class='gk-note'>Plays the input through PumaBass, for a bass plugged into the cable rather than an amp. There is a short delay on the way.</p>
+${pick('hear', [['false', 'Off'], ['true', 'On']], prefs.hear)}
+<p class='gk-note'>Plays the input through PumaBass, for a bass plugged into the cable rather than an amp. There is a short delay on the way. Its level is in the player's Mix (<kbd>,</kbd>).</p>
+<h3>Recorded bass</h3>
+${pick('rb', Object.entries(RECORDED_BASS).map(([k, v]) => [k, v.label]), prefs.recordedBass)}
+<p class='gk-note'>The song's own bass can't be taken out of the record, but Reduced and Cut pull it well down so yours stands out. <kbd>B</kbd> switches it while you play.</p>
 <h3>Tune before playing</h3>
 ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <p class='gk-note'>Opens the tuner on your first song of the day, and when a song needs a different tuning from the last.</p>
@@ -222,7 +232,8 @@ async function settingsClick(b, sheet) {
       sheet.close();
       showTuner();
       return;
-    case 'hear': hear.set(Number(v)); break;
+    case 'hear': hear.set(v === 'true'); break;
+    case 'rb': setRecordedBass(v); break;
     case 'autotune': prefs.autoTune = v === 'true'; break;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
@@ -235,7 +246,7 @@ async function settingsClick(b, sheet) {
 }
 
 /* ---- the instrument input and the tuner ---- */
-const input = new InstrumentInput();
+const input = new InstrumentInput(mixer);
 input.onchange = () => { if (screen === 'title' && title && !document.querySelector('.gk-sheet')) { leaveTitle(); showTitle().reveal(); } };
 const shortLabel = l => (isRealTone(l) ? 'Real Tone Cable' : String(l || '').replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, ''));
 const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local
@@ -253,20 +264,42 @@ function inputError(e) {
   return (e && e.message) || "The input couldn't be opened.";
 }
 
-/* "Hear your bass": the input through the speakers, at prefs.hear. */
+/* "Hear your bass": the input through the speakers. (The tuner's switch uses
+ * volume/last/set: on is 1, off is 0.) */
 const hear = {
-  get volume() { return prefs.hear; },
-  get last() { return prefs.hearLast; },
+  get volume() { return prefs.hear ? 1 : 0; },
+  last: 1,
   set(v) {
-    prefs.hear = v;
-    if (v) prefs.hearLast = v;
+    prefs.hear = !!v;
     savePrefs();
-    applyHear();
+    applyMix();
+    syncPlayerPrefs();
   },
 };
-async function applyHear() {
-  if (prefs.hear > 0 && !input.open) await ensureInput({ ask: false });
-  input.setMonitor(prefs.hear);
+
+/* Everything the mixer does, from prefs: song volume, the recorded bass, and your bass. */
+async function applyMix() {
+  mixer.setSongVolume(prefs.volume / 100);
+  mixer.setRecordedBass(prefs.recordedBass);
+  mixer.setBassBoost(prefs.bassBoost);
+  if (prefs.hear && !input.open && prefs.input) await ensureInput({ ask: false });
+  mixer.setHearBass(prefs.hear && input.open);
+}
+
+function setRecordedBass(mode) {
+  prefs.recordedBass = RECORDED_BASS[mode] ? mode : 'full';
+  savePrefs();
+  applyMix();
+  syncPlayerPrefs();
+}
+
+let toastTimer = 0;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 1400);
 }
 
 /* Open the chosen input, or the Real Tone Cable if none was chosen and one is
@@ -283,7 +316,7 @@ async function ensureInput({ ask = true } = {}) {
       await input.openDevice(d.id);
       prefs.input = { id: d.id, label: d.label };
       savePrefs();
-      input.setMonitor(prefs.hear);
+      applyMix();
       return true;
     }
   } catch (e) {
@@ -336,7 +369,7 @@ function chooseInput() {
           await input.openDevice(b.dataset.id);
           prefs.input = { id: b.dataset.id, label: list.find(d => d.id === b.dataset.id).label };
           savePrefs();
-          input.setMonitor(prefs.hear);
+          applyMix();
           close(true);
         } catch (e) { draw(inputError(e)); }
       }
@@ -382,10 +415,10 @@ async function maybeAutoTune() {
 }
 
 // The browser lets audio start only after a click or key.
-document.addEventListener('pointerdown', () => input.resume(), true);
-document.addEventListener('keydown', () => input.resume(), true);
+document.addEventListener('pointerdown', () => mixer.resume(), true);
+document.addEventListener('keydown', () => mixer.resume(), true);
 // For tests: feed any MediaStream in as the instrument (e.g. an oscillator).
-window.pumabassDebug = { useInput: stream => { input.useStream(stream); input.setMonitor(prefs.hear); }, input };
+window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer };
 
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
@@ -867,7 +900,17 @@ const toggleSettingsPanel = () => $('settings').classList.toggle('hidden');
 $('settings-btn').addEventListener('click', toggleSettingsPanel);
 $('settings-close').addEventListener('click', () => $('settings').classList.add('hidden'));
 
-$('volume').addEventListener('input', () => { prefs.volume = Number($('volume').value); audio.volume = prefs.volume / 100; savePrefs(); });
+$('volume').addEventListener('input', () => { prefs.volume = Number($('volume').value); savePrefs(); applyMix(); });
+$('boost').addEventListener('input', () => { prefs.bassBoost = Number($('boost').value); savePrefs(); applyMix(); syncPlayerPrefs(); });
+$('hear').addEventListener('change', async () => {
+  prefs.hear = $('hear').checked;
+  savePrefs();
+  if (prefs.hear && !(await ensureInput())) prefs.hear = false;
+  savePrefs();
+  applyMix();
+  syncPlayerPrefs();
+});
+$('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
 $('lookahead').addEventListener('input', () => { prefs.lookahead = Number($('lookahead').value); highway.lookahead = prefs.lookahead; savePrefs(); syncPlayerPrefs(); });
 $('invert').addEventListener('change', () => { prefs.invert = $('invert').checked; highway.invert = prefs.invert; savePrefs(); });
 
@@ -875,11 +918,15 @@ $('invert').addEventListener('change', () => { prefs.invert = $('invert').checke
 function syncPlayerPrefs() {
   highway.lookahead = prefs.lookahead;
   highway.invert = prefs.invert;
-  audio.volume = prefs.volume / 100;
+  audio.volume = 1; // the song's volume is the mixer's
   $('lookahead').value = prefs.lookahead;
   $('lookahead-val').textContent = `${prefs.lookahead}s`;
   $('invert').checked = prefs.invert;
   $('volume').value = prefs.volume;
+  $('hear').checked = prefs.hear;
+  $('boost').value = prefs.bassBoost;
+  $('boost-val').textContent = `+${prefs.bassBoost} dB`;
+  for (const b of document.querySelectorAll('#recorded-bass [data-rb]')) b.setAttribute('aria-pressed', String(b.dataset.rb === prefs.recordedBass));
   $('difficulty').value = prefs.difficulty;
   $('diff-val').textContent = `${prefs.difficulty}%`;
 }
@@ -912,6 +959,11 @@ function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
+  else if (k === 'b' || k === 'B') {
+    const modes = Object.keys(RECORDED_BASS);
+    setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);
+    toast(`Recorded bass: ${RECORDED_BASS[prefs.recordedBass].label}`);
+  }
   else if (k === '?' || k === 'h') openHelp();
   else if (k === 'Escape') {
     if (!$('settings').classList.contains('hidden')) $('settings').classList.add('hidden');
@@ -948,6 +1000,13 @@ function frame() {
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
     renderOverlay();
+    if (!$('settings').classList.contains('hidden')) {
+      for (const [id, which] of [['song-meter', 'song'], ['bass-meter', 'bass']]) {
+        const db = mixer.level(which);
+        $(id).firstChild.style.width = `${Math.max(0, Math.min(100, (db + 48) * (100 / 48)))}%`;
+        $(id).classList.toggle('hot', db > -1);
+      }
+    }
     const sec = currentSection(t);
     $('section-name').textContent = sec && sec.name !== 'noguitar' ? sec.name : '';
     if (!audio.paused && performance.now() - lastResumeSave > 3000) { lastResumeSave = performance.now(); saveResume(); }
@@ -960,7 +1019,7 @@ requestAnimationFrame(frame);
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'));
 const boot = runBoot({ lines: [bootReloadLine(), 'local server: your Rocksmith 2014 install'] });
-if (prefs.hear > 0 && prefs.input) applyHear();
+applyMix();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   const playable = songs.filter(s => s.audio !== false);

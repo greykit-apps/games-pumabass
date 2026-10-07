@@ -48,6 +48,7 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Home | Back to loop start (or song start) |
 | , | This song's settings: audio offset, highway, volume |
 | T | The tuner |
+| B | Recorded bass: full, reduced, cut |
 | M | Sound on / off, anywhere |
 | Mouse wheel (paused) | Scrub |
 | Esc | Back to the song list, then the menu |
@@ -80,6 +81,14 @@ found by name; any other audio input (an audio interface, a microphone) can be c
   chosen and is plugged in.
 - **Hear your bass** plays the input through PumaBass, for a bass plugged into the cable instead of
   an amp. There's a short delay on the way (the browser's audio path); a splitter to an amp has none.
+- **The mix** (`,` in the player): **Your bass** boosts the cable's quiet signal by up to +30 dB
+  (default +12), **Song** sets the record's level, and a meter on each helps set them about level.
+  A limiter on the two together keeps a big boost from distorting.
+- **Recorded bass** (`B`): Full, Reduced or Cut. A finished record has no separate bass track, so
+  this cuts the low end of the centre of the stereo mix, where the bass sits, and leaves the sides
+  (guitars panned left and right) alone. Measured on Sweet Emotion: Cut takes the bass range down
+  about 20 to 25 dB (30 to 150 Hz), 14 dB at 150 to 250 Hz, and leaves everything above 500 Hz as it
+  was. The bass's upper overtones remain, and the kick drum loses some thump; Full is untouched.
 - Inputs only work when the page is opened as `http://localhost:…` on the computer PumaBass runs
   on: browsers refuse microphones to plain-http addresses elsewhere.
 - **Kiosk browsers** (e.g. `chromium --kiosk` on a set-top PC) may have nowhere to show the

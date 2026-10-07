@@ -48,4 +48,8 @@ copied over by hand.
 - [x] **Real Tone Cable input.** The cable (or any audio input) is found and read, with "Hear your bass" to
       play it through PumaBass.
 - [ ] **Scoring.** Mark notes as hit or missed from the input, now that it is there.
+- [x] **Balance.** A mix with your bass boosted (up to +30 dB) against the song, meters on both, and a limiter.
+- [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).
+- [ ] **Recorded bass: removed.** Truly taking the bass out needs stem separation (an AI model such as Demucs),
+      run once per song on the PC and cached: a large install, and slow without a graphics card.
 - [ ] **Guitar parts.** Lead and rhythm already load and render on six strings; polish them as first-class parts.

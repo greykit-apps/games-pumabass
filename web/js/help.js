@@ -18,7 +18,8 @@ ${keys([
     ['L', 'loop the section you are in; again to stop'],
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
-    [',', "this song's settings: audio offset, highway, volume"],
+    [',', 'the mix (song, recorded bass, your bass) and this song's settings'],
+    ['B', 'recorded bass: full, reduced, cut'],
     ['T', 'the tuner'],
     ['M', 'sound on / off, anywhere'],
     ['Esc', 'back to the song list'],
@@ -52,8 +53,16 @@ once it holds in tune.</p>
 <p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Settings can
 turn that off.</p>
 <h3>Hearing your bass</h3>
-<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner, or Settings)
-plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp has none.</p>
+<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner, the Mix, or
+Settings) plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
+has none.</p>
+<h3>The mix</h3>
+<p>Open it with <kbd>,</kbd> while a song is up. <b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and
+<b>Song</b> sets the record; play along and set the two meters about level. A limiter keeps the two together from
+ever distorting.</p>
+<p><b>Recorded bass</b> (<kbd>B</kbd>): the song's own bass can't be lifted out of a finished record, but
+<b>Reduced</b> and <b>Cut</b> pull it well down, by cutting the low end of the middle of the stereo mix, where a
+bass always sits. Its upper overtones stay, and the kick drum loses some thump; guitars and vocals are left alone.</p>
 <h3>Another input</h3>
 <p>Any audio input works, e.g. an audio interface or a microphone near an acoustic bass: choose it in Settings.
 The first time, the browser asks to let PumaBass use it.</p>`],
