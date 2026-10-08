@@ -163,9 +163,7 @@ goes up to 15 seconds either way for these.</p>`],
 ];
 
 export const ABOUT = `
-<p><b>PumaBass</b> is a note highway for the Rocksmith 2014 songs you already own, for when the game itself will
-not behave. Bass first; lead and rhythm guitar charts load too.</p>
-<p>It reads your song files through a small server on this computer, and nothing leaves it. It ships with no
-songs. Audio is decoded with vgmstream. Not affiliated with Ubisoft; Rocksmith is theirs.</p>
-<p>Developed entirely with Claude Code.</p>
-<p class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;
+<p><b>PumaBass</b> is a RockSmith-style tabulature player. At its core, it takes tab notation, turns it sideways,
+and synchronizes it to the music. You can use CustomsForge PSARC files or make your own using a simple synchronizer.
+It can also "score" your playing, if you really like being judged by a machine.</p>
+<p class="gk-credit">Developed entirely with Claude Code. Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;
