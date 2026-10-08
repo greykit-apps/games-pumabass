@@ -192,7 +192,7 @@ export function syncResult(res, current) {
         <p>Your plucks reach PumaBass ${Math.abs(res.input) < 10 ? 'right with the notes' : `${Math.round(Math.abs(res.input))} ms ${res.input > 0 ? 'after' : 'before'} the notes`}; scoring will allow for it. <span class="muted">Now: ${fmt(current.input)}.</span></p>
         <table class="calib-table"><tr><td>Plucks</td><td>${res.heard} of ${per} heard</td><td>within &plusmn;${Math.round(res.timing.spread)} ms of each other</td></tr></table>
         ${res.timing.spread > 35 ? '<p class="gk-note warn">The plucks wandered quite a bit, so this is a rough reading. Another go may give a steadier one.</p>' : ''}`
-      : `<p>Too few plucks were heard to measure (${res.heard} of ${per}). Pluck the open E string firmly on every tick after the first few; check the cable's level in the Mix panel (<kbd>,</kbd>).</p>
+      : `<p>Too few plucks were heard to measure (${res.heard} of ${per}). Pluck the open E string firmly on every tick after the first few; check the cable's level in the Mix panel (<kbd>M</kbd>).</p>
         <p class="gk-note">The picture's offset you lined up (${fmt(current.av)}) is kept either way.</p>`;
     el.innerHTML = `<div class="gk-box calib"><div class="gk-head"><h2>Sync</h2><button data-x aria-label="Close">&times;</button></div><div class="gk-body">${body}
       <div class="gk-row">${usable ? '<button class="primary" data-use><kbd>Enter</kbd>Use these</button>' : ''}<button ${usable ? '' : 'class="primary" '}data-retry>${usable ? '' : '<kbd>Enter</kbd>'}Play along again</button><button data-x>${usable ? 'Keep the picture only' : 'Done'}</button></div></div></div>`;

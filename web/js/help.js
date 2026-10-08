@@ -19,7 +19,7 @@ ${keys([
     ['R', 'riff repeater: the loop, a little faster each time round'],
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
-    [',', "the mix: the song, your bass, the recorded bass, and this song's timing"],
+    ['M', "the mix: the song, your bass, the recorded bass, and this song's timing"],
     ['B', 'recorded bass: full, reduced, cut'],
     ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
@@ -84,7 +84,7 @@ move it with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigge
 right on the tick, then press <kbd>Enter</kbd>. It starts from the timing you have now, so a small fix is a few
 presses. With the Real Tone Cable open, you then pluck the open E string along with the tick for half a minute,
 which sets scoring's timing for the cable. Run it again after changing speakers, headphones or screen.</p>
-<p>For one song only (say, your own recording of it), open the Mix with <kbd>,</kbd> and nudge its
+<p>For one song only (say, your own recording of it), open the Mix with <kbd>M</kbd> and nudge its
 <b>audio offset</b> under <b>This song's timing</b>; it adds to the calibrated one.</p>`],
   ['Tuner', `
 <p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd> (or <b>Tuner</b> on the menu or in the
@@ -98,7 +98,7 @@ tune? Close it and play.</p>
 plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
 has none.</p>
 <h3>The mix</h3>
-<p>Open it with <kbd>,</kbd> while a song is up. <b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and
+<p>Open it with <kbd>M</kbd> while a song is up. <b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and
 <b>Song</b> sets the record; play along and set the two meters about level. A limiter keeps the two together from
 ever distorting.</p>
 <p><b>Recorded bass</b> (<kbd>B</kbd>): the song's own bass can't be lifted out of a finished record, but
@@ -117,12 +117,12 @@ where to practise.</p>
 Hammer-ons and pull-offs need the new pitch, with no pluck. Muted notes and harmonics need the pluck. Chords count
 on the pluck alone: one cable can't reliably tell which several notes are ringing, so a wrong chord shape isn't
 caught.</p>
-<p>Turn scoring off in the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
+<p>Turn scoring off in the Mix panel (<kbd>M</kbd>) to practise without the marks. It never runs without an
 input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
 <h3>Many misses?</h3>
 <p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
 PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
-panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or on the end screen) keeps what the cable
+panel (<kbd>M</kbd>) and play; then <b>Save take</b> (there, or on the end screen) keeps what the cable
 heard in the PumaBass folder, to find out why. Both are under <b>Takes</b>, at the foot of the Mix.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
@@ -158,7 +158,7 @@ their charts, the second their audio.</p>
 <p>Some charts arrive without their audio (the Rocksmith 1 DLC pack, for one). Drop your own recording into the
 PumaBass <code>music</code> folder, named like <code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press
 <b>Rescan</b>. The song list hides the charts still waiting for one; the button at its foot shows them.</p>
-<p>A recording of your own rarely lines up with the chart exactly: use the song's audio offset (<kbd>,</kbd>), which
+<p>A recording of your own rarely lines up with the chart exactly: use the song's audio offset (<kbd>M</kbd>), which
 goes up to 15 seconds either way for these.</p>`],
 ];
 

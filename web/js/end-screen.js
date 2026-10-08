@@ -64,7 +64,7 @@ export function showEndScreen() {
       ${strip}
       <p class="end-more">Best streak ${sc.best}${timingSay ? ` &middot; ${timingSay}` : ''}${best !== null ? ` &middot; best ${best}% on full plays` : ''}</p>
     </div>`
-    : `<p class="end-invite">${!prefs.scoring ? 'Scoring is off. Turn it on in the Mix (<kbd>,</kbd>) to have your playing scored.'
+    : `<p class="end-invite">${!prefs.scoring ? 'Scoring is off. Turn it on in the Mix (<kbd>M</kbd>) to have your playing scored.'
       : !input.open && prefs.input ? `Not scored: ${esc(shortLabel(prefs.input.label))} wasn't connected. Plug it in and press <kbd>T</kbd> for the tuner, which opens it.`
         : !input.open ? 'Not scored: no instrument input. Plug in the Real Tone Cable and choose it in Settings, under Instrument input.'
           : 'No notes were scored this time.'}</p>`;

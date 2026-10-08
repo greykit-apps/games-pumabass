@@ -95,7 +95,7 @@ export function settingsHTML() {
 <h3>Instrument input</h3>
 <p class='gk-note'>${inputStatus()}</p>
 <div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button></div>
-<p class='gk-note'>Scoring, hearing your bass and the mix are in the player's Mix panel (<kbd>,</kbd>).</p>
+<p class='gk-note'>Scoring, hearing your bass and the mix are in the player's Mix panel (<kbd>M</kbd>).</p>
 <h3>Screen</h3>
 ${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close']], prefs.screen)}
 <p class='gk-note'>On a big screen, TV draws everything larger so it reads from the couch.</p>

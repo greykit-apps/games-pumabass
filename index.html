@@ -83,14 +83,10 @@
   <section id="player" class="screen hidden" aria-label="Player">
     <canvas id="highway" role="img" aria-label="The note highway: each note comes towards you and lands on its string when it's time to play it"></canvas>
     <div class="p-top">
-      <span class="wordmark" aria-hidden="true">Puma<b>Bass</b></span>
-      <button id="back" title="Back to the song list (Esc)"><kbd>Esc</kbd>Songs</button>
+      <button id="back" class="wordmark" title="Back to the song list (Esc)" aria-label="Songs">Puma<b>Bass</b></button>
       <span class="grow"></span>
-      <button id="fav-btn" class="heart" aria-label="Favorite" aria-pressed="false" title="Favorite (F)"><kbd>F</kbd><span class="ico heart-ico" aria-hidden="true"></span></button>
-      <div id="p-tuning" class="chip"></div>
       <span id="score-hud" class="chip hidden" aria-live="off" title="Accuracy so far, and your current streak"></span>
       <button id="no-score" class="hidden" title="Scoring is on, but no instrument input is open: choose one">Not scoring: no input</button>
-      <button id="tuner-btn" title="Tune with the Real Tone Cable (T)"><kbd>T</kbd>Tuner</button>
     </div>
     <!-- The notation band: standard notation over tab, scrolling over the top of the highway (web/js/notation.js). -->
     <div id="notation" class="hidden" aria-hidden="true"><div id="nt-clef"></div><div id="nt-view"><div id="nt-strip"></div></div><i id="nt-head"></i></div>
@@ -125,19 +121,20 @@
         <div id="playhead"></div>
       </div>
       <div class="controls">
-        <button id="play" class="primary" title="Play / pause (Space)"><kbd>Space</kbd><span id="play-label">Play</span></button>
-        <span id="time">0:00 / 0:00</span>
-        <span id="section-name" aria-live="off"></span>
-        <button id="loop" title="Loop the current section (L)"><kbd>L</kbd>Loop section</button>
-        <button id="repeat" title="Riff repeater: loop, a little faster each time round (R)"><kbd>R</kbd><span id="repeat-label">Riff repeater</span></button>
-        <label title="Playback speed (Up / Down)"><kbd>&uarr;&darr;</kbd>Speed
+        <div class="c-left">
+          <button id="play" class="primary" title="Play / pause (Space)"><kbd>Space</kbd><span id="play-label">Play</span></button>
+          <span id="time">0:00 / 0:00</span>
+          <span id="section-name" aria-live="off"></span>
+        </div>
+        <div class="c-mid">
+        <label title="Playback speed (Up / Down)">Speed
           <input id="speed" type="range" min="25" max="120" step="5" value="100"><b id="speed-val">100%</b>
         </label>
         <label title="How much of the chart: 100% is every note; lower plays Rocksmith's simpler versions of each phrase">Notes
           <input id="difficulty" type="range" min="0" max="100" step="5" value="100"><b id="diff-val">100%</b>
         </label>
-        <span class="grow"></span>
-        <button id="settings-btn" title="The mix: the song, your bass, the recorded bass (,)"><kbd>,</kbd>Mix</button>
+        </div>
+        <div class="c-right"><div id="p-tuning" class="chip"></div></div>
       </div>
     </div>
 
