@@ -303,7 +303,7 @@ export function showFav() {
   $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
-  $('fav-btn').textContent = on ? '\u2605' : '\u2606';
+  $('fav-btn').textContent = on ? '\u2665' : '\u2661';
 }
 $('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
@@ -472,7 +472,7 @@ export function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
-  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2605 Favorite' : 'Not a favorite'); }
+  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2665 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);

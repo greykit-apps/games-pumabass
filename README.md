@@ -59,9 +59,13 @@ played, whether it counted as finished, and the song's totals), with the score p
 scoring. `Space` goes to the main menu with nothing left to resume, `R` plays it again, `Esc` goes
 to the song list.
 
-In the song list: `/` searches, Up / Down move, Enter plays, `F` stars a favorite.
+In the song list: `/` searches, Up / Down move, Enter plays, `F` hearts a favorite.
 
-**Your library.** Star songs (the ☆ on each row, `F`, or in the player) and **★ Favorites** shows only
+**Difficulty** is Rocksmith's own rating for each part (0 to 1, for the full chart), shown as a bar of
+1 to 5 steps: under 0.2 is one, then a step for each 0.1, five from 0.5 up. Sort by **Difficulty** for the
+easiest first.
+
+**Your library.** Heart songs (the ♡ on each row, `F`, or in the player) and **♥ Favorites** shows only
 those. **Plays** counts each time a song is started (pause-and-continue, or Resume game, is the same
 play); **Finished** counts the times it was played through to its last note, with at least half of
 what was ahead actually played. Sort by **Most played**. These are kept in the browser, like the rest

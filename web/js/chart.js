@@ -43,6 +43,16 @@ export function tuningName(tuning, strings) {
   return tuningNotes(t, strings).join(' ');
 }
 
+/**
+ * Rocksmith's difficulty rating for a part (0 to 1; for the full chart) as a level
+ * of 1 to 5, by fixed steps so a song keeps its level as the library grows. Bass
+ * parts run from about 0.1 to 0.6. 0 when there is no rating.
+ */
+export function difficultyLevel(d) {
+  if (typeof d !== 'number') return 0;
+  return d < 0.2 ? 1 : d < 0.3 ? 2 : d < 0.4 ? 3 : d < 0.5 ? 4 : 5;
+}
+
 export function formatTime(sec) {
   if (!isFinite(sec) || sec < 0) sec = 0;
   const m = Math.floor(sec / 60);

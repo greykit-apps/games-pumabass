@@ -35,12 +35,12 @@ ${keys([
     ['/', 'search'],
     ['Up / Down', 'move through the list'],
     ['Enter', 'play the song'],
-    ['F', 'star the song: a favorite'],
+    ['F', 'heart the song: a favorite'],
     ['Esc', 'back to the menu'],
   ])}`],
   ['Your library', `
 <h3>Favorites</h3>
-<p>Star a song with the <b>&#9734;</b> at the start of its row (or <kbd>F</kbd>), or in the player. <b>&#9733; Favorites</b>
+<p>Heart a song with the <b>&#9825;</b> at the start of its row (or <kbd>F</kbd>), or in the player. <b>&#9829; Favorites</b>
 above the list shows only your favorites: your own library.</p>
 <h3>Plays and Finished</h3>
 <p><b>Plays</b> counts each time you start a song. Pausing and carrying on is the same play, and so is picking it up

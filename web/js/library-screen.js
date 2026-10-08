@@ -1,6 +1,6 @@
 // The song list, and choosing the songs folder.
 
-import { tuningName, formatTime, arrangementLabel } from './chart.js';
+import { tuningName, formatTime, arrangementLabel, difficultyLevel } from './chart.js';
 import { alertSheet } from './title.js';
 import { api } from './api.js';
 import { $, esc, screen, songs, setScreen, setLibrary } from './core.js';
@@ -122,6 +122,7 @@ export function renderLibrary() {
   const cmp = {
     artist: (a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
     title: (a, b) => a.title.localeCompare(b.title),
+    difficulty: (a, b) => (a.difficulty ?? 9) - (b.difficulty ?? 9) || a.artist.localeCompare(b.artist),
     tuning: (a, b) => tuningName(a.tuning, stringsOf(a)).localeCompare(tuningName(b.tuning, stringsOf(b))) || a.artist.localeCompare(b.artist),
     recent: (a, b) => (recent[b.id] || 0) - (recent[a.id] || 0) || a.artist.localeCompare(b.artist),
     plays: (a, b) => ((stats[b.id] || {}).plays || 0) - ((stats[a.id] || {}).plays || 0) || ((stats[b.id] || {}).finished || 0) - ((stats[a.id] || {}).finished || 0) || a.artist.localeCompare(b.artist),
@@ -135,7 +136,7 @@ export function renderLibrary() {
   const el = $('song-list');
   el.innerHTML = list.length ? '' : !songs.length
     ? '<div class="empty"><p>No songs yet. PumaBass plays your own Rocksmith 2014 song files: show it where they are.</p><button class="primary" data-act="choose">Choose your songs folder</button></div>'
-    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Star a song (&#9733;, or F on a song) to add it.' : 'No songs here.'}</div>`;
+    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Heart a song (&#9825;, or F on a song) to add it.' : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
   list.forEach((s, i) => {
     const row = document.createElement('div');
@@ -146,9 +147,11 @@ export function renderLibrary() {
     const tn = tuningName(s.tuning, stringsOf(s));
     const st = stats[s.id] || {}, fav = !!favs[s.id];
     const num = v => `<span class="num${v ? '' : ' zero'}">${v || '\u2013'}</span>`;
-    row.innerHTML = `<button class="star" data-fav aria-label="Favorite" aria-pressed="${fav}" title="Favorite (F)">${fav ? '\u2605' : '\u2606'}</button>
+    const level = difficultyLevel(s.difficulty);
+    row.innerHTML = `<button class="heart" data-fav aria-label="Favorite" aria-pressed="${fav}" title="Favorite (F)">${fav ? '\u2665' : '\u2661'}</button>
       <div style="min-width:0"><div class="t"></div><div class="a"></div></div>
       <span class="arr"></span>
+      <span class="diff" ${level ? `title="Difficulty ${level} of 5 (Rocksmith rates it ${s.difficulty.toFixed(2)})" aria-label="Difficulty ${level} of 5"` : 'aria-label="No difficulty rating"'}>${level ? `${'\u25ae'.repeat(level)}<i>${'\u25ae'.repeat(5 - level)}</i>` : '\u2013'}</span>
       <span class="tun${tn === 'E Standard' ? ' std' : ''}"></span>
       ${num(st.plays)}${num(st.finished)}
       <span class="len">${formatTime(s.length)}</span>`;
@@ -166,19 +169,19 @@ export function renderLibrary() {
   $('missing-toggle').textContent = prefs.showMissing ? `Hide the ${missing} without audio` : `Show ${missing} without audio`;
 }
 
-/* Star a part, from its row: the row stays where it is (it only leaves the
+/* Heart a part, from its row: the row stays where it is (it only leaves the
  * list when the favorites filter is on). */
-export function starRow(row) {
+export function heartRow(row) {
   const on = toggleFav(row.dataset.id);
   const b = row.querySelector('[data-fav]');
   b.setAttribute('aria-pressed', String(on));
-  b.textContent = on ? '\u2605' : '\u2606';
+  b.textContent = on ? '\u2665' : '\u2661';
   if (prefs.favOnly && !on) { const next = row.nextElementSibling || row.previousElementSibling; renderLibrary(); const n = next && $('song-list').querySelector(`.song[data-id="${CSS.escape(next.dataset.id || '')}"]`); if (n) n.focus({ preventScroll: true }); }
 }
 
 $('song-list').addEventListener('click', e => {
   if (e.target.closest('[data-act=choose]')) return pickLibrary();
-  if (e.target.closest('[data-fav]')) { starRow(e.target.closest('.song')); return; }
+  if (e.target.closest('[data-fav]')) { heartRow(e.target.closest('.song')); return; }
   const row = e.target.closest('.song');
   const s = row && songs.find(x => x.id === row.dataset.id);
   if (s && s.audio !== false) openSong(s);
@@ -221,7 +224,7 @@ export function libraryKey(e, typing) {
   else if ((k === 't' || k === 'T') && !typing) { e.preventDefault(); showTuner(); }
   else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); rows[Math.min(rows.length - 1, i + 1)].focus(); }
   else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); (i === 0 ? $('search') : rows[i - 1]).focus(); }
-  else if ((k === 'f' || k === 'F') && !typing && i >= 0) { e.preventDefault(); starRow(rows[i]); }
+  else if ((k === 'f' || k === 'F') && !typing && i >= 0) { e.preventDefault(); heartRow(rows[i]); }
   else if (k === 'Enter' && i >= 0) {
     const s = songs.find(x => x.id === rows[i].dataset.id);
     if (s && s.audio !== false) openSong(s);
