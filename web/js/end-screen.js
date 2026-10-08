@@ -2,7 +2,6 @@
 
 import { tuningName, formatTime, arrangementLabel } from './chart.js';
 import { $, highway, input, esc } from './core.js';
-import { showLessons } from './lessons-screen.js';
 import { showLibrary } from './library-screen.js';
 import { showTitle } from './menu.js';
 import { chart, song, session, openSong, leaveSong, scorer } from './player.js';
@@ -75,14 +74,13 @@ export function showEndScreen() {
     <div class="gk-row end-acts">
       <button class="primary" data-end="menu"><kbd>Space</kbd>Main menu</button>
       <button data-end="again"><kbd>R</kbd>Play again</button>
-      <button data-end="list"><kbd>Esc</kbd>${song.lessonCtx ? 'The lesson' : 'Song list'}</button>
+      <button data-end="list"><kbd>Esc</kbd>Song list</button>
       ${input.tape && input.tape.samples ? '<button data-end="take" title="Saves what the cable heard, with how each note was judged, in the PumaBass folder (takes), for tuning the scoring"><kbd>S</kbd>Save take</button>' : ''}
     </div>
   </div>`;
   const act = what => {
     const s = song;
     if (what === 'menu') { leaveSong(); showTitle().reveal(); }
-    else if (what === 'list' && s.lessonCtx) { leaveSong(); showLessons(s.lessonCtx.key, s.lessonCtx.part); }
     else if (what === 'list') { leaveSong(); showLibrary(); }
     else if (what === 'again') { leaveSong(); openSong(s); }
     else if (what === 'take') {

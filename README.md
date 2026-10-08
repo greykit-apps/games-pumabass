@@ -32,7 +32,6 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 - PC (`_p.psarc`) and Mac (`_m.psarc`) files both work; when both are there, the PC one is used.
 - The songs on the Rocksmith disc keep their charts in `songs.psarc` and their audio in
   `audio.psarc`. Copy both, anywhere in the folder.
-- For **Lessons**, copy `etudes.psarc` (the lessons) and `static.psarc` (their words) too.
 - Nothing is copied or changed in your songs folder. Decoded audio is cached in `cache/audio`
   (kept under ~3 GB).
 
@@ -76,23 +75,6 @@ of your settings (and cleared by Forget everything).
 **Riff repeater** (`R`, or the button by Loop): loops the section and speeds it up each time round,
 from 60% to full speed in 5% steps (Settings sets both). With scoring on, a time round only speeds it
 up when 70% of its notes were hit.
-
-## Lessons
-
-**Lessons** on the menu is Rocksmith 2014's bass course: 39 lessons in the game's order, from holding
-the bass to slap and pop (`server/lessons.js`). From `etudes.psarc`:
-
-- each lesson's sections, from its manifest (`manifests/lessons/`);
-- what the instructor says. The videos are Bink 2, which browsers can't play, but each video's
-  narration is listed (`video/lessonNN/*.xml`) as string-table ids, so it is shown as text. The words
-  are in `static.psarc` (`localization/maingame.csv`, English column);
-- the parts to play: stretches of the lesson's chart, marked by its events (`start_x`, `freeze_x`,
-  `end_x`; a riff's example is `start_riffN_example`). Each plays looped in the player, with the
-  lesson's own backing audio;
-- the etude: a short piece with a band, played like a song.
-
-Progress (a tick per part played through, and per etude finished) is kept in the browser
-(`pumabass_lessons_v1`). Lesson charts stay out of the song list.
 
 ## Songs without audio
 
@@ -226,7 +208,7 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
 - §2 Settings → This browser → Forget everything, which removes only `pumabass*` keys;
 - §3 the boot and title screen: `web/js/title.js` carries `canon/gk-title.js` byte for byte;
 - §4 the palette: `web/style.css` opens with `canon/gk-tokens.css` byte for byte;
-- §5 storage keys `pumabass_<feature>_v<n>` (prefs, offsets, recent, resume, muted, tuner, favorites, stats, lessons);
+- §5 storage keys `pumabass_<feature>_v<n>` (prefs, offsets, recent, resume, muted, tuner, favorites, stats);
 - §6 the title menu, §7 Settings in order, §8 sound (`M`, `pumabass_muted_v1`, a header switch named Sound);
 - §9 page metadata and icons, §10 `tools/check-assets.js` byte for byte, run by CI's validate stage;
 - §11 no native dialogs.
@@ -253,7 +235,6 @@ That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.p
     instrument input, the sound switch, which screen is up, the song library);
   - `store.js`: what is kept in the browser; `api.js`: the server;
   - `menu.js`: the title, Settings and Help; `library-screen.js`: the song list and songs folder;
-    `lessons-screen.js`: Lessons;
   - `player.js`: the player and its frame loop, with `repeater.js` (the riff repeater),
     `end-screen.js`, `takes.js` and `sync-test.js` (the sync test's flow);
   - `instrument.js`: choosing the input, hearing it, the mix and the tuner
@@ -269,6 +250,5 @@ That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.p
 - `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
 - `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion, audio lookup and decoding
 - `server/server.js`: the local web server, settings, the folder picker, takes
-- `server/lessons.js`: the lessons, from `etudes.psarc` and the game's string table
 - `start.sh`, `start.bat`; `tools/get-vgmstream.sh`; `tools/pumabass.service`
 - [`ROADMAP.md`](ROADMAP.md): what's next

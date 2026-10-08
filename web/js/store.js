@@ -10,7 +10,6 @@ export const KEY_MUTED = 'pumabass_muted_v1';      // "1" muted, "0" not (§8)
 export const KEY_TUNER = 'pumabass_tuner_v1';      // the day and tuning you last tuned to
 export const KEY_FAVS = 'pumabass_favorites_v1';   // { id: true } for each favorite part
 export const KEY_STATS = 'pumabass_stats_v1';      // { id: { plays, finished, last } }
-export const KEY_LESSONS = 'pumabass_lessons_v1';  // { lesson key: { part name: true } }: lesson practice played through
 
 export function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
@@ -39,6 +38,9 @@ export function save(key, value) {
     if (old.recent) save(KEY_RECENT, old.recent);
   } catch (e) { /* no storage */ }
 })();
+
+// Lessons were taken out: their progress goes too.
+try { localStorage.removeItem('pumabass_lessons_v1'); } catch (e) { /* no storage */ }
 
 export const prefs = Object.assign({
   type: 'bass', sort: 'artist', showMissing: false, difficulty: 100, lookahead: 3, invert: false, volume: 100, startSpeed: 100,

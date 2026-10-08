@@ -5,7 +5,6 @@
 //   api.js             the server
 //   menu.js            the title screen, Settings, Help
 //   library-screen.js  the song list and the songs folder
-//   lessons-screen.js  Lessons
 //   player.js          the player and the frame loop
 //   repeater.js        the riff repeater
 //   end-screen.js      the end screen
@@ -18,7 +17,6 @@ import { mountScene } from './scene.js';
 import { SERVER_API, SERVER_OLD } from './api.js';
 import { $, mixer, highway, input, muted, setMuted, screen, songs, info } from './core.js';
 import { applyMix } from './instrument.js';
-import { lessonsKey } from './lessons-screen.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
 import { title, showTitle } from './menu.js';
 import { chart, session, openSong, scorer, sync, inputBetween, playerKey } from './player.js';
@@ -32,7 +30,6 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'm' || e.key === 'M') && !typing) { e.preventDefault(); setMuted(!muted); return; }
   if (calib && screen === 'player' && calibKey(e)) return;
   if (screen === 'library') libraryKey(e, typing);
-  else if (screen === 'lessons') lessonsKey(e);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
 

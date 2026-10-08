@@ -5,7 +5,6 @@ import { alertSheet } from './title.js';
 import { api } from './api.js';
 import { $, esc, screen, songs, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
-import { resetLessons } from './lessons-screen.js';
 import { showTitle, leaveTitle, openHelp } from './menu.js';
 import { openSong } from './player.js';
 import { KEY_RECENT, KEY_FAVS, KEY_STATS, load, prefs, savePrefs, toggleFav } from './store.js';
@@ -98,7 +97,6 @@ export function chooseFolder() {
 
 /* ---- the song list ---- */
 export async function loadLibrary() {
-  resetLessons();
   const [list, about] = await Promise.all([api('/api/songs'), api('/api/info')]);
   setLibrary(list, about);
   if (screen === 'library') renderLibrary();
@@ -107,7 +105,6 @@ export async function loadLibrary() {
 export function showLibrary() {
   setScreen('library');
   $('player').classList.add('hidden');
-  $('lessons').classList.add('hidden');
   $('library').classList.remove('hidden');
   renderLibrary();
   const first = $('song-list').querySelector('.song:not(.noaudio)');

@@ -13,16 +13,13 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
       on-screen countdown to when you are "live", so you can get back into the groove.
 - [x] **Fret numbers on gems.** The numbers inside the notes overlap the gem borders in an unattractive way.
 - [x] **Start paused.** A song opens paused, with a big PAUSED and "Press Space to play" over the highway.
-      Later reversed at the user's request: songs and lessons start playing at once (every song has ~10 s
+      Later reversed at the user's request: songs start playing at once (every song has ~10 s
       before its first note); PAUSED shows only after pausing.
 
 ## Song library
 
 - [x] **Play counter.** Count how many times each song is played.
 - [x] **Favorites.** A favorite button on each song, and a filter that shows only favorites, as a personal library.
-- [x] **Lessons.** Rocksmith's 39 bass lessons from `etudes.psarc`, named from the game's string table
-      (`static.psarc`), with the instructor's narration as text (the Bink 2 videos can't play in a browser),
-      each drill and riff looped, and the etudes. A tick per part played through.
 - [x] **Riff repeater.** `R` loops the section and speeds it up each time round, to full speed; with scoring on,
       only after a time round with 70% hit.
 - [x] **Times finished.** A "times played" count that only counts plays where the song was *finished*.
@@ -71,5 +68,3 @@ copied over by hand.
 ## Far future
 
 - [ ] **Chords in scoring.** Chords count on the pluck alone; telling which notes are ringing would catch wrong shapes.
-- [ ] **Lesson narration as sound.** The instructor's voice is in the lesson audio banks; it could play
-      along with the words.

@@ -48,20 +48,6 @@ above the list shows only your favorites: your own library.</p>
 again with Resume game. <b>Finished</b> counts the times you played it through to its last note, having played at
 least half of what was left when you began: jumping to the end doesn't count. Sort by <b>Most played</b> to see your
 regulars first.</p>`],
-  ['Lessons', `
-<p><b>Lessons</b>, on the menu, opens the bass lessons in your own song files, from holding the bass to slap and
-pop, in order. Start with <b>Bass 101</b>.</p>
-<h3>In a lesson</h3>
-<p>The instructor's words come first: the lesson videos can't be shown here, but everything the
-instructor says is. Then the parts to play. <b>Try it</b> parts are short drills; each <b>riff</b> can start with
-an example (<b>Watch, then play</b>) before your turn. Every part plays round and round until you stop it:
-<kbd>R</kbd> speeds it up each time, <kbd>Esc</kbd> goes back to the lesson. A part gets its tick once you've played
-it through.</p>
-<p>Most lessons end with an <b>etude</b>: a short piece with a band using what the lesson teaches, played like any
-song. It gets its tick once you finish it.</p>
-<h3>Where they come from</h3>
-<p>Your Rocksmith 2014's <code>etudes.psarc</code> (the lessons) and <code>static.psarc</code> (their words), anywhere in
-your songs folder. On a computer without Rocksmith, copy both from its folder, then Rescan.</p>`],
   ['Practice', `
 <h3>Slow it down</h3>
 <p><b>Speed</b> plays the song from 25% to 120% without changing its pitch. Settings can start every song at a

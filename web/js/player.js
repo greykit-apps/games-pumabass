@@ -1,4 +1,4 @@
-// The player: a song (or a lesson's part) on the highway, its controls, and
+// The player: a song on the highway, its controls, and
 // the frame loop that drives them.
 
 import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel } from './chart.js';
@@ -9,7 +9,6 @@ import { api } from './api.js';
 import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen, setInfo } from './core.js';
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
-import { markLesson, showLessons } from './lessons-screen.js';
 import { showLibrary } from './library-screen.js';
 import { openHelp } from './menu.js';
 import { repeater, stopRepeater, toggleRepeater, repeaterPass } from './repeater.js';
@@ -20,8 +19,6 @@ import { clearTake, logTakeSync, logTakeVerdict, startTake } from './takes.js';
 /* Each time a loop comes round. */
 export function loopCameRound() {
   repeaterPass();
-  const ctx = song && song.lessonCtx;
-  if (ctx && ctx.part !== 'etude' && markLesson(ctx.key, ctx.part)) setTimeout(() => toast('Played through \u2713 \u00b7 Esc for the lesson'), repeater ? 1500 : 0);
 }
 
 
@@ -51,12 +48,11 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   setScreen('player');
   stopRepeater();
   $('library').classList.add('hidden');
-  $('lessons').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
   $('p-title').textContent = s.title;
-  $('p-sub').textContent = s.lessonCtx ? s.artist : `${s.artist} · ${arrangementLabel(s)}`;
-  $('back').innerHTML = `<kbd>Esc</kbd>${s.lessonCtx ? 'Lesson' : 'Songs'}`;
+  $('p-sub').textContent = `${s.artist} · ${arrangementLabel(s)}`;
+  $('back').innerHTML = '<kbd>Esc</kbd>Songs';
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
   try {
@@ -100,8 +96,6 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   }
   audio.currentTime = startAt;
   pausedAt = startAt > 0.5 ? startAt : null; // Resume game counts back in, too
-  // A lesson's part: its stretch, looped, from where it starts (no run-up: it has its own count-in).
-  if (s.lessonCtx && s.lessonCtx.a !== undefined) { pausedAt = null; loop = { a: s.lessonCtx.a, b: s.lessonCtx.b }; renderLoop(); }
   const last = highway.notes.slice(-40).reduce((m, n) => Math.max(m, n.t + (n.sus || 0)), 0);
   session = { id: s.id, start: startAt, counted: resumed, finished: false, heard: 0, lastT: null, end: last || audio.duration || chart.songLength };
   showFav();
@@ -111,9 +105,8 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   saveResume();
   await maybeAutoTune();
   startScoring();
-  // Straight into it: every song has ten seconds or so before its first note,
-  // and a lesson's part its own count-in. (Resume game counts back in, as a
-  // play after a pause does.)
+  // Straight into it: every song has ten seconds or so before its first note.
+  // (Resume game counts back in, as a play after a pause does.)
   if (song === s && audio.paused) togglePlay();
 }
 
@@ -125,7 +118,6 @@ export async function openTestSong(test, sub) {
   setScreen('player');
   stopRepeater();
   $('library').classList.add('hidden');
-  $('lessons').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
   $('p-title').textContent = 'Sync test';
@@ -151,7 +143,7 @@ export async function openTestSong(test, sub) {
 }
 
 export function saveResume() {
-  if (song && chart && !song.calib && !song.lesson) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
+  if (song && chart && !song.calib) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
 }
 
 /* Stop the song and put the player away. */
@@ -173,7 +165,6 @@ export function leaveSong() {
 
 export function closeSong() {
   if (calib) { endSync(); return; }
-  if (song && song.lessonCtx) { const { key, part } = song.lessonCtx; leaveSong(); showLessons(key, part); return; }
   saveResume();
   leaveSong();
   showLibrary();
@@ -309,17 +300,16 @@ export function checkFinished(t) {
 }
 
 export function showFav() {
-  $('fav-btn').classList.toggle('hidden', !!(song && (song.calib || song.lessonCtx)));
+  $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
   $('fav-btn').textContent = on ? '\u2605' : '\u2606';
 }
-$('fav-btn').addEventListener('click', () => { if (song && !song.calib && !song.lessonCtx) { toggleFav(song.id); showFav(); } });
+$('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
 audio.addEventListener('ended', () => {
   if (calib) { updatePlayButton(); playAlongDone(); return; }
   checkFinished(Infinity);
-  if (song && song.lessonCtx && song.lessonCtx.part === 'etude' && session && session.finished) markLesson(song.lessonCtx.key, 'etude');
   updatePlayButton();
   pausedAt = null;
   liveAt = null;
@@ -482,7 +472,7 @@ export function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
-  else if ((k === 'f' || k === 'F') && !song.lessonCtx) { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2605 Favorite' : 'Not a favorite'); }
+  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2605 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);

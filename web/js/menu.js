@@ -8,7 +8,6 @@ import { RECORDED_BASS } from './mixer.js';
 import { api } from './api.js';
 import { $, highway, esc, muted, setMuted, fmtMs, screen, songs, info, setScreen } from './core.js';
 import { shortLabel, inputStatus, hear, setRecordedBass, chooseInput, showTuner } from './instrument.js';
-import { showLessons } from './lessons-screen.js';
 import { pickLibrary, loadLibrary, showLibrary } from './library-screen.js';
 import { openSong, startScoring, syncPlayerPrefs } from './player.js';
 import { KEY_RESUME, load, prefs, savePrefs, forgetEverything } from './store.js';
@@ -25,7 +24,6 @@ export function titleCfg() {
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` : 'choose your songs folder' },
-      { act: 'lessons', label: 'Lessons', key: 'L' },
       { act: 'tuner', label: 'Tuner', key: 'T', meta: prefs.input ? shortLabel(prefs.input.label) : 'Real Tone Cable' },
       'gap',
       { act: 'settings', label: 'Settings', key: 'S' },
@@ -40,7 +38,6 @@ export function titleCfg() {
     onAct: act => {
       if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t, { resumed: true }); }
       if (act === 'tuner') showTuner();
-      if (act === 'lessons') { leaveTitle(); showLessons(); }
       if (act === 'new' && !songs.length) pickLibrary();
       else if (act === 'new') { leaveTitle(); showLibrary(); }
     },
@@ -50,7 +47,6 @@ export function titleCfg() {
 export function showTitle() {
   setScreen('title');
   $('library').classList.add('hidden');
-  $('lessons').classList.add('hidden');
   $('player').classList.add('hidden');
   title = mountTitle($('title-host'), titleCfg());
   return title;
