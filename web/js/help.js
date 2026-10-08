@@ -120,8 +120,9 @@ caught.</p>
 input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
 <h3>Many misses?</h3>
 <p>Run the <b>Sync test</b> (Settings → Timing) with the cable open: it measures how late your plucks reach
-PumaBass, and scoring allows for it. If right notes are still marked missed, <b>Save take</b> (<kbd>S</kbd> on the end
-screen, or in the Mix panel) keeps what the cable heard in the PumaBass folder, to find out why.</p>`],
+PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
+panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or <kbd>S</kbd> on the end screen) keeps what the cable
+heard in the PumaBass folder, to find out why.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and

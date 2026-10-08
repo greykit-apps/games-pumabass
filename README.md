@@ -174,9 +174,10 @@ or late), a strip of the song coloured by section, and your best accuracy over f
   count as plucks (`node tools/check-plucks.mjs` checks this, from a 5-string's low B to the 12th fret).
 - Run the **Sync test** with the cable first: it sets how late your plucks reach PumaBass.
 
-**Takes, for tuning.** If notes you played are marked missed, **Save take** (on the end screen with `S`,
-or in the Mix panel) writes what the cable heard, with the song's notes and each verdict, to `takes/` in
-the PumaBass folder (your playing stays on your computer; git ignores it). Then
+**Takes, for tuning.** If notes you played are marked missed, tick **Record a take** in the Mix panel
+and play; **Save take** (there, or `S` on the end screen) then writes what the cable heard, with the
+song's notes and each verdict, to `takes/` in the PumaBass folder (your playing stays on your computer;
+git ignores it). Nothing is recorded unless you tick it: a song's worth of input is ~100 MB of memory. Then
 `node tools/replay-take.mjs "takes/<name>.json" --notes` replays it through scoring exactly as it ran and
 shows, note by note and by string and fret, why each miss was a miss.
 

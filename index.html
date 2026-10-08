@@ -163,7 +163,8 @@
       <label>Song <span class="mixrow"><input id="volume" type="range" min="0" max="100" value="100"><span class="meter" id="song-meter"><i></i></span></span></label>
       <div class="row" id="recorded-bass" role="group" aria-label="Recorded bass"><span class="rowlabel">Recorded bass</span><button data-rb="full">Full</button><button data-rb="reduced">Reduced</button><button data-rb="cut">Cut</button></div>
       <label class="check"><input id="hear" type="checkbox"> Hear your bass</label>
-      <div class="row"><label class="check"><input id="score-toggle" type="checkbox"> Score my playing <span class="muted">(with an input open)</span></label><button id="save-take" title="Saves what the cable has heard so far, with how each note was judged, in the PumaBass folder (takes), for tuning the scoring">Save take</button></div>
+      <label class="check"><input id="score-toggle" type="checkbox"> Score my playing <span class="muted">(with an input open)</span></label>
+      <div class="row"><label class="check"><input id="record-take" type="checkbox"> Record a take <span class="muted">(to tune scoring)</span></label><button id="save-take" disabled title="Saves what the cable has heard since recording began, with how each note was judged, in the PumaBass folder (takes)">Save take</button></div>
       <label>Your bass <b id="boost-val"></b><span class="mixrow"><input id="boost" type="range" min="0" max="30" step="1" value="12"><span class="meter" id="bass-meter"><i></i></span></span></label>
       <p class="note">Play along and set the two meters about level. <kbd>B</kbd> switches the recorded bass.</p>
       <h2>This song</h2>

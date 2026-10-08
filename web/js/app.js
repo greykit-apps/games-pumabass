@@ -1150,6 +1150,7 @@ function leaveSong() {
   scorer = null;
   repeater = null;
   input.tape = null; input.taping = false; take = null;
+  $('save-take').disabled = true;
   $('calib-cue').classList.add('hidden');
   $('metro').classList.add('hidden');
   updateHud();
@@ -1188,17 +1189,26 @@ const sectionIndex = t => chart.sections.findIndex(x => x.t <= t && t < x.end);
 function startScoring() {
   scorer = prefs.scoring && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex) : null;
   if (scorer) scorer.seek(songTime());
-  // The take: what the input heard, with the clock and the verdicts, to save for tuning.
-  if (scorer) { input.startTape(); take = { syncs: [], verdicts: [] }; } else { input.tape = null; take = null; }
+  startTake();
   updateHud();
 }
+
+/* A take: what the input heard, with the clock and the verdicts, kept to save
+ * for tuning the scoring. Only when asked for (Record a take, in the Mix
+ * panel), and only while scoring: a song's worth of input is ~100 MB. */
 let take = null;
+let recordTake = false; // asked for: stays on until switched off (not saved)
+function startTake() {
+  if (scorer && recordTake) { input.startTape(); take = { syncs: [], verdicts: [] }; }
+  else { input.tape = null; take = null; }
+  $('save-take').disabled = !take;
+}
 
 /* Save the take so far to the PumaBass folder (takes/): the playing, the song's
  * notes and how each was judged, to study and tune scoring with. */
 async function saveTake() {
   const tape = input.tape;
-  if (!tape || !tape.samples || !take || !chart) { toast('Nothing to save yet: play with scoring on.'); return false; }
+  if (!tape || !tape.samples || !take || !chart) { toast('Nothing recorded yet: tick Record a take, then play.'); return false; }
   const { levels, ...songChart } = chart;
   const meta = {
     title: `${song.title} (${arrangementLabel(song)})`, artist: song.artist, songId: song.id,
@@ -1552,6 +1562,7 @@ $('hear').addEventListener('change', async () => {
   syncPlayerPrefs();
 });
 $('save-take').addEventListener('click', () => saveTake());
+$('record-take').addEventListener('change', () => { recordTake = $('record-take').checked; startTake(); });
 $('score-toggle').addEventListener('change', () => { prefs.scoring = $('score-toggle').checked; savePrefs(); if (screen === 'player') startScoring(); });
 $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
 $('lookahead').addEventListener('input', () => { prefs.lookahead = Number($('lookahead').value); highway.lookahead = prefs.lookahead; savePrefs(); syncPlayerPrefs(); });
