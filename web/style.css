@@ -309,7 +309,7 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; background: n
 .panel label.check { flex-direction: row; }
 .panel .row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .panel .row button { min-height: 30px; padding: 2px 10px; font-size: 14px; }
-.panel .note { color: var(--dim); font-size: 16px; margin: 4px 0 0; }
+.panel .note { color: var(--dim); font-size: 16px; margin: 4px 0 0; text-wrap: pretty; }
 .panel .acts { margin-top: 14px; }
 .panel h2 + label { margin-top: 4px; }
 /* what's rarely needed folds away */
