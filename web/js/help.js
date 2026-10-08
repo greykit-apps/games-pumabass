@@ -118,7 +118,7 @@ heard in the PumaBass folder, to find out why.</p>`],
 fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
 <p>Over the top, the same part scrolls by as standard notation over tab (<kbd>N</kbd> turns it on and off). Each
 note crosses the blue line as you play it; what's to the right is coming. The names under the notes are there
-to learn the clef by; Settings turns them off.</p>
+to learn the clef by. The notation, the tab and the names each turn on and off in Settings.</p>
 <p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
 as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
 floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>

@@ -54,6 +54,8 @@ export const prefs = Object.assign({
   screen: 'couch',  // 'couch': drawn bigger on a TV, to read from across the room; 'desk': as is
   noteLabels: 'fret', // on the highway's notes: 'fret' numbers, note 'name's, or 'off'
   notation: true,   // the notation band: standard notation over tab, above the highway
+  notationStaff: true, // the notation band's standard notation...
+  notationTab: true,   // ...and its tab, each on or off
   staffNames: true, // note names under the notes in the notation band
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume

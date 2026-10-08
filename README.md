@@ -89,8 +89,10 @@ up when 70% of its notes were hit.
 Over the top of the highway, the part scrolls by in **standard notation over tab**, as a printed bass
 chart has it, so you can learn to read while you play (`N`, or Settings → Notation, turns it on and off).
 A blue playhead sits a little in from the left: notes cross it as you play them, and the rest of the band
-is what's coming. Note names under the notes help with the clef until you don't need them (Settings
-turns them off), and Settings → Highway can put note names on the highway's notes instead of frets.
+is what's coming. The standard notation, the tab and the note names under the notes each turn on and off in Settings →
+Notation; with both staff and tab up, the gap between them is set for each song from its lowest and
+highest notes, so nothing runs into the tab. Settings → Highway can also put note names on the highway's
+notes instead of frets.
 
 - It's written from the chart: each note is fitted to the chart's own beats (16ths, or triplets where they
   fit a beat better), its pitch is worked out from the string, fret and tuning, and the key signature is

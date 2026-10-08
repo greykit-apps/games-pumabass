@@ -96,8 +96,10 @@ ${pick('labels', [['fret', 'Fret numbers'], ['name', 'Note names'], ['off', 'Pla
 <p class='gk-note'>How far ahead the notes appear, which way up the strings go, and what the notes carry: fret numbers, note names, or nothing.</p>
 <h3>Notation</h3>
 ${pick('notation', [['true', 'On'], ['false', 'Off']], prefs.notation)}
+${pick('notationStaff', [['true', 'Standard notation'], ['false', 'No standard notation']], prefs.notationStaff)}
+${pick('notationTab', [['true', 'Tab'], ['false', 'No tab']], prefs.notationTab)}
 ${pick('staffNames', [['true', 'Note names under the notes'], ['false', 'No names']], prefs.staffNames)}
-<p class='gk-note'>Standard notation over tab, above the highway: the bar you're in and the next. <kbd>N</kbd> shows or hides it while you play.</p>
+<p class='gk-note'>The part scrolling over the top of the highway: standard notation, tab, or both, each on or off. <kbd>N</kbd> shows or hides it while you play.</p>
 <h3>Speed</h3>
 ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
@@ -114,6 +116,8 @@ export async function settingsClick(b, sheet) {
     case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
     case 'notation': prefs.notation = v === 'true'; break;
     case 'staffNames': prefs.staffNames = v === 'true'; break;
+    case 'notationStaff': prefs.notationStaff = v === 'true'; break;
+    case 'notationTab': prefs.notationTab = v === 'true'; break;
     case 'speed': prefs.startSpeed = Number(v); break;
     case 'screen': prefs.screen = v; applyScreen(); break;
     case 'rescan':
