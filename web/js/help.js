@@ -49,10 +49,10 @@ again with Resume game. <b>Finished</b> counts the times you played it through t
 least half of what was left when you began: jumping to the end doesn't count. Sort by <b>Most played</b> to see your
 regulars first.</p>`],
   ['Lessons', `
-<p><b>Lessons</b>, on the menu, is Rocksmith 2014's bass course, from holding the bass to slap and pop, in the game's
-order. Start with <b>Bass 101</b>.</p>
+<p><b>Lessons</b>, on the menu, opens the bass lessons in your own song files, from holding the bass to slap and
+pop, in order. Start with <b>Bass 101</b>.</p>
 <h3>In a lesson</h3>
-<p>The instructor's words come first: Rocksmith's lesson videos can't be shown here, but everything the
+<p>The instructor's words come first: the lesson videos can't be shown here, but everything the
 instructor says is. Then the parts to play. <b>Try it</b> parts are short drills; each <b>riff</b> can start with
 an example (<b>Watch, then play</b>) before your turn. Every part plays round and round until you stop it:
 <kbd>R</kbd> speeds it up each time, <kbd>Esc</kbd> goes back to the lesson. A part gets its tick once you've played

@@ -162,7 +162,7 @@ function titleCfg() {
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` : 'choose your songs folder' },
-      { act: 'lessons', label: 'Lessons', key: 'L', meta: "Rocksmith's bass course" },
+      { act: 'lessons', label: 'Lessons', key: 'L' },
       { act: 'tuner', label: 'Tuner', key: 'T', meta: prefs.input ? shortLabel(prefs.input.label) : 'Real Tone Cable' },
       'gap',
       { act: 'settings', label: 'Settings', key: 'S' },
