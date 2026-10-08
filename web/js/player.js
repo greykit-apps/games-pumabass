@@ -28,7 +28,7 @@ export let chart = null;
 export let song = null;
 export let loop = null; // { a, b }
 export let offsetMs = 0;
-export const clock = { raw: 0, stamp: 0 };
+export const clock = { raw: 0, stamp: 0, est: 0, at: 0 };
 export let lastResumeSave = 0;
 /* This sitting with the song, for the play counts: a play is counted the first
  * time it starts (a resumed song is the same play), and a finish when playback
@@ -247,22 +247,31 @@ export function updateHud() {
   if (el.textContent !== text) el.textContent = text;
 }
 
-// Smooth song clock: audio.currentTime updates in coarse steps, so extrapolate between them.
+/* The song's time, as everything is drawn and judged by. The audio element reports
+ * its position in uneven steps (every 14 to 21 ms), and snapping to each report made
+ * the highway twitch, a little jump about once a second as the steps drifted against
+ * the frames. So the clock runs on steadily at the playback rate and is eased toward
+ * the reports (a tenth of the gap a call); a real jump (a seek, a stall) snaps. */
 export function songTime() {
   const t = audio.currentTime;
   const now = performance.now();
-  let est = t;
-  if (!audio.paused) {
+  if (audio.paused) {
+    clock.raw = t; clock.stamp = now; clock.est = t; clock.at = now;
+  } else {
+    const rate = audio.playbackRate;
     if (t !== clock.raw) { clock.raw = t; clock.stamp = now; }
-    est = clock.raw + Math.min(0.25, ((now - clock.stamp) / 1000) * audio.playbackRate);
-  } else { clock.raw = t; clock.stamp = now; }
-  return est - (offsetMs + prefs.avOffset) / 1000;
+    const reported = clock.raw + Math.min(0.25, ((now - clock.stamp) / 1000) * rate);
+    const steady = clock.est + ((now - clock.at) / 1000) * rate;
+    clock.est = Math.abs(reported - steady) > 0.05 ? reported : steady + (reported - steady) * 0.1;
+    clock.at = now;
+  }
+  return clock.est - (offsetMs + prefs.avOffset) / 1000;
 }
 
 export function seek(t, chosen = true) {
   if (chosen) { pausedAt = null; liveAt = null; }
   audio.currentTime = Math.max(0, Math.min(t, (audio.duration || chart.songLength) - 0.05));
-  clock.raw = audio.currentTime; clock.stamp = performance.now();
+  clock.raw = clock.est = audio.currentTime; clock.stamp = clock.at = performance.now();
   if (scorer) scorer.seek(songTime()); // carry on judging from here
   if (calib) calib.meter.seek(songTime());
 }
