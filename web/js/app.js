@@ -39,11 +39,13 @@ window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix
 
 /* ---- looks being tried out: ?look=setlist or ?look=arena puts one over the page
  * (web/looks/<name>.css); with no ?look, the page is as it always was. */
-const LOOKS = ['setlist', 'arena'];
+const LOOKS = { setlist: ['setlist'], arena: ['arena'], 'arena-greykit': ['arena', 'arena-greykit'] };
 const look = new URLSearchParams(location.search).get('look');
-if (LOOKS.includes(look)) {
-  document.documentElement.dataset.look = look;
-  document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="web/looks/${look}.css">`);
+if (LOOKS[look]) {
+  const [base, palette] = LOOKS[look];
+  document.documentElement.dataset.look = base;
+  if (palette) document.documentElement.dataset.palette = 'greykit';
+  for (const f of LOOKS[look]) document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="web/looks/${f}.css">`);
 }
 
 /* ---- start: the boot plays while the song index loads, then the title ---- */

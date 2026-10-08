@@ -11,126 +11,130 @@ html[data-look=arena] {
   --bg: #090b0f; --panel: #12161d; --panel2: #192029; --line: #262e3a; --lit: #5b6676;
   --text: #ffffff; --ink: #c6ccd6; --dim: #9ba4b2; --accent: #ff7a1a; --warn: #ffc23a; --danger: #ff4b4b; --good: #3fdc6e;
   --steel: #b8c0cc; --row: #161b23; --highway: #090b0f;
-  --hot: #ff7a1a; --hot2: #ffb15c; --ui: 'Saira', 'Segoe UI', sans-serif; --display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --hot: #ff7a1a; --hot2: #ffb15c; --hot-rgb: 255, 122, 26; --bg-rgb: 9, 11, 15; --panel-rgb: 18, 22, 29; --tile-rgb: 29, 36, 46;
+  --btn-top: #1d242e; --btn-bot: #141920; --sel-top: #2a1d14; --sel-bot: #1b140f; --sky: #1d1611; --deep: #07080b; --scene-stroke: #2a313c;
+  --sheet-top: #151a22; --sheet-bot: #0e1116; --stave: #46505e;
+  /* the selection bar, and what sits on it */
+  --bar-top: #ffffff; --bar-bot: #e4e8ee; --bar-ink: #0b0d11; --bar-ink-rgb: 11, 13, 17; --bar-ink2: #3a4250; --bar-faint: #c7ccd4; --bar-warn: #a14c00; --bar-hot: #d65f00; --bar-edge: var(--hot); --ui: 'Saira', 'Segoe UI', sans-serif; --display: 'Saira Condensed', 'Arial Narrow', sans-serif;
 }
 html[data-look=arena] body { font: 500 16px/1.45 var(--ui); background: var(--bg); }
-html[data-look=arena] ::selection { background: var(--hot); color: #fff; }
+html[data-look=arena] ::selection { background: var(--hot); color: var(--text); }
 
 html[data-look=arena] button, html[data-look=arena] input, html[data-look=arena] select {
   font-family: var(--ui); font-weight: 600; font-size: 16px; border-radius: 6px; border: 1px solid var(--line);
-  background: linear-gradient(#1d242e, #141920); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .35);
+  background: linear-gradient(var(--btn-top), var(--btn-bot)); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .35);
   transition: transform .15s cubic-bezier(.22, 1, .36, 1), background .15s, border-color .15s; }
 html[data-look=arena] button:hover:not(:disabled) { border-color: var(--lit); }
 html[data-look=arena] button.primary, html[data-look=arena] button[aria-pressed=true], html[data-look=arena] button.on {
-  color: #fff; border-color: var(--hot); background: linear-gradient(#2a1d14, #1b140f); }
+  color: var(--text); border-color: var(--hot); background: linear-gradient(var(--sel-top), var(--sel-bot)); }
 /* focus: the selection bar, white with the orange edge; selected is only ever an orange outline */
 html[data-look=arena] button:focus-visible, html[data-look=arena] input:focus-visible, html[data-look=arena] select:focus-visible {
-  outline: none; background: linear-gradient(#ffffff, #e4e8ee) !important; color: #0b0d11 !important; border-color: #fff;
-  box-shadow: -6px 0 0 var(--hot), 0 8px 24px rgba(255, 122, 26, .25); transform: scale(1.04); }
-html[data-look=arena] button:focus-visible kbd { color: #0b0d11; border-color: rgba(11, 13, 17, .4); background: none; }
+  outline: none; background: linear-gradient(var(--bar-top), var(--bar-bot)) !important; color: var(--bar-ink) !important; border-color: var(--bar-top);
+  box-shadow: -6px 0 0 var(--bar-edge), 0 8px 24px rgba(var(--hot-rgb), .25); transform: scale(1.04); }
+html[data-look=arena] button:focus-visible kbd { color: var(--bar-ink); border-color: rgba(var(--bar-ink-rgb), .4); background: none; }
 html[data-look=arena] kbd { font-family: var(--ui); font-weight: 700; font-size: 13px; color: var(--ink); background: rgba(255, 255, 255, .06);
   border: 1px solid var(--lit); border-radius: 4px; padding: 0 6px; }
 html[data-look=arena] input::placeholder { color: var(--dim); }
 
 /* ---- the stage: graphite, orange light from the truss ---- */
-html[data-look=arena] .scene { background: radial-gradient(ellipse at 50% 0%, #1d1611 0%, #0b0d11 55%, #07080b 100%); }
-html[data-look=arena] .scene .sf { fill: #0f1217; stroke: #2a313c; }
-html[data-look=arena] .scene .sl, html[data-look=arena] .scene .sd { stroke: #232a34; }
+html[data-look=arena] .scene { background: radial-gradient(ellipse at 50% 0%, var(--sky) 0%, var(--bg) 55%, var(--deep) 100%); }
+html[data-look=arena] .scene .sf { fill: var(--panel); stroke: var(--scene-stroke); }
+html[data-look=arena] .scene .sl, html[data-look=arena] .scene .sd { stroke: var(--line); }
 html[data-look=arena] .scene .sa { stroke: var(--hot); opacity: .6; }
 html[data-look=arena] .scene .sled { fill: var(--hot); opacity: .9; }
-html[data-look=arena] .scene stop { stop-color: #ff9a3c; }
+html[data-look=arena] .scene stop { stop-color: var(--hot2); }
 html[data-look=arena] .scene .sbeam { opacity: .9; }
 
 /* ---- the title: a big leaning name, the menu as tiles, a bar on the one you're on ---- */
-html[data-look=arena] .gk-title>.gk-shade { background: linear-gradient(rgba(9, 11, 15, .85), rgba(9, 11, 15, .4) 45%, rgba(9, 11, 15, 0) 75%), linear-gradient(transparent calc(100% - 90px), rgba(9, 11, 15, .85)); }
+html[data-look=arena] .gk-title>.gk-shade { background: linear-gradient(rgba(var(--bg-rgb), .85), rgba(var(--bg-rgb), .4) 45%, rgba(var(--bg-rgb), 0) 75%), linear-gradient(transparent calc(100% - 90px), rgba(var(--bg-rgb), .85)); }
 html[data-look=arena] .gk-title h1 { font-family: var(--display); font-weight: 800; font-style: normal; font-size: 92px; line-height: .9; letter-spacing: -.01em; padding: 0;
-  text-transform: uppercase; color: #fff; transform: skewX(-10deg); text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
+  text-transform: uppercase; color: var(--text); transform: skewX(-10deg); text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
 html[data-look=arena] .gk-title .gk-rule { width: 220px; height: 4px; margin: 18px 0 26px; background: linear-gradient(90deg, var(--hot), var(--hot2)); transform: skewX(-20deg); }
 html[data-look=arena] .gk-menu { gap: 8px; width: min(460px, 100%); }
 html[data-look=arena] .gk-menu button { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: .03em; min-height: 56px; padding: 0 18px;
-  border-radius: 6px; background: linear-gradient(rgba(29, 36, 46, .92), rgba(18, 22, 29, .92)); border: 1px solid var(--line); color: #fff; }
-html[data-look=arena] .gk-menu button.gk-primary { background: linear-gradient(rgba(29, 36, 46, .92), rgba(18, 22, 29, .92)); color: #fff; border-color: var(--hot); font-weight: 700; }
+  border-radius: 6px; background: linear-gradient(rgba(var(--tile-rgb), .92), rgba(var(--panel-rgb), .92)); border: 1px solid var(--line); color: var(--text); }
+html[data-look=arena] .gk-menu button.gk-primary { background: linear-gradient(rgba(var(--tile-rgb), .92), rgba(var(--panel-rgb), .92)); color: var(--text); border-color: var(--hot); font-weight: 700; }
 html[data-look=arena] .gk-menu button.gk-primary kbd { color: var(--ink); border-color: var(--lit); }
 html[data-look=arena] .gk-menu button.gk-primary .gk-meta { color: var(--dim); }
-html[data-look=arena] .gk-menu button:focus-visible { background: linear-gradient(#ffffff, #e4e8ee); color: #0b0d11; border-color: #fff;
-  box-shadow: -6px 0 0 var(--hot), 0 10px 30px rgba(255, 122, 26, .28); transform: scale(1.05); }
-html[data-look=arena] .gk-menu button:focus-visible .gk-meta, html[data-look=arena] .gk-menu button:focus-visible kbd { color: #3a4250; border-color: rgba(11, 13, 17, .35); }
+html[data-look=arena] .gk-menu button:focus-visible { background: linear-gradient(var(--bar-top), var(--bar-bot)); color: var(--bar-ink); border-color: var(--bar-top);
+  box-shadow: -6px 0 0 var(--bar-edge), 0 10px 30px rgba(var(--hot-rgb), .28); transform: scale(1.05); }
+html[data-look=arena] .gk-menu button:focus-visible .gk-meta, html[data-look=arena] .gk-menu button:focus-visible kbd { color: var(--bar-ink2); border-color: rgba(var(--bar-ink-rgb), .35); }
 html[data-look=arena] .gk-menu .gk-meta { font-family: var(--ui); font-weight: 500; font-size: 15px; letter-spacing: 0; color: var(--dim); }
 html[data-look=arena] .gk-title>footer { font-family: var(--ui); font-size: 14px; }
 
 /* ---- the song list: a glossy panel, the row you're on lifted on the bar ---- */
-html[data-look=arena] .pb { background: linear-gradient(rgba(16, 20, 26, .94), rgba(10, 12, 16, .96)); border: 1px solid var(--line); border-radius: 12px;
+html[data-look=arena] .pb { background: linear-gradient(rgba(var(--panel-rgb), .94), rgba(var(--bg-rgb), .96)); border: 1px solid var(--line); border-radius: 12px;
   box-shadow: 0 40px 120px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .05); overflow: hidden; }
 html[data-look=arena] .top h1 { font-family: var(--display); font-weight: 800; font-size: 40px; text-transform: uppercase; letter-spacing: 0; transform: skewX(-10deg); }
 html[data-look=arena] .top .brand { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .02em; color: var(--hot); transform: skewX(-10deg); }
 html[data-look=arena] .topline { height: 3px; background: var(--line); }
-html[data-look=arena] .topline i { width: 100%; background: linear-gradient(90deg, var(--hot), rgba(255, 122, 26, 0) 60%); }
+html[data-look=arena] .topline i { width: 100%; background: linear-gradient(90deg, var(--hot), rgba(var(--hot-rgb), 0) 60%); }
 html[data-look=arena] #count { font-size: 15px; }
 html[data-look=arena] .songs-head { font-family: var(--ui); font-weight: 700; font-size: 13px; letter-spacing: .1em; }
 html[data-look=arena] #song-list .group { font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: .02em; text-transform: uppercase; color: var(--hot);
   border-bottom: 1px solid var(--line); padding-top: 22px; }
-html[data-look=arena] .song { min-height: 60px; border-left: 0; margin: 0 10px; border-radius: 6px; border-bottom: 1px solid rgba(38, 46, 58, .6);
+html[data-look=arena] .song { min-height: 60px; border-left: 0; margin: 0 10px; border-radius: 6px; border-bottom: 1px solid var(--line);
   transition: transform .15s cubic-bezier(.22, 1, .36, 1), background .15s; }
 html[data-look=arena] .song .t { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .01em; }
 html[data-look=arena] .song .a, html[data-look=arena] .song .arr, html[data-look=arena] .song .len, html[data-look=arena] .song .num, html[data-look=arena] .song .tun { font-size: 15px; }
 html[data-look=arena] .song .diff { color: var(--hot); }
-html[data-look=arena] .song .diff i { color: #2e3642; }
+html[data-look=arena] .song .diff i { color: var(--line); }
 html[data-look=arena] .song:hover { background: var(--row); }
-html[data-look=arena] .song:hover .t { color: #fff; }
-html[data-look=arena] .song:focus { background: linear-gradient(#ffffff, #e6eaf0); border-color: transparent; box-shadow: -6px 0 0 var(--hot), 0 10px 28px rgba(0, 0, 0, .45);
+html[data-look=arena] .song:hover .t { color: var(--text); }
+html[data-look=arena] .song:focus { background: linear-gradient(var(--bar-top), var(--bar-bot)); border-color: transparent; box-shadow: -6px 0 0 var(--bar-edge), 0 10px 28px rgba(0, 0, 0, .45);
   transform: scale(1.015); position: relative; z-index: 1; }
-html[data-look=arena] .song:focus .t { color: #0b0d11; }
-html[data-look=arena] .song:focus .a, html[data-look=arena] .song:focus .arr, html[data-look=arena] .song:focus .len, html[data-look=arena] .song:focus .num { color: #3a4250; }
-html[data-look=arena] .song:focus .tun { color: #a14c00; }
-html[data-look=arena] .song:focus .tun.std { color: #3a4250; }
-html[data-look=arena] .song:focus .diff { color: #d65f00; }
-html[data-look=arena] .song:focus .diff i { color: #c7ccd4; }
-html[data-look=arena] .song:focus button.heart { color: #8a93a1; }
+html[data-look=arena] .song:focus .t { color: var(--bar-ink); }
+html[data-look=arena] .song:focus .a, html[data-look=arena] .song:focus .arr, html[data-look=arena] .song:focus .len, html[data-look=arena] .song:focus .num { color: var(--bar-ink2); }
+html[data-look=arena] .song:focus .tun { color: var(--bar-warn); }
+html[data-look=arena] .song:focus .tun.std { color: var(--bar-ink2); }
+html[data-look=arena] .song:focus .diff { color: var(--bar-hot); }
+html[data-look=arena] .song:focus .diff i { color: var(--bar-faint); }
+html[data-look=arena] .song:focus button.heart { color: var(--bar-ink2); }
 html[data-look=arena] button.heart { background: none; box-shadow: none; border: 0; }
 html[data-look=arena] .bar { border-top: 1px solid var(--line); }
 
 /* ---- the player's chrome ---- */
-html[data-look=arena] .p-top { background: linear-gradient(rgba(9, 11, 15, .95), rgba(9, 11, 15, 0)); }
+html[data-look=arena] .p-top { background: linear-gradient(rgba(var(--bg-rgb), .95), rgba(var(--bg-rgb), 0)); }
 html[data-look=arena] .wordmark { font-family: var(--display); font-weight: 800; font-size: 28px; text-transform: uppercase; transform: skewX(-10deg); letter-spacing: 0; }
 html[data-look=arena] .wordmark b { color: var(--hot); font-weight: 800; }
-html[data-look=arena] .chip { font-family: var(--ui); font-weight: 600; font-size: 16px; border-radius: 6px; background: rgba(18, 22, 29, .9); }
-html[data-look=arena] #ov-big { font-family: var(--display); font-weight: 800; color: #fff; letter-spacing: .02em; transform: skewX(-10deg);
+html[data-look=arena] .chip { font-family: var(--ui); font-weight: 600; font-size: 16px; border-radius: 6px; background: rgba(var(--panel-rgb), .9); }
+html[data-look=arena] #ov-big { font-family: var(--display); font-weight: 800; color: var(--text); letter-spacing: .02em; transform: skewX(-10deg);
   text-shadow: 0 8px 40px rgba(0, 0, 0, .8), 0 0 2px rgba(0, 0, 0, .9); }
-html[data-look=arena] #overlay.paused #ov-big { display: inline-block; padding: 0 40px; background: linear-gradient(90deg, rgba(255, 122, 26, 0), rgba(255, 122, 26, .25) 20%, rgba(255, 122, 26, .25) 80%, rgba(255, 122, 26, 0)); }
+html[data-look=arena] #overlay.paused #ov-big { display: inline-block; padding: 0 40px; background: linear-gradient(90deg, rgba(var(--hot-rgb), 0), rgba(var(--hot-rgb), .25) 20%, rgba(var(--hot-rgb), .25) 80%, rgba(var(--hot-rgb), 0)); }
 html[data-look=arena] #overlay.live #ov-big { color: var(--good); text-shadow: 0 8px 40px rgba(0, 0, 0, .8); }
 html[data-look=arena] #ov-small { font-family: var(--ui); font-weight: 600; letter-spacing: .08em; font-size: 20px; }
-html[data-look=arena] #ov-small kbd { color: #fff; border-color: var(--hot); background: rgba(255, 122, 26, .25); }
+html[data-look=arena] #ov-small kbd { color: var(--text); border-color: var(--hot); background: rgba(var(--hot-rgb), .25); }
 html[data-look=arena] .ov-keys { font-size: 17px; letter-spacing: .02em; }
-html[data-look=arena] .p-bottom { background: linear-gradient(rgba(9, 11, 15, 0), rgba(9, 11, 15, .96) 35%); }
+html[data-look=arena] .p-bottom { background: linear-gradient(rgba(var(--bg-rgb), 0), rgba(var(--bg-rgb), .96) 35%); }
 html[data-look=arena] #progress { border-radius: 6px; height: 24px; border: 1px solid var(--line); }
-html[data-look=arena] #playhead { background: #fff; box-shadow: 0 0 10px var(--hot); width: 3px; }
-html[data-look=arena] #loop-region { background: rgba(255, 122, 26, .18); border-color: var(--hot); }
+html[data-look=arena] #playhead { background: var(--text); box-shadow: 0 0 10px var(--hot); width: 3px; }
+html[data-look=arena] #loop-region { background: rgba(var(--hot-rgb), .18); border-color: var(--hot); }
 html[data-look=arena] #time { font-family: var(--ui); font-weight: 700; font-size: 18px; }
 html[data-look=arena] #section-name { font-family: var(--display); font-weight: 700; font-size: 18px; text-transform: uppercase; color: var(--hot); letter-spacing: .04em; }
 html[data-look=arena] .controls label { font-size: 15px; }
 html[data-look=arena] input[type=range] { accent-color: var(--hot); background: none; border: 0; box-shadow: none; }
-html[data-look=arena] #nt-head { background: var(--hot); box-shadow: 0 0 10px rgba(255, 122, 26, .7); }
+html[data-look=arena] #nt-head { background: var(--hot); box-shadow: 0 0 10px rgba(var(--hot-rgb), .7); }
 html[data-look=arena] #caption b { font-family: var(--display); font-weight: 800; font-size: 44px; text-transform: uppercase; transform: skewX(-8deg); transform-origin: left; }
 
 /* ---- sheets and the end screen ---- */
 html[data-look=arena] .gk-sheet { background: rgba(5, 6, 9, .85); }
-html[data-look=arena] .gk-sheet .gk-box { background: linear-gradient(#151a22, #0e1116); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 30px 90px rgba(0, 0, 0, .7); }
-html[data-look=arena] .gk-sheet .gk-head h2 { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: .02em; color: #fff; text-transform: uppercase; transform: skewX(-10deg); }
+html[data-look=arena] .gk-sheet .gk-box { background: linear-gradient(var(--sheet-top), var(--sheet-bot)); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 30px 90px rgba(0, 0, 0, .7); }
+html[data-look=arena] .gk-sheet .gk-head h2 { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: .02em; color: var(--text); text-transform: uppercase; transform: skewX(-10deg); }
 html[data-look=arena] .gk-sheet .gk-body { font-size: 16px; }
 html[data-look=arena] .gk-sheet .gk-body h3 { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .06em; color: var(--hot); }
 html[data-look=arena] .gk-sheet .gk-note { font-size: 14px; }
 html[data-look=arena] .end-sheet { background: rgba(5, 6, 9, .55); }
-html[data-look=arena] .end-sheet .gk-box.end { background: linear-gradient(rgba(21, 26, 34, .97), rgba(12, 14, 19, .97)); width: min(700px, 100%); }
+html[data-look=arena] .end-sheet .gk-box.end { background: linear-gradient(rgba(var(--tile-rgb), .97), rgba(var(--bg-rgb), .97)); width: min(700px, 100%); }
 html[data-look=arena] .end-kicker { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .12em; color: var(--dim); }
 html[data-look=arena] .cheer .end-kicker { color: var(--hot); }
 html[data-look=arena] .end-title { font-family: var(--display); font-weight: 800; font-size: 52px; text-transform: uppercase; transform: skewX(-10deg); letter-spacing: 0; line-height: 1; }
 html[data-look=arena] .end-sub, html[data-look=arena] .end-facts, html[data-look=arena] .end-more, html[data-look=arena] .end-invite { font-size: 16px; }
 html[data-look=arena] .end-verdict { font-size: 20px; }
-html[data-look=arena] .end-score-value { font-family: var(--display); font-weight: 800; font-size: 104px; color: #fff; transform: skewX(-10deg); text-shadow: 0 0 40px rgba(255, 122, 26, .45); }
+html[data-look=arena] .end-score-value { font-family: var(--display); font-weight: 800; font-size: 104px; color: var(--text); transform: skewX(-10deg); text-shadow: 0 0 40px rgba(var(--hot-rgb), .45); }
 html[data-look=arena] .end-score { border-color: var(--line); }
 html[data-look=arena] .end-strip { height: 14px; border-radius: 4px; }
-html[data-look=arena] #notation .vf-stave path { stroke: #46505e; }
-html[data-look=arena] #notation .vf-stavebarline rect { fill: #46505e; }
+html[data-look=arena] #notation .vf-stave path { stroke: var(--stave); }
+html[data-look=arena] #notation .vf-stavebarline rect { fill: var(--stave); }
 html[data-look=arena] #notation .vf-tabnote text, html[data-look=arena] #notation .vf-ntnames text { font-family: var(--ui); }
 html[data-look=arena] .controls { gap: 10px; }
 html[data-look=arena] .controls button { font-size: 15px; padding: 5px 12px; }

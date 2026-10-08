@@ -1,0 +1,18 @@
+/* A look being tried out: ARENA in greykit's colours. Arena's type, tiles and
+ * selection bar, on the greykit.games Tactical palette (navy, cyan, amber)
+ * instead of graphite and orange: the bar is cyan with navy on it, as the
+ * greykit title's lit button is. Loaded by ?look=arena-greykit, over arena.css. */
+html[data-look=arena][data-palette=greykit] {
+  --bg: #05070f; --panel: #0a0e1a; --panel2: #0d1424; --line: #1b2540; --lit: #47609c;
+  --text: #dbe4fb; --ink: #a9b4d2; --dim: #7d8aa8; --accent: #54f2ff; --warn: #ffb000; --danger: #ff5266; --good: #4ade6a;
+  --steel: #94a0c4; --row: #0f1628; --highway: #0d0f14;
+  --hot: #54f2ff; --hot2: #8af6ff; --hot-rgb: 84, 242, 255; --bg-rgb: 5, 7, 15; --panel-rgb: 10, 14, 26; --tile-rgb: 17, 26, 46;
+  --btn-top: #121b2e; --btn-bot: #0b1220; --sel-top: #0d2431; --sel-bot: #0a1823; --sky: #0b1b2c; --deep: #03050b; --scene-stroke: #2a3960;
+  --sheet-top: #0f172a; --sheet-bot: #0a0e1a; --stave: #3a4a78;
+  --bar-top: #7af5ff; --bar-bot: #45e3f2; --bar-ink: #05070f; --bar-ink-rgb: 5, 7, 15; --bar-ink2: #16384a; --bar-faint: #2bb3c4;
+  --bar-warn: #5a3a00; --bar-hot: #05070f; --bar-edge: #ffffff;
+}
+/* difficulty and tunings keep greykit's amber, as they always had */
+html[data-look=arena][data-palette=greykit] .song .diff { color: var(--warn); }
+html[data-look=arena][data-palette=greykit] .song:focus .diff { color: var(--bar-ink); }
+html[data-look=arena][data-palette=greykit] .scene .sled { fill: var(--warn); }
