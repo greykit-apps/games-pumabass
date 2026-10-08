@@ -63,7 +63,7 @@ export function syncTest() {
   // Beat lines through the play-along only: the line-up has the bar.
   for (let k = -8; k < COUNT + NOTES + 2; k++) beats.push({ t: PLAY + k * BEAT, m: k % 4 === 0 ? k / 4 : null });
   const chart = {
-    id: '__sync__', title: 'Sync test', artist: 'PumaBass', arrangement: 'Bass', type: 'bass',
+    id: '__sync__', title: 'Sync', artist: 'PumaBass', arrangement: 'Bass', type: 'bass',
     strings: 4, tuning: [0, 0, 0, 0], centOffset: 0, capo: 0, songLength: END,
     beats,
     sections: [{ name: 'Line up', t: 0, end: PLAY }, { name: 'Play along', t: PLAY, end: END }],
@@ -183,7 +183,7 @@ export function syncResult(res, current) {
     el.className = 'gk-sheet calib-sheet';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
-    el.setAttribute('aria-label', 'Sync test');
+    el.setAttribute('aria-label', 'Sync');
     const per = NOTES - WARMUP;
     const usable = res.input !== null;
     const body = usable
@@ -194,7 +194,7 @@ export function syncResult(res, current) {
         ${res.timing.spread > 35 ? '<p class="gk-note warn">The plucks wandered quite a bit, so this is a rough reading. Another go may give a steadier one.</p>' : ''}`
       : `<p>Too few plucks were heard to measure (${res.heard} of ${per}). Pluck the open E string firmly on every tick after the first few; check the cable's level in the Mix panel (<kbd>,</kbd>).</p>
         <p class="gk-note">The picture's offset you lined up (${fmt(current.av)}) is kept either way.</p>`;
-    el.innerHTML = `<div class="gk-box calib"><div class="gk-head"><h2>Sync test</h2><button data-x aria-label="Close">&times;</button></div><div class="gk-body">${body}
+    el.innerHTML = `<div class="gk-box calib"><div class="gk-head"><h2>Sync</h2><button data-x aria-label="Close">&times;</button></div><div class="gk-body">${body}
       <div class="gk-row">${usable ? '<button class="primary" data-use><kbd>Enter</kbd>Use these</button>' : ''}<button ${usable ? '' : 'class="primary" '}data-retry>${usable ? '' : '<kbd>Enter</kbd>'}Play along again</button><button data-x>${usable ? 'Keep the picture only' : 'Done'}</button></div></div></div>`;
     const close = v => {
       document.removeEventListener('keydown', onKey, true);

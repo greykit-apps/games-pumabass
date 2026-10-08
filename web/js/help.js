@@ -64,7 +64,7 @@ notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
 <p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
-<b>Settings → Timing → Sync test</b> lines them up. First a tick sounds and a bar swings from side to side:
+<b>Sync</b>, on the menu, lines them up. First a tick sounds and a bar swings from side to side:
 move it with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigger steps) until it reaches each side
 right on the tick, then press <kbd>Enter</kbd>. It starts from the timing you have now, so a small fix is a few
 presses. With the Real Tone Cable open, you then pluck the open E string along with the tick for half a minute,
@@ -105,7 +105,7 @@ caught.</p>
 <p>Turn scoring off in Settings or the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
 input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
 <h3>Many misses?</h3>
-<p>Run the <b>Sync test</b> (Settings → Timing) with the cable open: it measures how late your plucks reach
+<p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
 PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
 panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or <kbd>S</kbd> on the end screen) keeps what the cable
 heard in the PumaBass folder, to find out why.</p>`],

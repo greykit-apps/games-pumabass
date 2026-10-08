@@ -113,14 +113,14 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
 /* The sync test's song (web/js/sync-test.js): its own chart and audio, not the server's. */
 export async function openTestSong(test, sub) {
   closeEndScreen();
-  song = { id: test.chart.id, title: 'Sync test', artist: 'PumaBass', type: 'bass', calib: true };
+  song = { id: test.chart.id, title: 'Sync', artist: 'PumaBass', type: 'bass', calib: true };
   chart = test.chart;
   setScreen('player');
   stopRepeater();
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
-  $('p-title').textContent = 'Sync test';
+  $('p-title').textContent = 'Sync';
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
   $('p-sub').textContent = sub;
   $('p-tuning').textContent = 'Open E string';

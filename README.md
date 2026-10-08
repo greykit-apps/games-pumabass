@@ -86,7 +86,7 @@ song's audio offset (`,`), which goes up to ±15 s for these. It is remembered p
 
 ## Timing
 
-**Settings → Timing → Sync test** lines up the picture, the sound and the cable. It runs in the
+**Sync** (on the menu, `Y`) lines up the picture, the sound and the cable. It runs in the
 player like a short song, in two steps:
 
 - **Line up.** A tick sounds on every beat while a bar swings left and right, reaching a side on every
@@ -154,7 +154,7 @@ or late), a strip of the song coloured by section, and your best accuracy over f
 - A pluck is a jump in the input's high end against the stretch just before it, averaged over more than
   a period of the lowest string: a low note's waveform spikes once a period, and those spikes must not
   count as plucks (`node tools/check-plucks.mjs` checks this, from a 5-string's low B to the 12th fret).
-- Run the **Sync test** with the cable first: it sets how late your plucks reach PumaBass.
+- Run **Sync** (on the menu) with the cable first: it sets how late your plucks reach PumaBass.
 
 **Takes, for tuning.** If notes you played are marked missed, tick **Record a take** in the Mix panel
 and play; **Save take** (there, or `S` on the end screen) then writes what the cable heard, with the
