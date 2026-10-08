@@ -243,15 +243,23 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
 
 - §1 the credit, on the title and in About;
 - §2 Settings → This browser → Forget everything, which removes only `pumabass*` keys;
-- §3 the boot and title screen: `web/js/title.js` carries `canon/gk-title.js` byte for byte;
-- §4 the palette: `web/style.css` opens with `canon/gk-tokens.css` byte for byte;
+- §3 the boot and title screen: `web/js/title.js` carries `canon/gk-title.js` byte for byte. The boot
+  is the studio ident, exactly as in every Tactical game; the title keeps the canon's markup, menu and
+  keys, but **wears PumaBass's own look** (below), as do the canon's sheets;
+- §4 the palette: `web/style.css` opens with `canon/gk-tokens.css` byte for byte, and PumaBass's look
+  is built on those colours;
 - §5 storage keys `pumabass_<feature>_v<n>` (prefs, offsets, recent, resume, muted, tuner, favorites, stats);
 - §6 the title menu, §7 Settings in order; not §8: there is no mute (no `M`, no header switch), by choice,
   since the game is nothing without its sound;
 - §9 page metadata and icons, §10 `tools/check-assets.js` byte for byte, run by CI's validate stage;
 - §11 no native dialogs.
 
-The one deliberate gap: CI has no deploy stage, because PumaBass runs on your own computer.
+The deliberate gaps: CI has no deploy stage, because PumaBass runs on your own computer; and from the
+title on, PumaBass has its own look rather than the Tactical one: heavy condensed caps (Saira Condensed,
+leaning), glossy navy tiles, and a cyan selection bar for whatever you're on, in the greykit palette.
+It restyles the canon title and sheets from `web/style.css` (selectors start with `html` to win over the
+canon's injected CSS) without touching their copies. `PRODUCT.md` and `DESIGN.md` describe the product
+and the look.
 Don't edit the canon copies here; change them in games-meta and copy them back.
 
 ### Icon and share card
