@@ -269,6 +269,7 @@ export class Highway {
     const { ctx } = this;
     const nStr = this.chart.strings;
     const yTop = this.stringY(this.invert ? 0 : nStr - 1) + 0.3;
+    this.boardTop = this.P(0, yTop, 0)[1]; // the board's top edge on screen, for what sits over it
     // Board backing.
     this.quad([[0, 0, 0], [MAX_FRET, 0, 0], [MAX_FRET, yTop, 0], [0, yTop, 0]], 'rgba(30,24,20,0.55)');
     // Fret wires.

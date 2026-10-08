@@ -50,8 +50,6 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
-  $('p-title').textContent = s.title;
-  $('p-sub').textContent = `${s.artist} · ${arrangementLabel(s)}`;
   $('back').innerHTML = '<kbd>Esc</kbd>Songs';
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
@@ -108,6 +106,19 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   // Straight into it: every song has ten seconds or so before its first note.
   // (Resume game counts back in, as a play after a pause does.)
   if (song === s && audio.paused) togglePlay();
+  if (song === s) showCaption(s.title, s.artist, [arrangementLabel(s), s.album, s.year].filter(Boolean).join(' · '));
+}
+
+/* The song's name, as a music video credits it: lower left, just over the board,
+ * fading in as the song starts and out again (style.css). */
+function showCaption(title, by, more) {
+  const el = $('caption');
+  $('cap-title').textContent = title;
+  $('cap-by').textContent = by;
+  $('cap-more').textContent = more;
+  el.classList.remove('hidden', 'run');
+  void el.offsetWidth; // restart the fade
+  el.classList.add('run');
 }
 
 /* The sync test's song (web/js/sync-test.js): its own chart and audio, not the server's. */
@@ -120,9 +131,7 @@ export async function openTestSong(test, sub) {
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
-  $('p-title').textContent = 'Sync';
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
-  $('p-sub').textContent = sub;
   $('p-tuning').textContent = 'Open E string';
   $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
   offsetMs = 0;
@@ -141,6 +150,7 @@ export async function openTestSong(test, sub) {
   showFav();
   setSpeed(100);
   startScoring();
+  showCaption('Sync', sub, '');
 }
 
 export function saveResume() {
@@ -154,6 +164,8 @@ export function leaveSong() {
   clearTake();
   $('calib-cue').classList.add('hidden');
   $('metro').classList.add('hidden');
+  $('caption').classList.add('hidden');
+  $('caption').classList.remove('run');
   $('player').classList.remove('syncing');
   updateHud();
   audio.pause();
@@ -326,6 +338,21 @@ export function currentSection(t) {
   return cur;
 }
 
+/* The bar along the bottom: a block per section, coloured by its kind (every verse
+ * the same colour), with no names. Neighbouring kinds differ in hue and lightness. */
+const SECTION_KINDS = [
+  [/^(intro|outro|fade|silence|ambient|noguitar)/, '#3b4a66'], // slate: the ends, and gaps
+  [/^(pre|build)/, '#1f8790'],                                 // teal: the run into a chorus
+  [/chorus/, '#b4426b'],                                       // rose
+  [/verse|postvs/, '#2f63b3'],                                 // blue
+  [/bridge|brdg|transition|variation/, '#7a54c2'],             // violet
+  [/solo|tapping/, '#c07a1f'],                                 // amber
+  [/hook|melody/, '#36955a'],                                  // green
+  [/riff|vamp|head/, '#a39a2c'],                               // mustard
+  [/break|interlude/, '#9c5a3c'],                              // brown
+];
+const sectionColor = name => (SECTION_KINDS.find(([re]) => re.test(String(name).toLowerCase())) || [, '#5c6884'])[1];
+
 export function buildSectionBar() {
   const el = $('sections');
   el.innerHTML = '';
@@ -334,8 +361,9 @@ export function buildSectionBar() {
     const d = document.createElement('div');
     d.style.left = `${(s.t / len) * 100}%`;
     d.style.width = `${((s.end - s.t) / len) * 100}%`;
-    d.textContent = s.name === 'noguitar' ? '' : s.name;
+    d.style.background = sectionColor(s.name);
     d.title = `${s.name} (${formatTime(s.t)})`;
+    d.setAttribute('aria-label', d.title);
     el.appendChild(d);
   }
 }
@@ -544,8 +572,7 @@ export function frame() {
         $(id).classList.toggle('hot', db > -1);
       }
     }
-    const sec = currentSection(t);
-    $('section-name').textContent = sec && sec.name !== 'noguitar' ? sec.name : '';
+    if (!$('caption').classList.contains('hidden')) $('caption').style.bottom = `${highway.H - highway.boardTop + 12}px`;
     if (!audio.paused && performance.now() - lastResumeSave > 3000) { lastResumeSave = performance.now(); saveResume(); }
   }
   requestAnimationFrame(frame);

@@ -29,7 +29,8 @@ ${keys([
 <p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
 your score when scoring was on. <kbd>Space</kbd> goes to the
 main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
-<p>Click the bar along the bottom to jump; it is split into the song's sections. Shift+click moves the nearest
+<p>Click the bar along the bottom to jump; it is split into the song's sections, coloured by kind (every verse
+the same colour, every chorus another). Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
 <h3>Keys in the song list</h3>
 ${keys([
