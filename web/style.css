@@ -159,8 +159,6 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
   -webkit-mask-image: linear-gradient(to right, transparent, #000 3%, #000 90%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 3%, #000 90%, transparent); }
 #nt-strip { position: absolute; top: 0; left: 0; will-change: transform; }
-/* where the whole part is laid out once, unseen, to measure how low its stems reach */
-#nt-probe { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 #notation svg { display: block; overflow: visible; filter: drop-shadow(0 0 2px rgba(5, 7, 15, .95)) drop-shadow(0 0 1px rgba(5, 7, 15, .95)); }
 /* VexFlow draws for paper: light ink here, and the tab's number backings (which hide
    the line behind a fret) as nothing, so the highway shows through. The lines are
