@@ -103,6 +103,11 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 .song.noaudio:hover, .song.noaudio:focus { border-left-color: var(--line); }
 .song.noaudio:hover .t, .song.noaudio:focus .t { color: var(--dim); }
 .empty { padding: var(--s5); color: var(--dim); }
+/* the list's groups: Recently played, then initials, tunings or difficulty, as sorted */
+#song-list .group { padding: var(--s4) var(--s5) var(--s2); font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--accent); border-bottom: 1px solid var(--line); }
+.tools .seg { align-items: center; }
+.tools kbd { margin-right: 4px; }
+.tools .sort { display: flex; align-items: center; gap: 6px; color: var(--dim); }
 #repeat[aria-pressed=true] { color: var(--accent); border-color: var(--accent); }
 
 .bar { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; padding: var(--s4) var(--s5); border-top: 1px solid var(--line); }

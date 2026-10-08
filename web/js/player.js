@@ -11,7 +11,7 @@ import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
 import { setNotationSong, updateNotation } from './notation.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
 import { showLibrary, showSongInList } from './library-screen.js';
-import { openHelp } from './menu.js';
+import { openHelp, openSettings } from './menu.js';
 import { repeater, stopRepeater, toggleRepeater, repeaterPass } from './repeater.js';
 import { KEY_OFFSETS, KEY_RECENT, KEY_RESUME, load, save, prefs, savePrefs, isFav, toggleFav, bumpStat } from './store.js';
 import { calib, playAlongDone, endSync, syncFrame } from './sync-test.js';
@@ -574,6 +574,7 @@ export function playerKey(e) {
     toast(`Recorded bass: ${RECORDED_BASS[prefs.recordedBass].label}`);
   }
   else if (k === '?' || k === 'h') openHelp();
+  else if (k === 's' || k === 'S') { if (!audio.paused) togglePlay(); openSettings(); }
   else if (k === 'Escape') {
     if (!$('settings').classList.contains('hidden')) $('settings').classList.add('hidden');
     else closeSong();

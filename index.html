@@ -47,21 +47,23 @@
         <div class="topline"><i></i></div>
         <div class="tools">
           <input id="search" type="search" placeholder="Search songs, artists, albums  ( / )" autocomplete="off" aria-label="Search">
-          <div id="type-filter" class="seg" role="group" aria-label="Instrument">
+          <div id="type-filter" class="seg" role="group" aria-label="Part (P)" title="Which parts to list (P)">
+            <kbd>P</kbd>
             <button data-type="bass">Bass</button>
             <button data-type="lead">Lead</button>
             <button data-type="rhythm">Rhythm</button>
             <button data-type="all">All</button>
           </div>
-          <button id="fav-filter" aria-pressed="false" title="Show only your favorites"><span class="heart-glyph" aria-hidden="true">&#9829;</span> Favorites</button>
-          <select id="sort" aria-label="Sort">
+          <button id="fav-filter" aria-pressed="false" title="Show only your favorites (Shift+F)"><kbd>&#8679;F</kbd><span class="heart-glyph" aria-hidden="true">&#9829;</span> Favorites</button>
+          <label class="sort" title="Sort the list (O)"><kbd>O</kbd>Sort
+          <select id="sort" aria-label="Sort (O)">
             <option value="artist">Artist</option>
             <option value="title">Title</option>
             <option value="difficulty">Difficulty</option>
             <option value="tuning">Tuning</option>
             <option value="recent">Recently played</option>
             <option value="plays">Most played</option>
-          </select>
+          </select></label>
         </div>
         <div class="songs-head" aria-hidden="true"><span>&#9829;</span><span>Song</span><span>Part</span><span class="c-diff" title="Rocksmith's difficulty rating for the part">Difficulty</span><span class="c-tun">Tuning</span><span class="c-num" title="Times started">Plays</span><span class="c-num" title="Times played to the end">Finished</span><span class="c-len">Length</span></div>
         <div id="song-list" role="list"></div>
@@ -70,7 +72,8 @@
           <span class="grow"></span>
           <button id="missing-toggle" class="hidden" title="Charts with no audio yet: put a recording in the music folder, then Rescan"></button>
           <button data-act="rescan" title="Look for new songs and for recordings in the music folder">Rescan</button>
-          <button data-act="help" aria-label="Help" title="How to play (?)">?</button>
+          <button data-act="settings" title="Settings (S)"><kbd>S</kbd>Settings</button>
+          <button data-act="help" title="How to play, and every key (?)"><kbd>?</kbd>Help</button>
         </nav>
       </div>
     </div>

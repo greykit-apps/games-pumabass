@@ -1,7 +1,7 @@
 // The title screen, its Settings sheet, and Help.
 
 import { formatTime } from './chart.js';
-import { mountTitle, alertSheet } from './title.js';
+import { mountTitle, alertSheet, confirmSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
 import { api } from './api.js';
@@ -148,36 +148,60 @@ export async function settingsClick(b, sheet) {
 }
 
 
-/* Help from the song list or the player, in the title's sheet style. */
-export function openHelp() {
-  if (document.querySelector('.gk-sheet')) return;
+/* A sheet of the title's style over the song list or the player: Help and
+ * Settings away from the title. Tab stays inside it; Esc, × or a click
+ * outside closes it, and focus goes back where it was. */
+function openSheet(name, draw, onClick) {
+  if (document.querySelector('.gk-sheet')) return null;
   const back = document.activeElement;
   const el = document.createElement('div');
   el.className = 'gk-sheet';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
-  el.setAttribute('aria-label', 'Help');
-  let tab = 0;
-  const draw = () => {
-    el.innerHTML = `<div class="gk-box"><div class="gk-head"><h2>Help</h2><button data-x aria-label="Close">&times;</button></div>
-      <div class="gk-tabs" role="tablist">${HELP.map(([t], i) => `<button role="tab" data-tab="${i}" aria-selected="${i === tab}" aria-pressed="${i === tab}">${esc(t)}</button>`).join('')}</div>
-      <div class="gk-body">${HELP[tab][1]}</div></div>`;
-  };
+  el.setAttribute('aria-label', name);
+  const paint = () => { el.innerHTML = `<div class="gk-box"><div class="gk-head"><h2>${esc(name)}</h2><button data-x aria-label="Close">&times;</button></div>${draw()}</div>`; };
   const close = () => {
     document.removeEventListener('keydown', onKey, true);
     el.remove();
     if (back && back.isConnected) back.focus({ preventScroll: true });
   };
-  const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
+  const onKey = e => {
+    if ([...document.querySelectorAll('.gk-sheet')].pop() !== el) return; // a question asked over it has the keys
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+    if (e.key === 'Tab') {
+      const bs = [...el.querySelectorAll('button, input, select')], i = bs.indexOf(document.activeElement);
+      e.preventDefault();
+      bs[(i + (e.shiftKey ? -1 : 1) + bs.length) % bs.length].focus();
+    }
+    e.stopPropagation();
+  };
+  const sheet = { el, close, refresh: () => { const f = document.activeElement && document.activeElement.dataset; const at = f && JSON.stringify({ ...f }); paint(); const same = at && [...el.querySelectorAll('button')].find(b => JSON.stringify({ ...b.dataset }) === at); (same || el.querySelector('[data-x]')).focus({ preventScroll: true }); },
+    confirm: (q, yes) => confirmSheet(q, yes) };
   el.addEventListener('click', e => {
     if (e.target === el) return close();
     const b = e.target.closest('button');
     if (!b) return;
     if (b.hasAttribute('data-x')) return close();
-    if (b.dataset.tab !== undefined) { tab = Number(b.dataset.tab); draw(); el.querySelector(`[data-tab="${tab}"]`).focus(); }
+    onClick(b, sheet);
   });
-  draw();
+  paint();
   document.addEventListener('keydown', onKey, true);
   document.body.appendChild(el);
-  el.querySelector('[aria-selected="true"]').focus();
+  return sheet;
+}
+
+/* Help from the song list or the player. */
+export function openHelp() {
+  let tab = 0;
+  const sheet = openSheet('Help', () => `<div class="gk-tabs" role="tablist">${HELP.map(([t], i) => `<button role="tab" data-tab="${i}" aria-selected="${i === tab}" aria-pressed="${i === tab}">${esc(t)}</button>`).join('')}</div>
+      <div class="gk-body">${HELP[tab][1]}</div>`, (b, sh) => {
+    if (b.dataset.tab !== undefined) { tab = Number(b.dataset.tab); sh.refresh(); sh.el.querySelector(`[data-tab="${tab}"]`).focus(); }
+  });
+  if (sheet) sheet.el.querySelector('[aria-selected="true"]').focus();
+}
+
+/* Settings from the song list or the player: the title's own, in a sheet of their own. */
+export function openSettings() {
+  const sheet = openSheet('Settings', () => `<div class="gk-body">${settingsHTML()}</div>`, settingsClick);
+  if (sheet) (sheet.el.querySelector('.gk-body button') || sheet.el.querySelector('[data-x]')).focus();
 }

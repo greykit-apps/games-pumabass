@@ -24,6 +24,8 @@ ${keys([
     ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
     ['N', 'the notation over the highway: standard, tab, both, off'],
+    ['S', 'Settings (pauses the song)'],
+    ['?', 'this help'],
     ['Esc', 'back to the song list'],
   ])}
 <h3>At the end of a song</h3>
@@ -35,11 +37,21 @@ looped, with the riff repeater bringing it up to speed.</p>
 the same colour, every chorus another), and the section you're in is named beside the time. Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
 <h3>Keys in the song list</h3>
+<p>The songs you played last wait at the top, under <b>Recently played</b>; the list opens there. Below them,
+every song, in groups by what the list is sorted on: initials, tunings or difficulty.</p>
 ${keys([
     ['/', 'search'],
     ['Up / Down', 'move through the list'],
+    ['Page Up / Down', 'a screenful at a time'],
+    ['Left / Right', 'the previous / next group (initial, tuning, difficulty)'],
+    ['Home / End', 'the top / bottom of the list'],
     ['Enter', 'play the song'],
     ['F', 'heart the song: a favorite'],
+    ['Shift+F', 'favorites only, or every song'],
+    ['O', 'sort: artist, title, difficulty, tuning, recently played, most played'],
+    ['P', 'parts: bass, lead, rhythm, every part'],
+    ['T', 'the tuner'],
+    ['S', 'Settings'],
     ['Esc', 'back to the menu'],
   ])}`],
   ['Your library', `
