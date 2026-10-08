@@ -2,6 +2,8 @@
 // World units: X = frets (fret wire k sits at x = k), Y = height above the floor,
 // Z = distance into the screen (proportional to time until the note).
 
+import { pitchOf, keyOf, noteName, isDownbeat } from './chart.js';
+
 export const STRING_COLORS = ['#e8413c', '#f2c623', '#2e8ff0', '#f5892a', '#3fc75e', '#b351e8'];
 const INLAYS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
 const MAX_FRET = 24;
@@ -34,7 +36,7 @@ export class Highway {
     this.anchors = [];
     this.lookahead = 3.0;   // seconds of notes visible
     this.invert = true;     // true = low string on top, as in Rocksmith
-    this.labels = true;     // fret numbers and technique marks on the notes
+    this.labels = 'fret';   // on the notes: 'fret' numbers, note 'name's, or 'off'; technique marks with either
     this.camX = 5;
     this.camWidth = MIN_VIEW;
     this.camPath = null;
@@ -73,6 +75,7 @@ export class Highway {
     this.notes = playable.notes;
     this.anchors = playable.anchors;
     this.camPath = planCamera(this.notes, this.anchors);
+    this.flats = keyOf(chart, this.notes).flats; // how note names are spelt
   }
 
   // The camera window (centre and visible width, in frets) at song time t,
@@ -265,12 +268,14 @@ export class Highway {
   }
 
   beatsAt(now, lo, hi) {
-    for (const b of this.chart.beats) {
+    const beats = this.chart.beats;
+    for (let i = 0; i < beats.length; i++) {
+      const b = beats[i];
       if (b.t < now - 0.05 || b.t < lo) continue;
       if (b.t > now + this.lookahead * SPAWN || b.t >= hi) break;
       const z = this.zOf(b.t, now), a = this.farAlpha(z);
       if (a <= 0) continue;
-      const measure = b.m !== null;
+      const measure = isDownbeat(beats, i); // a bar line, stronger than a beat's
       const x0 = this.camX - this.camWidth * 2, x1 = this.camX + this.camWidth * 2;
       this.line([x0, 0, z], [x1, 0, z], `rgba(255,255,255,${(measure ? 0.32 : 0.12) * a})`, measure ? 2 : 1);
     }
@@ -506,13 +511,14 @@ export class Highway {
     // box, is fitted to the gem's height and width and centred on the gem.
     // (The border is stroked on the edge, so half of it is inside.) It stays
     // upright while the gem turns, shrinking to what fits at any angle.
-    if (!muted && this.labels) {
+    if (!muted && this.labels !== 'off') {
       const k = Math.sin(turn), inner = h - border - Math.max(2, h * 0.14);
-      drawFitted(ctx, String(p.f), cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k);
+      const text = this.labels === 'name' ? noteName(pitchOf(this.chart, p.s, p.f), this.flats) : String(p.f);
+      drawFitted(ctx, text, cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k);
     }
 
     // Technique labels above the gem.
-    const label = this.labels && techLabel(p, tech);
+    const label = this.labels !== 'off' && techLabel(p, tech);
     if (label && s > 12) {
       ctx.font = `bold ${Math.round(s * 0.24)}px system-ui, sans-serif`;
       ctx.textBaseline = 'bottom';

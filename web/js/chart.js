@@ -65,3 +65,32 @@ export function arrangementLabel(s) {
   const name = s.arrangement && s.arrangement !== base ? s.arrangement : base;
   return s.represent === false || s.bonus ? `${name} (alt)` : name;
 }
+
+/* ---- pitch, for the notation band and note names ---- */
+// The open strings' MIDI pitches in standard tuning, by how many strings: 4 and 5
+// are bass (5 adds a low B), 6 and 7 guitar (7 adds a low B).
+const OPEN = { 4: [28, 33, 38, 43], 5: [23, 28, 33, 38, 43], 6: [40, 45, 50, 55, 59, 64], 7: [35, 40, 45, 50, 55, 59, 64] };
+export const pitchOf = (chart, s, f) => (OPEN[chart.strings] || OPEN[4])[s] + (chart.tuning[s] || 0) + f;
+
+// Major keys by tonic pitch class, with their sharps (+) or flats (-).
+const KEYS = [['C', 0, 0], ['G', 7, 1], ['D', 2, 2], ['A', 9, 3], ['E', 4, 4], ['B', 11, 5], ['F#', 6, 6],
+  ['F', 5, -1], ['Bb', 10, -2], ['Eb', 3, -3], ['Ab', 8, -4], ['Db', 1, -5]];
+// The key signature that leaves the fewest notes needing an accidental (on a tie,
+// the one with fewer sharps or flats). flats: whether to spell the others as flats.
+export function keyOf(chart, notes) {
+  const count = new Array(12).fill(0);
+  for (const e of notes) for (const p of e.notes || [e]) count[((pitchOf(chart, p.s, p.f) % 12) + 12) % 12]++;
+  let best = null;
+  for (const [name, tonic, acc] of KEYS) {
+    const fit = [0, 2, 4, 5, 7, 9, 11].reduce((n, i) => n + count[(tonic + i) % 12], 0);
+    if (!best || fit > best.fit || (fit === best.fit && Math.abs(acc) < Math.abs(best.acc))) best = { name, acc, fit };
+  }
+  return { name: best.name, flats: best.acc < 0 };
+}
+const SHARPS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const FLATS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+export const noteName = (midi, flats) => (flats ? FLATS : SHARPS)[((midi % 12) + 12) % 12];
+
+// A bar starts where the bar number changes: charts number every beat with its bar
+// (some only the first), so a number alone doesn't mark a downbeat.
+export const isDownbeat = (beats, i) => beats[i].m !== null && (i === 0 || beats[i].m !== beats[i - 1].m);

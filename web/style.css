@@ -150,6 +150,24 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
   text-shadow: 0 0 6px rgba(5, 7, 15, .95); }
 #calib-cue b { display: block; font-size: clamp(24px, 3.4vw, 44px); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); line-height: 1.1; }
 #calib-cue span { display: block; margin-top: 6px; font-size: clamp(13px, 1.6vw, 17px); color: var(--text); }
+/* the notation band: standard notation over tab, scrolling over the top of the highway,
+   which runs on behind it; the clef stays at the left, the bars slide under the playhead */
+#notation { position: absolute; top: 60px; left: var(--s4); right: var(--s4); height: 196px; pointer-events: none;
+  background: linear-gradient(rgba(5, 7, 15, .5), rgba(5, 7, 15, 0)); }
+#nt-clef { position: absolute; left: 0; top: 0; }
+#nt-view { position: absolute; top: 0; bottom: 0; left: 64px; right: 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 3%, #000 90%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 3%, #000 90%, transparent); }
+#nt-strip { position: absolute; top: 0; left: 0; will-change: transform; }
+#notation svg { display: block; overflow: visible; filter: drop-shadow(0 0 2px rgba(5, 7, 15, .95)) drop-shadow(0 0 1px rgba(5, 7, 15, .95)); }
+/* VexFlow draws for paper: light ink here, and the tab's number backings (which hide
+   the line behind a fret) as nothing, so the highway shows through */
+#notation svg text { fill: var(--text); }
+#notation svg [stroke="black"] { stroke: var(--steel); }
+#notation svg [stroke="#444"] { stroke: var(--lit); }
+#notation svg rect[fill="white"] { fill: transparent; }
+#nt-head { position: absolute; width: 2px; background: var(--accent); box-shadow: 0 0 8px rgba(84, 242, 255, .7); }
+
 /* the song's name at its start, as a music video credits it: lower left over the board */
 #caption { position: absolute; left: var(--s5); bottom: 40%; max-width: min(640px, 60%); pointer-events: none; opacity: 0;
   text-shadow: 0 0 8px rgba(5, 7, 15, .95), 0 1px 2px rgba(5, 7, 15, .9); }

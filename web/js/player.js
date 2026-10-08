@@ -8,6 +8,7 @@ import { Scorer } from './scoring.js';
 import { api } from './api.js';
 import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen, setInfo } from './core.js';
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
+import { setNotationSong, updateNotation } from './notation.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
 import { showLibrary } from './library-screen.js';
 import { openHelp } from './menu.js';
@@ -75,6 +76,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   renderLoop();
   applyDifficulty();
   buildSectionBar();
+  setNotationSong(chart, s.type);
 
   audio.src = `/api/audio/${encodeURIComponent(s.id)}`;
   audio.preservesPitch = true;
@@ -503,6 +505,7 @@ export function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
+  else if (k === 'n' || k === 'N') { prefs.notation = !prefs.notation; savePrefs(); toast(prefs.notation ? 'Notation on' : 'Notation off'); }
   else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2665 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
@@ -534,6 +537,7 @@ export function frame() {
       t = songTime();
       loopCameRound();
     }
+    updateNotation(t, !calib);
     highway.draw(t);
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;

@@ -92,8 +92,12 @@ ${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close
 <h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 ${pick('invert', [['true', 'Low string on top'], ['false', 'Low string at the bottom']], prefs.invert)}
-${pick('labels', [['true', 'Numbers on notes'], ['false', 'Plain notes']], prefs.noteLabels)}
-<p class='gk-note'>How far ahead the notes appear, which way up the strings go, and whether notes carry their fret number and technique marks.</p>
+${pick('labels', [['fret', 'Fret numbers'], ['name', 'Note names'], ['off', 'Plain notes']], prefs.noteLabels)}
+<p class='gk-note'>How far ahead the notes appear, which way up the strings go, and what the notes carry: fret numbers, note names, or nothing.</p>
+<h3>Notation</h3>
+${pick('notation', [['true', 'On'], ['false', 'Off']], prefs.notation)}
+${pick('staffNames', [['true', 'Note names under the notes'], ['false', 'No names']], prefs.staffNames)}
+<p class='gk-note'>Standard notation over tab, above the highway: the bar you're in and the next. <kbd>N</kbd> shows or hides it while you play.</p>
 <h3>Speed</h3>
 ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
@@ -107,7 +111,9 @@ export async function settingsClick(b, sheet) {
   switch (b.dataset.set) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;
-    case 'labels': prefs.noteLabels = v === 'true'; highway.labels = prefs.noteLabels; break;
+    case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
+    case 'notation': prefs.notation = v === 'true'; break;
+    case 'staffNames': prefs.staffNames = v === 'true'; break;
     case 'speed': prefs.startSpeed = Number(v); break;
     case 'screen': prefs.screen = v; applyScreen(); break;
     case 'rescan':
