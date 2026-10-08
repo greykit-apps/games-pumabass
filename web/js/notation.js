@@ -10,6 +10,7 @@
 import { $, highway } from './core.js';
 import { pitchOf, keyOf, noteName, isDownbeat } from './chart.js';
 import { prefs } from './store.js';
+import { STRING_COLORS } from './highway.js';
 
 const TPB = 12;          // ticks per beat: a 16th is 3, a triplet 8th 4
 const BEAT_W = 86;       // width of a beat in the score, before SCALE
@@ -271,6 +272,8 @@ function drawStrip(first) {
           return `${noteName(m, flats).toLowerCase()}/${Math.floor(m / 12) - 1}${p.mute ? '/x2' : ''}`;
         });
         sn = new StaveNote({ keys, duration: dur, clef, dots, autoStem: true });
+        // Each notehead in its string's colour, as on the highway (the stems and beams stay ink).
+        ps.forEach((p, n) => sn.setKeyStyle(n, { fillStyle: STRING_COLORS[p.s], strokeStyle: STRING_COLORS[p.s] }));
         tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: p.mute ? 'X' : p.f })), duration: dur, dots });
         if (L.names && !pc.tied) {
           sn.addModifier(new Annotation(ps.map(p => noteName(pitchOf(state.chart, p.s, p.f), flats)).join(' '))
@@ -316,8 +319,16 @@ function drawStrip(first) {
   });
   const last = bars.length - 1;
   points.push([bars[last].end, starts[last] + spans[last]]);
-  // Each fret number under the centre of its note, where the playhead crosses it.
-  for (const g of $('nt-strip').querySelectorAll('.vf-tabnote')) g.setAttribute('transform', `translate(${TAB_NUDGE} 0)`);
+  // Each fret number under the centre of its note, where the playhead crosses it, and
+  // in its string's colour (found by the line it sits on: the top line is the highest string).
+  for (const g of $('nt-strip').querySelectorAll('.vf-tabnote')) {
+    g.setAttribute('transform', `translate(${TAB_NUDGE} 0)`);
+    for (const text of g.querySelectorAll('text')) {
+      const line = Math.round((Number(text.getAttribute('y')) - 3.25 - L.tabTop) / 13);
+      const s = nStr - 1 - line;
+      if (STRING_COLORS[s]) text.setAttribute('fill', STRING_COLORS[s]);
+    }
+  }
   state.strip = { first, points };
 }
 

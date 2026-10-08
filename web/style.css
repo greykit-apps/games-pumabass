@@ -161,9 +161,12 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 #nt-strip { position: absolute; top: 0; left: 0; will-change: transform; }
 #notation svg { display: block; overflow: visible; filter: drop-shadow(0 0 2px rgba(5, 7, 15, .95)) drop-shadow(0 0 1px rgba(5, 7, 15, .95)); }
 /* VexFlow draws for paper: light ink here, and the tab's number backings (which hide
-   the line behind a fret) as nothing, so the highway shows through */
-#notation svg text { fill: var(--text); }
+   the line behind a fret) as nothing, so the highway shows through. The lines are
+   quiet, so the notes (in their strings' colours) stand out; the names quieter still. */
 #notation svg [stroke="black"] { stroke: var(--steel); }
+#notation .vf-stave path { stroke: #4f5f8f; }
+#notation .vf-stavebarline rect { fill: #4f5f8f; }
+#notation .vf-annotation text { fill: var(--steel); }
 #notation svg [stroke="#444"] { stroke: var(--lit); }
 #notation svg rect[fill="white"] { fill: transparent; }
 #nt-head { position: absolute; width: 2px; background: var(--accent); box-shadow: 0 0 8px rgba(84, 242, 255, .7); }
