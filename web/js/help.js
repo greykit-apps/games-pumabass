@@ -26,12 +26,12 @@ ${keys([
     ['N', 'the notation over the highway: standard, tab, both, off'],
     ['S', 'Settings (pauses the song)'],
     ['?', 'this help'],
-    ['Esc', 'back to the song list'],
+    ['Esc', 'pause; again, back to the song list'],
   ])}
 <h3>At the end of a song</h3>
 <p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
 your score when scoring was on. <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes back to it in the song list,
-<kbd>M</kbd> to the main menu. When a section of it went badly, <kbd>P</kbd> practises it: the song from there,
+<kbd>M</kbd> to the main menu. When you stopped before the end, it leads with how far you got. When a section went badly, <kbd>P</kbd> practises it: the song from there,
 looped, with the riff repeater bringing it up to speed.</p>
 <p>Click the bar along the bottom to jump; it is split into the song's sections, coloured by kind (every verse
 the same colour, every chorus another), and the section you're in is named beside the time. Shift+click moves the nearest

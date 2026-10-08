@@ -331,7 +331,7 @@ export function togglePlay() {
 }
 
 /* While paused, the keys worth knowing, so none has to be remembered. */
-const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['\u2191 \u2193', 'speed'], ['N', 'notation'], [',', 'mix'], ['?', 'all keys']]
+const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['\u2191 \u2193', 'speed'], ['N', 'notation'], [',', 'mix'], ['?', 'all keys'], ['Esc', 'song list']]
   .map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</span>`;
 
 /* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
@@ -604,6 +604,7 @@ export function playerKey(e) {
   else if (k === 's' || k === 'S') { if (!audio.paused) togglePlay(); openSettings(); }
   else if (k === 'Escape') {
     if (!$('settings').classList.contains('hidden')) closeMix();
+    else if (!audio.paused || liveAt !== null) { togglePlay(); toast('Paused: Esc again for the song list'); } // a stray Esc only pauses
     else closeSong();
   }
 }

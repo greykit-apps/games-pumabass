@@ -38,7 +38,8 @@ export function showEndScreen() {
   const verdict = finished
     ? (st.finished === 1 ? 'Played to the end, for the first time.' : `Played to the end: that's ${st.finished} finishes from ${st.plays} plays.`)
     : `You played ${formatTime(played)} of ${formatTime(chart.songLength)}. Play at least half of it and it counts as a finish${st.finished ? ` (you've finished it ${times(st.finished)})` : ''}.`;
-  const facts = [prefs.difficulty < 100 ? `${notes} notes (${prefs.difficulty}% of the chart)` : `${notes} notes`, `${$('speed').value}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
+  // (An unfinished scored play already counts the notes in its score line.)
+  const facts = [finished || !(scorer && scorer.judged) ? (prefs.difficulty < 100 ? `${notes} notes (${prefs.difficulty}% of the chart)` : `${notes} notes`) : '', `${$('speed').value}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
   // Each section's accuracy, as a strip along the song.
   const len = chart.songLength;
   const strip = sc ? `<div class="end-strip" aria-label="Accuracy by section">${chart.sections.map((x, i) => {
@@ -67,6 +68,14 @@ export function showEndScreen() {
       : !input.open && prefs.input ? `Not scored: ${esc(shortLabel(prefs.input.label))} wasn't connected. Plug it in and press <kbd>T</kbd> for the tuner, which opens it.`
         : !input.open ? 'Not scored: no instrument input. Plug in the Real Tone Cable and choose it in Settings, under Instrument input.'
           : 'No notes were scored this time.'}</p>`;
+  // A play that wasn't through leads with what happened and what to practise; its score, from a few
+  // notes, is a line under them, not the headline.
+  const partial = !finished;
+  const scoreLine = sc ? `<div class="end-score small">
+      <p class="end-score-line">${sc.judged} of the song's ${notes} notes were scored: ${sc.hits} hit (${pct}%).</p>
+      ${strip}
+    </div>` : '';
+  const practise = weak ? `<button data-end="practise" title="The song again from this section, looped, with the riff repeater: slower, then up to speed"><kbd>P</kbd>Practise the ${esc(sectionName(weak.sec.name).toLowerCase())} at ${formatTime(weak.sec.t)}</button>` : '';
   const kicker = finished ? 'Song complete' : 'End of the song';
   const el = document.createElement('div');
   el.className = `gk-sheet end-sheet${finished ? ' cheer' : ''}`;
@@ -80,13 +89,15 @@ export function showEndScreen() {
       <h2 class="end-title">${esc(song.title)}</h2>
       <p class="end-sub">${esc(song.artist)} &middot; ${esc(arrangementLabel(song))} &middot; ${esc(tn)}</p>
     </div>
-    ${sc ? score : ''}
-    <p class="end-verdict">${verdict}</p>
+    ${sc && !partial ? score : ''}
+    <p class="end-verdict${partial ? ' lead' : ''}">${verdict}</p>
+    ${partial && weak ? `<div class="end-next">${practise}</div>` : ''}
+    ${partial ? scoreLine : ''}
     <p class="end-facts">${facts}</p>
     ${sc ? '' : score}
     <div class="gk-row end-acts">
       <button class="primary" data-end="again"><kbd>Space</kbd>Play again</button>
-      ${weak ? `<button data-end="practise" title="The song again from this section, looped, with the riff repeater: slower, then up to speed"><kbd>P</kbd>Practise the ${esc(sectionName(weak.sec.name).toLowerCase())} at ${formatTime(weak.sec.t)}</button>` : ''}
+      ${partial ? '' : practise}
       <button data-end="list"><kbd>Esc</kbd>Song list</button>
       <button data-end="menu"><kbd>M</kbd>Main menu</button>
       ${input.tape && input.tape.samples ? '<button data-end="take" title="Saves what the cable heard, with how each note was judged, in the PumaBass folder (takes), for tuning the scoring">Save take</button>' : ''}
