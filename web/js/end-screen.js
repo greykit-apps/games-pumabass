@@ -7,8 +7,9 @@ import { showTitle } from './menu.js';
 import { chart, song, session, openSong, leaveSong, scorer } from './player.js';
 import { KEY_STATS, load, save, prefs, statsOf } from './store.js';
 import { saveTake } from './takes.js';
+import { sceneSVG } from './scene.js';
 
-/* ---- the end screen: what this play was, and (to come) its score ---- */
+/* ---- the end screen: what this play was, in words, and its score ---- */
 export let endScreen = null;
 
 export function showEndScreen() {
@@ -16,9 +17,9 @@ export function showEndScreen() {
   const st = statsOf(song.id);
   const notes = highway.notes.reduce((n, e) => n + (e.notes ? e.notes.length : 1), 0);
   const played = session ? session.heard : 0;
+  const total = session ? session.end - session.start : chart.songLength;
   const finished = !!(session && session.finished);
   const tn = tuningName(chart.tuning, chart.strings);
-  const tile = (label, value, note = '') => `<div class="end-tile"><small>${label}</small><span>${value}</span>${note ? `<em>${note}</em>` : ''}</div>`;
   const sc = scorer && scorer.judged ? scorer : null;
   const pct = sc ? Math.round(sc.accuracy * 100) : null;
   // A best only counts for a full play: finished, with most of the notes judged.
@@ -31,10 +32,13 @@ export function showEndScreen() {
     save(KEY_STATS, all);
   }
   const timing = sc && sc.timing();
-  const scoreNote = sc ? `${sc.hits} of ${sc.judged} notes hit${newBest ? ' \u00b7 a new best' : ''}`
-    : !prefs.scoring ? 'Scoring is off. Turn it on in Settings, or the Mix panel (,).'
-      : !input.open ? 'Plug in the Real Tone Cable (or choose an input in Settings) to have your playing scored.'
-        : 'No notes were scored this time.';
+  const times = n => `${n} ${n === 1 ? 'time' : 'times'}`;
+  // What happened, in a sentence: played through and counted, or how far it got.
+  // (A finish is counted before the end screen opens, so st.finished includes this one.)
+  const verdict = finished
+    ? (st.finished === 1 ? 'Played to the end, for the first time.' : `Played to the end: that's ${st.finished} finishes from ${st.plays} plays.`)
+    : `You played ${formatTime(played)} of ${formatTime(total)}. Play at least half of it for the song to count as finished${st.finished ? ` (finished ${times(st.finished)} so far)` : ''}.`;
+  const facts = [`${notes} notes at ${prefs.difficulty}% difficulty`, `${$('speed').value}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
   // Each section's accuracy, as a strip along the song.
   const len = chart.songLength;
   const strip = sc ? `<div class="end-strip" aria-label="Accuracy by section">${chart.sections.map((x, i) => {
@@ -43,34 +47,35 @@ export function showEndScreen() {
     const color = a === null ? 'var(--line)' : `hsl(${Math.round(a * a * 120)}, 70%, 48%)`;
     return `<i style="width:${((x.end - x.t) / len) * 100}%;background:${color}" title="${esc(x.name)}${a === null ? '' : ` \u00b7 ${Math.round(a * 100)}%`}"></i>`;
   }).join('')}</div><p class="end-strip-note">by section: red is where to practise</p>` : '';
+  const timingSay = timing ? (Math.abs(timing.ms) < 10 ? 'on the beat' : `${Math.round(Math.abs(timing.ms))} ms ${timing.ms > 0 ? 'late' : 'early'}, give or take ${Math.round(timing.spread)}`) : '';
+  // The score only takes the stage when there is one; otherwise, under the verdict, a line on how to get one.
+  const score = sc ? `<div class="end-score">
+      <span class="end-score-value">${pct}%</span>
+      <span class="end-score-note">${sc.hits} of ${sc.judged} notes hit${newBest ? ' &middot; <b>a new best</b>' : ''}</span>
+      ${strip}
+      <p class="end-more">Best streak ${sc.best}${timingSay ? ` &middot; ${timingSay}` : ''}${best !== null ? ` &middot; best ${best}% on full plays` : ''}</p>
+    </div>`
+    : `<p class="end-invite">${!prefs.scoring ? 'Scoring is off: turn it on in the Mix panel (<kbd>,</kbd>) to have your playing scored.'
+      : !input.open ? 'Plug in the Real Tone Cable (or choose an input in Settings) to have your playing scored.'
+        : 'No notes were scored this time.'}</p>`;
+  const kicker = finished ? 'Song complete' : 'End of the song';
   const el = document.createElement('div');
-  el.className = 'gk-sheet end-sheet';
+  el.className = `gk-sheet end-sheet${finished ? ' cheer' : ''}`;
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
-  el.setAttribute('aria-label', 'Song complete');
-  el.innerHTML = `<div class="gk-box end">
+  el.setAttribute('aria-label', kicker);
+  // The stage comes back for the end: its lights up when the song was played through.
+  el.innerHTML = `<div class="scene end-scene" aria-hidden="true">${sceneSVG('pb-beam-end')}</div>
+  <div class="gk-box end">
     <div class="end-head">
-      <p class="end-kicker">Song complete</p>
+      <p class="end-kicker">${kicker}</p>
       <h2 class="end-title">${esc(song.title)}</h2>
       <p class="end-sub">${esc(song.artist)} &middot; ${esc(arrangementLabel(song))} &middot; ${esc(tn)}</p>
     </div>
-    <div class="end-score">
-      <small>Score</small>
-      <span class="end-score-value">${pct === null ? '&ndash;' : `${pct}%`}</span>
-      <em>${scoreNote}</em>
-      ${strip}
-    </div>
-    <div class="end-tiles">
-      ${tile('Notes', notes, `at ${prefs.difficulty}% difficulty`)}
-      ${tile('Speed', `${$('speed').value}%`)}
-      ${tile('Played', formatTime(played), `of ${formatTime(session ? session.end - session.start : chart.songLength)}`)}
-      ${tile('Finished', finished ? 'Counted &#10003;' : 'Not counted', finished ? '' : 'less than half was played')}
-      ${tile('Plays', st.plays || 0, 'all time')}
-      ${tile('Times finished', st.finished || 0, 'all time')}
-      ${sc ? tile('Best streak', sc.best, `of ${sc.judged} notes`) : ''}
-      ${sc ? tile('Timing', timing ? (Math.abs(timing.ms) < 10 ? 'On the beat' : `${Math.round(Math.abs(timing.ms))} ms ${timing.ms > 0 ? 'late' : 'early'}`) : '\u2013', timing ? `typical, give or take ${Math.round(timing.spread)} ms` : 'too few plucks to tell') : ''}
-      ${sc || best !== null ? tile('Best', best === null ? '\u2013' : `${best}%`, 'full plays') : ''}
-    </div>
+    ${sc ? score : ''}
+    <p class="end-verdict">${verdict}</p>
+    <p class="end-facts">${facts}</p>
+    ${sc ? '' : score}
     <div class="gk-row end-acts">
       <button class="primary" data-end="menu"><kbd>Space</kbd>Main menu</button>
       <button data-end="again"><kbd>R</kbd>Play again</button>

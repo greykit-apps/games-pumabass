@@ -17,6 +17,9 @@ const LEAD = 0.6;       // a widening edge is in place this long before the firs
 const MOVE_MIN = 2;     // an edge takes this long to move a short way...
 const MOVE_MAX = 3.5;   // ...and this long to move a long way
 const moveTime = frets => Math.min(MOVE_MAX, Math.max(MOVE_MIN, 1.4 + 0.18 * Math.abs(frets)));
+// A single note comes in standing on end and turns as it nears, lying flat along its
+// string the moment it reaches it, as in Rocksmith: a second way to see when. Seconds:
+const TURN_S = 1;
 
 export class Highway {
   constructor(canvas) {
@@ -26,7 +29,8 @@ export class Highway {
     this.notes = [];
     this.anchors = [];
     this.lookahead = 3.0;   // seconds of notes visible
-    this.invert = false;    // true = low string on top
+    this.invert = true;     // true = low string on top, as in Rocksmith
+    this.labels = true;     // fret numbers and technique marks on the notes
     this.camX = 5;
     this.camWidth = MIN_VIEW;
     this.camPath = null;
@@ -87,7 +91,8 @@ export class Highway {
   }
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
+    // On the couch the page is zoomed (style.css): draw at the zoomed size, not blurred up.
+    const dpr = (window.devicePixelRatio || 1) * (this.canvas.currentCSSZoom || 1);
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (this.canvas.width !== Math.round(w * dpr) || this.canvas.height !== Math.round(h * dpr)) {
       this.canvas.width = Math.round(w * dpr);
@@ -353,8 +358,11 @@ export class Highway {
     if (alpha <= 0) return;
     const z = Math.max(0, zNote);
 
+    // Every note's tail first, so none is drawn over a note: notes played together
+    // (an open string under a fretted one, say) stack on one mark and land as one.
+    for (const p of parts) this.drawTail(p, z, alpha, anchor);
     if (n.notes && parts.length > 1) this.drawChordFrame(parts, z, alpha, anchor, n);
-    for (const p of parts) this.drawGem(p, z, alpha, anchor, passed, n.tech ? n.tech : p.tech);
+    for (const p of parts) this.drawGem(p, z, alpha, anchor, passed, n.tech ? n.tech : p.tech, parts.length === 1);
   }
 
   noteX(fret, anchor) {
@@ -411,7 +419,24 @@ export class Highway {
     }
   }
 
-  drawGem(p, z, alpha, anchor, passed, tech = []) {
+  // A note's tail: up from a mark on the floor at its time, so a note on the beat
+  // floats over its beat line, as in Rocksmith. An open string's mark spans its bar.
+  drawTail(p, z, alpha, anchor) {
+    const { ctx } = this;
+    const color = STRING_COLORS[p.s];
+    const x = this.noteX(p.f, anchor);
+    const half = p.f === 0 ? anchor.width / 2 - 0.05 : 0.42;
+    const [cx, cy, s] = this.P(x, this.stringY(p.s), z);
+    const floor = this.P(x, 0, z), a = this.P(x - half, 0, z), b = this.P(x + half, 0, z);
+    ctx.strokeStyle = hexA(color, 0.6 * alpha);
+    ctx.lineWidth = Math.max(1.5, s * 0.04);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    ctx.strokeStyle = hexA(color, 0.75 * alpha);
+    ctx.lineWidth = Math.max(1.5, s * 0.05);
+    ctx.beginPath(); ctx.moveTo(floor[0], floor[1]); ctx.lineTo(cx, cy); ctx.stroke();
+  }
+
+  drawGem(p, z, alpha, anchor, passed, tech = [], single = true) {
     const { ctx } = this;
     const y = this.stringY(p.s);
     const color = STRING_COLORS[p.s];
@@ -421,51 +446,57 @@ export class Highway {
     const halfH = open ? this.stringGap * 0.3 : this.stringGap * 0.47;
     const [cx, cy, s] = this.P(x, y, z);
     const w = halfW * 2 * s, h = halfH * 2 * s;
-
-    // Drop line to the floor so you can judge depth and fret.
-    const floor = this.P(x, 0, z);
-    ctx.strokeStyle = hexA(color, 0.35 * alpha);
-    ctx.lineWidth = Math.max(1, s * 0.04);
-    ctx.beginPath(); ctx.moveTo(cx, cy + h / 2); ctx.lineTo(floor[0], floor[1]); ctx.stroke();
+    // Upright (a quarter turn) TURN_S out, flat on arrival. Open notes are bars across
+    // the hand's frets, and a chord's notes arrive in its frame: neither turns.
+    const turn = single && !open ? (Math.PI / 2) * Math.min(1, z / this.zScale / TURN_S) : 0;
 
     ctx.globalAlpha = alpha;
     const muted = tech.includes('mute');
     const harmonic = tech.includes('harmonic') || tech.includes('pinch');
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-turn);
     ctx.fillStyle = muted ? '#777' : color;
     if (passed) { ctx.shadowColor = color; ctx.shadowBlur = 25; }
     if (harmonic && !open) {
       ctx.beginPath();
-      ctx.moveTo(cx, cy - h * 0.9); ctx.lineTo(cx + w / 2, cy); ctx.lineTo(cx, cy + h * 0.9); ctx.lineTo(cx - w / 2, cy);
+      ctx.moveTo(0, -h * 0.9); ctx.lineTo(w / 2, 0); ctx.lineTo(0, h * 0.9); ctx.lineTo(-w / 2, 0);
       ctx.closePath(); ctx.fill();
     } else {
-      roundRect(ctx, cx - w / 2, cy - h / 2, w, h, Math.min(h / 2, s * 0.08));
+      roundRect(ctx, -w / 2, -h / 2, w, h, Math.min(h / 2, s * 0.08));
       ctx.fill();
     }
     ctx.shadowBlur = 0;
-    ctx.lineWidth = Math.max(1, s * (tech.includes('accent') ? 0.07 : 0.035));
+    const border = Math.max(1, s * (tech.includes('accent') ? 0.07 : 0.035));
+    ctx.lineWidth = border;
     ctx.strokeStyle = 'rgba(255,255,255,0.9)';
     ctx.stroke();
     if (muted) {
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = Math.max(1.5, s * 0.05);
       ctx.beginPath();
-      ctx.moveTo(cx - h * 0.35, cy - h * 0.35); ctx.lineTo(cx + h * 0.35, cy + h * 0.35);
-      ctx.moveTo(cx + h * 0.35, cy - h * 0.35); ctx.lineTo(cx - h * 0.35, cy + h * 0.35);
+      ctx.moveTo(-h * 0.35, -h * 0.35); ctx.lineTo(h * 0.35, h * 0.35);
+      ctx.moveTo(h * 0.35, -h * 0.35); ctx.lineTo(-h * 0.35, h * 0.35);
       ctx.stroke();
     }
+    ctx.restore();
 
     // Fret number on the gem, sized to sit inside it: its ink, not its line
     // box, is fitted to the gem's height and width and centred on the gem.
-    // (The border is stroked on the edge, so half of it is inside.)
-    if (!muted) drawFitted(ctx, String(p.f), cx, cy, (open ? h * 1.6 : w * 0.8), h - ctx.lineWidth - Math.max(2, h * 0.14));
+    // (The border is stroked on the edge, so half of it is inside.) It stays
+    // upright while the gem turns, shrinking to what fits at any angle.
+    if (!muted && this.labels) {
+      const k = Math.sin(turn), inner = h - border - Math.max(2, h * 0.14);
+      drawFitted(ctx, String(p.f), cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k);
+    }
 
     // Technique labels above the gem.
-    const label = techLabel(p, tech);
+    const label = this.labels && techLabel(p, tech);
     if (label && s > 12) {
       ctx.font = `bold ${Math.round(s * 0.24)}px system-ui, sans-serif`;
       ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#fff';
-      ctx.fillText(label, cx, cy - h / 2 - 2);
+      ctx.fillText(label, cx, cy - (h / 2) * Math.cos(turn) - (w / 2) * Math.sin(turn) - 2);
     }
     ctx.globalAlpha = 1;
   }

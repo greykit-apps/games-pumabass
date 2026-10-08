@@ -5,7 +5,7 @@ import { alertSheet } from './title.js';
 import { api } from './api.js';
 import { $, esc, screen, songs, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
-import { showTitle, leaveTitle, openHelp } from './menu.js';
+import { showTitle, leaveTitle, openHelp, partsLabel } from './menu.js';
 import { openSong } from './player.js';
 import { KEY_RECENT, KEY_FAVS, KEY_STATS, load, prefs, savePrefs, toggleFav } from './store.js';
 
@@ -163,7 +163,7 @@ export function renderLibrary() {
     frag.appendChild(row);
   });
   el.appendChild(frag);
-  $('count').textContent = `${list.length} ${prefs.favOnly ? (list.length === 1 ? 'favorite' : 'favorites') : list.length === 1 ? 'part' : 'parts'}`;
+  $('count').textContent = prefs.favOnly ? `${list.length} ${list.length === 1 ? 'favorite' : 'favorites'}` : partsLabel(list.length);
   const missing = ofType.filter(s => s.audio === false).length;
   $('missing-toggle').classList.toggle('hidden', !missing);
   $('missing-toggle').textContent = prefs.showMissing ? `Hide the ${missing} without audio` : `Show ${missing} without audio`;

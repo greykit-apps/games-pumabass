@@ -18,10 +18,11 @@ import { SERVER_API, SERVER_OLD } from './api.js';
 import { $, mixer, highway, input, screen, songs, info } from './core.js';
 import { applyMix } from './instrument.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
-import { title, showTitle } from './menu.js';
+import { title, showTitle, libraryLabel } from './menu.js';
 import { chart, session, openSong, scorer, sync, inputBetween, playerKey } from './player.js';
 import { calib, runCalibration, calibKey } from './sync-test.js';
 import { saveTake } from './takes.js';
+import { applyScreen } from './store.js';
 
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -35,14 +36,13 @@ document.addEventListener('keydown', e => {
 window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, highway, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
 /* ---- start: the boot plays while the song index loads, then the title ---- */
+applyScreen();
 injectTitleCSS();
-mountScene($('library').querySelector('.scene'));
+mountScene($('library').querySelector('.scene'), 'pb-beam-list');
 const boot = runBoot({ lines: [bootReloadLine(), 'local server: your Rocksmith 2014 install'] });
 applyMix();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
-  const playable = songs.filter(s => s.audio !== false);
-  const bass = playable.filter(s => s.type === 'bass').length;
   const waiting = songs.filter(s => s.audio === false && s.type === 'bass').length;
   // A server older than this page: its code changed since it started, or it
   // speaks an older version than this page needs.
@@ -51,7 +51,7 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   const lines = startProblem ? ['server: needs attention']
     : !info.libraryDir ? ['no songs folder chosen yet']
     : !info.libraryFound ? ['songs folder not found']
-    : [`${new Set(playable.map(s => s.songKey)).size} songs, ${bass} bass parts`, waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
+    : [libraryLabel(), waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
   if (!startProblem && !info.vgmstream) lines.push('vgmstream missing: no song audio');
   return boot.finish(lines);
 }).then(async () => {

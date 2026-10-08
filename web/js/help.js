@@ -26,7 +26,8 @@ ${keys([
     ['Esc', 'back to the song list'],
   ])}
 <h3>At the end of a song</h3>
-<p>The end screen shows what you played, with room for your score once scoring arrives. <kbd>Space</kbd> goes to the
+<p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
+your score when scoring was on. <kbd>Space</kbd> goes to the
 main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
 <p>Click the bar along the bottom to jump; it is split into the song's sections. Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
@@ -78,8 +79,8 @@ once it holds in tune.</p>
 <p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Already in
 tune? Close it and play.</p>
 <h3>Hearing your bass</h3>
-<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner, the Mix, or
-Settings) plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
+<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner or the Mix)
+plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
 has none.</p>
 <h3>The mix</h3>
 <p>Open it with <kbd>,</kbd> while a song is up. <b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and
@@ -101,7 +102,7 @@ where to practise.</p>
 Hammer-ons and pull-offs need the new pitch, with no pluck. Muted notes and harmonics need the pluck. Chords count
 on the pluck alone: one cable can't reliably tell which several notes are ringing, so a wrong chord shape isn't
 caught.</p>
-<p>Turn scoring off in Settings or the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
+<p>Turn scoring off in the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
 input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
 <h3>Many misses?</h3>
 <p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
@@ -111,7 +112,11 @@ heard in the PumaBass folder, to find out why.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
-<b style="color:#b351e8">e</b> purple). The number on a note is the fret. A long bar across the lit lane is an open string.</p>
+<b style="color:#b351e8">e</b> purple), with the low string on top (Settings can turn it over). The number on a note is the
+fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
+<p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
+as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
+floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>
 <p>The lit lane on the floor is where your hand should be; the fret numbers at the bottom light up to match.
 On a big jump the view pulls back until you can see both ends, then settles on the new spot.
 A tail behind a note means hold it; a tail that bends sideways is a slide to the fret shown.</p>

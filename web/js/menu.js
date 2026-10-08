@@ -4,13 +4,12 @@ import { formatTime } from './chart.js';
 import { mountTitle, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
-import { RECORDED_BASS } from './mixer.js';
 import { api } from './api.js';
-import { $, highway, esc, fmtMs, screen, songs, info, setScreen } from './core.js';
-import { shortLabel, inputStatus, hear, setRecordedBass, chooseInput, showTuner } from './instrument.js';
+import { $, highway, esc, fmtMs, songs, info, setScreen } from './core.js';
+import { shortLabel, inputStatus, chooseInput, showTuner } from './instrument.js';
 import { pickLibrary, loadLibrary, showLibrary } from './library-screen.js';
-import { openSong, startScoring, syncPlayerPrefs } from './player.js';
-import { KEY_RESUME, load, prefs, savePrefs, forgetEverything } from './store.js';
+import { openSong, syncPlayerPrefs } from './player.js';
+import { KEY_RESUME, load, prefs, savePrefs, forgetEverything, applyScreen } from './store.js';
 import { runCalibration } from './sync-test.js';
 
 export let title = null; // the title screen, while it is up
@@ -18,12 +17,12 @@ export let title = null; // the title screen, while it is up
 export function titleCfg() {
   const resume = load(KEY_RESUME, null);
   const rs = resume && songs.find(s => s.id === resume.id && s.audio !== false);
-  const parts = songs.filter(s => (prefs.type === 'all' || s.type === prefs.type) && s.audio !== false).length;
+  const parts = playableParts().length;
   return {
     name: 'PumaBass',
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
-      { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` : 'choose your songs folder' },
+      { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? partsLabel(parts) : 'choose your songs folder' },
       { act: 'tuner', label: 'Tuner', key: 'T', meta: prefs.input ? shortLabel(prefs.input.label) : 'Real Tone Cable' },
       { act: 'sync', label: 'Sync', key: 'Y', meta: prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : 'line up sound and picture' },
       'gap',
@@ -59,32 +58,42 @@ export function leaveTitle() {
   $('title-host').innerHTML = '';
 }
 
+/* How many songs and parts the library holds, in the same words everywhere:
+ * the menu, the song list, Settings and the boot ("315 bass parts"). */
+export function partsLabel(n) {
+  return `${n} ${prefs.type === 'all' ? '' : prefs.type + ' '}${n === 1 ? 'part' : 'parts'}`;
+}
+const playableParts = () => songs.filter(s => (prefs.type === 'all' || s.type === prefs.type) && s.audio !== false);
+/* "299 songs, 315 bass parts": the boot and Settings. */
+export function libraryLabel() {
+  const playable = songs.filter(s => s.audio !== false);
+  return `${new Set(playable.map(s => s.songKey)).size} songs, ${partsLabel(playableParts().length)}`;
+}
+
+/* Settings is for setting up: the songs, the input, the screen, the highway.
+ * What changes from song to song (the mix, recorded bass, scoring) lives in the
+ * player's Mix panel. */
 export function settingsHTML() {
   const pick = (set, opts, cur) => `<div class='gk-row'>${opts.map(([v, l]) =>
     `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const where = !info.libraryDir ? 'No songs folder chosen yet.'
-    : `<code>${esc(info.libraryDir)}</code> · ${info.libraryFound ? `${info.archives} song ${info.archives === 1 ? 'file' : 'files'}` : 'that folder is missing'}`;
+    : `<code>${esc(info.libraryDir)}</code> · ${info.libraryFound ? libraryLabel() : 'that folder is missing'}`;
   return `<h3>Song library</h3>
 <p class='gk-note'>${where}</p>
 <div class='gk-row'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>
-<p class='gk-note'>The folder with your Rocksmith 2014 song files (<code>.psarc</code>); the folders inside it are searched too. Rescan after adding songs.</p>
+<p class='gk-note'>Your Rocksmith 2014 song files (<code>.psarc</code>), in this folder or the folders inside it. Rescan after adding songs.</p>
 <h3>Instrument input</h3>
 <p class='gk-note'>${inputStatus()}</p>
 <div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button></div>
-<h3>Hear your bass</h3>
-${pick('hear', [['false', 'Off'], ['true', 'On']], prefs.hear)}
-<p class='gk-note'>Plays the input through PumaBass, for a bass plugged into the cable rather than an amp. There is a short delay on the way. Its level is in the player's Mix (<kbd>,</kbd>).</p>
-<h3>Recorded bass</h3>
-${pick('rb', Object.entries(RECORDED_BASS).map(([k, v]) => [k, v.label]), prefs.recordedBass)}
-<p class='gk-note'>The song's own bass can't be taken out of the record, but Reduced and Cut pull it well down so yours stands out. <kbd>B</kbd> switches it while you play.</p>
-<h3>Scoring</h3>
-${pick('scoring', [['true', 'On'], ['false', 'Off']], prefs.scoring)}
-<p class='gk-note'>Listens to the instrument input and marks each note hit or missed: the right note, plucked on time. It only runs while an input is open, so playing through an amp is never marked wrong; turn it off to practise without the marks.</p>
+<p class='gk-note'>Scoring, hearing your bass and the mix are in the player's Mix panel (<kbd>,</kbd>).</p>
+<h3>Screen</h3>
+${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close']], prefs.screen)}
+<p class='gk-note'>On a big screen, TV draws everything larger so it reads from the couch.</p>
 <h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
-<p class='gk-note'>How far ahead the notes appear. Longer gives more warning; shorter spreads them out.</p>
-<h3>Strings</h3>
-${pick('invert', [['false', 'Low string at the bottom'], ['true', 'Low string on top']], prefs.invert)}
+${pick('invert', [['true', 'Low string on top'], ['false', 'Low string at the bottom']], prefs.invert)}
+${pick('labels', [['true', 'Numbers on notes'], ['false', 'Plain notes']], prefs.noteLabels)}
+<p class='gk-note'>How far ahead the notes appear, which way up the strings go, and whether notes carry their fret number and technique marks.</p>
 <h3>Speed</h3>
 ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
@@ -98,7 +107,9 @@ export async function settingsClick(b, sheet) {
   switch (b.dataset.set) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;
+    case 'labels': prefs.noteLabels = v === 'true'; highway.labels = prefs.noteLabels; break;
     case 'speed': prefs.startSpeed = Number(v); break;
+    case 'screen': prefs.screen = v; applyScreen(); break;
     case 'rescan':
       b.textContent = 'Scanning';
       try { await api('/api/rescan'); await loadLibrary(); }
@@ -116,9 +127,6 @@ export async function settingsClick(b, sheet) {
       sheet.close();
       showTuner();
       return;
-    case 'hear': hear.set(v === 'true'); break;
-    case 'rb': setRecordedBass(v); break;
-    case 'scoring': prefs.scoring = v === 'true'; break;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: your favorites and play counts, every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
       return;
@@ -126,7 +134,6 @@ export async function settingsClick(b, sheet) {
   }
   savePrefs();
   syncPlayerPrefs();
-  if (screen === 'player') startScoring();
   sheet.refresh();
 }
 
