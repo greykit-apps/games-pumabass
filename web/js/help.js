@@ -75,8 +75,9 @@ your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 time. With scoring on, a time round only speeds it up when 70% of its
 notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 <h3>Fewer notes</h3>
-<p><b>Notes</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
-thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
+<p><b>Notes</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; 80%, 60%, 40%
+and 20% thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does. 80% keeps about three notes
+in four, 20% the bare bones.</p>
 <h3>Notes early or late?</h3>
 <p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
 <b>Sync</b>, on the menu, lines them up. First a tick sounds and a bar swings from side to side:

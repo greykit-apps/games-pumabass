@@ -4,7 +4,7 @@ import { tuningName, formatTime, arrangementLabel, sectionName } from './chart.j
 import { $, highway, input, esc } from './core.js';
 import { showSongInList } from './library-screen.js';
 import { showTitle } from './menu.js';
-import { chart, song, session, openSong, leaveSong, scorer, practiseSection } from './player.js';
+import { chart, song, session, openSong, leaveSong, scorer, practiseSection, currentSpeed } from './player.js';
 import { KEY_STATS, load, save, prefs, statsOf } from './store.js';
 import { saveTake } from './takes.js';
 import { shortLabel } from './instrument.js';
@@ -39,7 +39,7 @@ export function showEndScreen() {
     ? (st.finished === 1 ? 'Played to the end, for the first time.' : `Played to the end: that's ${st.finished} finishes from ${st.plays} plays.`)
     : `You played ${formatTime(played)} of ${formatTime(chart.songLength)}. Play at least half of it and it counts as a finish${st.finished ? ` (you've finished it ${times(st.finished)})` : ''}.`;
   // (An unfinished scored play already counts the notes in its score line.)
-  const facts = [finished || !(scorer && scorer.judged) ? (prefs.difficulty < 100 ? `${notes} notes (${prefs.difficulty}% of the chart)` : `${notes} notes`) : '', `${$('speed').value}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
+  const facts = [finished || !(scorer && scorer.judged) ? (prefs.difficulty < 100 ? `${notes} notes (${prefs.difficulty}% of the chart)` : `${notes} notes`) : '', `${currentSpeed()}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
   // Each section's accuracy, as a strip along the song.
   const len = chart.songLength;
   const strip = sc ? `<div class="end-strip" aria-label="Accuracy by section">${chart.sections.map((x, i) => {

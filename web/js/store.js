@@ -65,6 +65,9 @@ for (const k of ['hearLast', 'autoTune', 'repeatFrom', 'repeatStep']) delete pre
 // Note labels were on or off before note names joined them.
 if (prefs.noteLabels === true) prefs.noteLabels = 'fret';
 if (prefs.noteLabels === false) prefs.noteLabels = 'off';
+// Notes moved to five stops (100, 80, 60, 40, 20): between 100 and 80 every phrase
+// just lost a note or two. A saved in-between value goes to the nearest stop.
+prefs.difficulty = Math.max(20, Math.min(100, Math.round(Number(prefs.difficulty) / 20) * 20 || 100));
 // Low string on top became the default, as in Rocksmith. Every saved setting carries
 // "invert", so the old default can't be told from a choice: everyone moves over
 // once, and Settings decides after that.
