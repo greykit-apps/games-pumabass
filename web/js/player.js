@@ -1,7 +1,7 @@
 // The player: a song on the highway, its controls, and
 // the frame loop that drives them.
 
-import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel } from './chart.js';
+import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel, sectionName } from './chart.js';
 import { alertSheet } from './title.js';
 import { RECORDED_BASS } from './mixer.js';
 import { Scorer } from './scoring.js';
@@ -10,7 +10,7 @@ import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen,
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
 import { setNotationSong, updateNotation } from './notation.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
-import { showLibrary } from './library-screen.js';
+import { showLibrary, showSongInList } from './library-screen.js';
 import { openHelp } from './menu.js';
 import { repeater, stopRepeater, toggleRepeater, repeaterPass } from './repeater.js';
 import { KEY_OFFSETS, KEY_RECENT, KEY_RESUME, load, save, prefs, savePrefs, isFav, toggleFav, bumpStat } from './store.js';
@@ -50,7 +50,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   stopRepeater();
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
-  $('loading').classList.remove('hidden');
+  showLoading(`Loading ${s.title}`);
   $('back').innerHTML = '<kbd>Esc</kbd>Songs';
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
@@ -80,18 +80,19 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
 
   audio.src = `/api/audio/${encodeURIComponent(s.id)}`;
   audio.preservesPitch = true;
+  // A song's first play decodes its audio on the server, which takes a few seconds; after that it's kept.
+  const slow = setTimeout(() => { if (song === s) showLoading(`Loading ${s.title}`, 'Decoding its audio: the first play of a song takes a few seconds'); }, 1200);
   await new Promise(resolve => {
     const done = () => { audio.removeEventListener('canplay', done); audio.removeEventListener('error', done); resolve(); };
     audio.addEventListener('canplay', done); audio.addEventListener('error', done);
   });
+  clearTimeout(slow);
   $('loading').classList.add('hidden');
   if (audio.error) {
-    setInfo(await api('/api/info').catch(() => info));
+    const why = await audioTrouble(s);
     chart = null; // nothing to resume
     closeSong();
-    await alertSheet(info.vgmstream === false
-      ? `Song audio needs vgmstream, which isn't installed yet. In the PumaBass folder run tools/get-vgmstream.sh (on Windows, see README.md), then open "${s.title}" again.`
-      : `The audio for "${s.title}" couldn't be played.`, "Can't play the song");
+    await alertSheet(why, "Can't play the song");
     return;
   }
   audio.currentTime = startAt;
@@ -109,6 +110,28 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   // (Resume game counts back in, as a play after a pause does.)
   if (song === s && audio.paused) togglePlay();
   if (song === s) showCaption(s.title, s.artist, [arrangementLabel(s), s.album, s.year].filter(Boolean).join(' · '));
+}
+
+/* What's being loaded, and why it's taking a while when it is. */
+function showLoading(what, more = '') {
+  $('loading').innerHTML = `<b></b><span></span>`;
+  $('loading').firstChild.textContent = what;
+  $('loading').lastChild.textContent = more;
+  $('loading').classList.remove('hidden');
+}
+
+/* The song's audio didn't play: ask the server why, and say what to do about it. */
+async function audioTrouble(s) {
+  setInfo(await api('/api/info').catch(() => info));
+  if (info.vgmstream === false) return `Song audio needs vgmstream, which isn't installed yet. In the PumaBass folder run tools/get-vgmstream.sh (on Windows, see README.md), then open "${s.title}" again.`;
+  const r = await fetch(`/api/audio/${encodeURIComponent(s.id)}`, { headers: { Range: 'bytes=0-0' } }).catch(() => null);
+  if (!r) return `PumaBass's server isn't answering, so "${s.title}" couldn't load. Check that it's running, then open the song again.`;
+  if (r.status === 404) return `The audio for "${s.title}" isn't where it was: its song file may have been moved or deleted. Rescan the song list (at its foot), then try again.`;
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    return `Decoding the audio for "${s.title}" failed${e.error ? ` (${e.error})` : ''}. Open it again; if it fails twice, its song file may be damaged.`;
+  }
+  return `The browser couldn't play the audio for "${s.title}". Open it again; if it fails twice, its file may be in a format this browser can't play.`;
 }
 
 /* N: the notation band goes standard notation, tab, both, off, and round again. */
@@ -149,7 +172,7 @@ export async function openTestSong(test, sub) {
   stopRepeater();
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
-  $('loading').classList.remove('hidden');
+  showLoading('Loading the sync test');
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
   $('p-tuning').textContent = 'Open E string';
   $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
@@ -200,9 +223,16 @@ export function closeSong() {
   if (calib) { endSync(); return; }
   saveResume();
   leaveSong();
-  showLibrary();
-  const row = $('song-list').querySelector(`.song[data-id="${CSS.escape(song.id)}"]`);
-  if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'center' }); }
+  showSongInList(song.id);
+}
+
+/* From the end screen: the song again from one section, looped, with the riff
+ * repeater on, so it starts slower and comes up to speed. */
+export async function practiseSection(s, sec) {
+  await openSong(s, sec.t);
+  if (song !== s || !chart) return;
+  loop = { a: sec.t, b: sec.end };
+  if (!repeater) toggleRepeater(); else renderLoop();
 }
 
 export function applyDifficulty() {
@@ -293,6 +323,10 @@ export function togglePlay() {
   }
 }
 
+/* While paused, the keys worth knowing, so none has to be remembered. */
+const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['\u2191 \u2193', 'speed'], ['N', 'notation'], [',', 'mix'], ['?', 'all keys']]
+  .map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</span>`;
+
 /* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
 export function renderOverlay() {
   const el = $('overlay');
@@ -303,6 +337,7 @@ export function renderOverlay() {
     liveShownAt = 0;
     big = 'PAUSED';
     small = pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
+    small += PAUSED_KEYS;
   } else if (liveAt !== null) {
     const left = (liveAt - audio.currentTime) / audio.playbackRate;
     if (left > 0) { mode = 'count'; big = String(Math.ceil(left)); small = 'back in at ' + formatTime(liveAt); liveShownAt = 0; }
@@ -390,7 +425,7 @@ export function buildSectionBar() {
     d.style.left = `${(s.t / len) * 100}%`;
     d.style.width = `${((s.end - s.t) / len) * 100}%`;
     d.style.background = sectionColor(s.name);
-    d.title = `${s.name} (${formatTime(s.t)})`;
+    d.title = `${sectionName(s.name)} (${formatTime(s.t)})`;
     d.setAttribute('aria-label', d.title);
     el.appendChild(d);
   }
@@ -568,6 +603,8 @@ export function frame() {
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
+    const sec = currentSection(t), secName = sec ? sectionName(sec.name) : '';
+    if ($('section-name').textContent !== secName) $('section-name').textContent = secName;
     renderOverlay();
     // How much of the song was actually played: each step forward, measured
     // against the clock, so a jump (far more song than time passed) counts for

@@ -28,10 +28,11 @@ ${keys([
   ])}
 <h3>At the end of a song</h3>
 <p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
-your score when scoring was on. <kbd>Space</kbd> goes to the
-main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
+your score when scoring was on. <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes back to it in the song list,
+<kbd>M</kbd> to the main menu. When a section of it went badly, <kbd>P</kbd> practises it: the song from there,
+looped, with the riff repeater bringing it up to speed.</p>
 <p>Click the bar along the bottom to jump; it is split into the song's sections, coloured by kind (every verse
-the same colour, every chorus another). Shift+click moves the nearest
+the same colour, every chorus another), and the section you're in is named beside the time. Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
 <h3>Keys in the song list</h3>
 ${keys([
@@ -62,7 +63,7 @@ your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 time. With scoring on, a time round only speeds it up when 70% of its
 notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 <h3>Fewer notes</h3>
-<p><b>Difficulty</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
+<p><b>Notes</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
 <p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.

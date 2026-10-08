@@ -111,6 +111,13 @@ export function showLibrary() {
   (first || $('search')).focus({ preventScroll: true });
 }
 
+/* The song list, with a song's row in focus and in view (back from the player). */
+export function showSongInList(id) {
+  showLibrary();
+  const row = $('song-list').querySelector(`.song[data-id="${CSS.escape(id)}"]`);
+  if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'center' }); }
+}
+
 export const stringsOf = s => (s.type === 'bass' ? 4 : 6);
 export function renderLibrary() {
   const q = $('search').value.trim().toLowerCase();

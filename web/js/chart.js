@@ -60,6 +60,15 @@ export function formatTime(sec) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/* A section's name as a person says it: the charts' own are run together and
+ * numbered ("prechorus2", "noguitar", "postvs"). */
+const SECTION_WORDS = { noguitar: 'Rest', prechorus: 'Pre-chorus', postchorus: 'Post-chorus', postvs: 'Post-verse', postbrdg: 'Post-bridge',
+  preverse: 'Pre-verse', modchorus: 'Chorus', modverse: 'Verse', buildup: 'Build-up', fadein: 'Fade-in', fadeout: 'Fade-out', brdg: 'Bridge' };
+export function sectionName(name) {
+  const k = String(name || '').toLowerCase().replace(/[\s\d]+$/, '').replace(/\s+/g, '');
+  return SECTION_WORDS[k] || (k ? k[0].toUpperCase() + k.slice(1) : 'Section');
+}
+
 export function arrangementLabel(s) {
   const base = s.type === 'bass' ? 'Bass' : s.type === 'lead' ? 'Lead' : 'Rhythm';
   const name = s.arrangement && s.arrangement !== base ? s.arrangement : base;

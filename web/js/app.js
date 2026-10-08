@@ -13,7 +13,7 @@
 //   instrument.js      the input, the mix, the tuner
 //   wake.js            keeping the screen on while PumaBass is open
 
-import { runBoot, bootReloadLine, injectTitleCSS, alertSheet } from './title.js';
+import { runBoot, injectTitleCSS, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { SERVER_API, SERVER_OLD } from './api.js';
 import { $, mixer, highway, input, screen, songs, info } from './core.js';
@@ -42,7 +42,7 @@ applyScreen();
 keepScreenOn();
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'), 'pb-beam-list');
-const boot = runBoot({ lines: [bootReloadLine(), 'local server: your Rocksmith 2014 install'] });
+const boot = runBoot({ lines: ['PumaBass', 'reading your songs folder'] });
 applyMix();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
