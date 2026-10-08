@@ -162,11 +162,15 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 #notation svg { display: block; overflow: visible; filter: drop-shadow(0 0 2px rgba(5, 7, 15, .95)) drop-shadow(0 0 1px rgba(5, 7, 15, .95)); }
 /* VexFlow draws for paper: light ink here, and the tab's number backings (which hide
    the line behind a fret) as nothing, so the highway shows through. The lines are
-   quiet, so the notes (in their strings' colours) stand out; the names quieter still. */
+   quiet so the notes stand out; fret numbers and names are bold, each with a dark halo
+   that cuts the line away behind it and holds up over the highway. */
 #notation svg [stroke="black"] { stroke: var(--steel); }
 #notation .vf-stave path { stroke: #4f5f8f; }
 #notation .vf-stavebarline rect { fill: #4f5f8f; }
-#notation .vf-annotation text { fill: var(--steel); }
+#notation .vf-tabnote text, #notation .vf-annotation text { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700;
+  fill: #f4f7ff; stroke: rgba(5, 7, 15, .95); stroke-width: 4px; stroke-linejoin: round; paint-order: stroke; }
+#notation .vf-tabnote text { font-size: 12px; }
+#notation .vf-annotation text { font-size: 11px; fill: var(--text); }
 #notation svg [stroke="#444"] { stroke: var(--lit); }
 #notation svg rect[fill="white"] { fill: transparent; }
 #nt-head { position: absolute; width: 2px; background: var(--accent); box-shadow: 0 0 8px rgba(84, 242, 255, .7); }
