@@ -62,6 +62,9 @@ export function updateNotation(t, on) {
     }
     state.choice = choice;
     state.L = layoutFor();
+    // With names under a staff: lay the whole part out once, out of sight, and set the
+    // names row (and the tab) clear of the lowest stem or beam it actually has.
+    if (state.L.names) state.L = layoutFor(measureLowest());
     state.strip = null;
     drawClef();
   }
@@ -172,7 +175,7 @@ const steps = m => Math.floor(m / 12) * 7 + 'CDEFGAB'.indexOf(noteName(m, state.
 // part's highest and lowest written notes: a low note never runs into the tab, a
 // high one has room, and the band doesn't shift about as it scrolls. In score units
 // (a staff space is 10, a tab line 13).
-function layoutFor() {
+function layoutFor(lowest = 0) {
   const staff = prefs.notationStaff, tab = prefs.notationTab, names = staff && prefs.staffNames;
   const [bottomLine, topLine] = clefName() === 'bass' ? [steps(43), steps(57)] : [steps(64), steps(77)]; // G2, A3; E4, F5
   let lo = Infinity, hi = -Infinity;
@@ -180,13 +183,14 @@ function layoutFor() {
     const d = steps(writtenPitch(p)); lo = Math.min(lo, d); hi = Math.max(hi, d);
   }
   if (lo === Infinity) lo = hi = bottomLine + 4;
-  // Room for ledger lines (5 a step) and stems; below, for the names too.
+  // Room for ledger lines (5 a step), and below for stems and beams pointing down;
+  // the names then go in a row of their own under all of that, so none touches a beam.
   const above = staff ? Math.min(60, Math.max(16, (hi - topLine) * 5 + 14)) : 0;
-  // (A name goes under the note, or under the tip of a stem pointing down.)
-  const below = staff ? Math.min(70, Math.max(26, (bottomLine - lo) * 5 + 12)) + (names ? 22 : 0) : 0;
-  const staffTop = 4 + above, staffBottom = staffTop + 40;
+  const clear = staff ? Math.max(Math.min(70, Math.max(26, (bottomLine - lo) * 5 + 12)), lowest ? lowest + 4 : 0) : 0;
+  const below = clear + (names ? 20 : 0);
+  const staffTop = 4 + above, staffBottom = staffTop + 40, namesY = staffBottom + clear + 13;
   const tabTop = staff ? staffBottom + below + 8 : 12, tabBottom = tabTop + 13 * (state.chart.strings - 1);
-  return { staff, tab, names, staffTop, tabTop, height: (tab ? tabBottom + 12 : staffBottom + below + 8) + 2,
+  return { staff, tab, names, namesY, staffTop, staffBottom, tabTop, height: (tab ? tabBottom + 12 : staffBottom + below + 8) + 2,
     headTop: (staff ? staffTop : tabTop) - 6, headBottom: (tab ? tabBottom : staffBottom) + 6 };
 }
 
@@ -223,13 +227,23 @@ function drawClef() {
 
 // STRIP bars from bar `first`, side by side at a steady width per beat. Records,
 // for each note and rest, its song time and where it sits, for slide().
-function drawStrip(first) {
-  const { StaveNote, TabNote, GhostNote, Voice, Formatter, Beam, Tuplet, StaveTie, Annotation, Accidental, Dot, Fraction } = VF;
+// How far below the staff's bottom line the part's stems, beams and flags reach.
+function measureLowest() {
+  const probe = $('nt-probe');
+  drawStrip(0, state.bars.length, probe);
+  let low = 0;
+  for (const g of probe.querySelectorAll('.vf-stem, .vf-beam, .vf-flag')) { const b = g.getBBox(); low = Math.max(low, b.y + b.height); }
+  probe.innerHTML = '';
+  return Math.max(0, low - state.L.staffBottom);
+}
+
+function drawStrip(first, count = STRIP, el = $('nt-strip')) {
+  const { StaveNote, TabNote, GhostNote, Voice, Formatter, Beam, Tuplet, StaveTie, Accidental, Dot, Fraction } = VF;
   const L = state.L;
-  const bars = state.bars.slice(first, first + STRIP);
+  const bars = state.bars.slice(first, first + count);
   const sig = bi => bi === 0 || state.bars[bi - 1].n !== state.bars[bi].n;
   const widths = bars.map((b, i) => b.n * BEAT_W + (sig(first + i) ? 26 : 0));
-  const ctx = svgIn($('nt-strip'), widths.reduce((a, b) => a + b, 0) + 2);
+  const ctx = svgIn(el, widths.reduce((a, b) => a + b, 0) + 2);
   const clef = clefName(), nStr = state.chart.strings, flats = state.key.flats;
   const points = [];
   // The staves first, to know where each bar's first beat sits: a bar's beats are
@@ -272,10 +286,6 @@ function drawStrip(first) {
         });
         sn = new StaveNote({ keys, duration: dur, clef, dots, autoStem: true });
         tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: p.mute ? 'X' : p.f })), duration: dur, dots });
-        if (L.names && !pc.tied) {
-          sn.addModifier(new Annotation(ps.map(p => noteName(pitchOf(state.chart, p.s, p.f), flats)).join(' '))
-            .setVerticalJustification(Annotation.VerticalJustify.BOTTOM).setFont('Academico', 11), 0);
-        }
         if (pc.tied && open) ties.push(new StaveTie({ firstNote: open, lastNote: sn, firstIndexes: keys.map((_, n) => n), lastIndexes: keys.map((_, n) => n) }));
         open = sn;
       }
@@ -312,6 +322,17 @@ function drawStrip(first) {
       ties.forEach(ti => ti.setContext(ctx).draw());
     }
     if (tv) tv.draw(ctx, tab);
+    // The names, one row under the staff, each centred under its notehead.
+    if (L.names) {
+      ctx.openGroup('ntnames');
+      for (const pc of bar.pieces) {
+        if (!pc.parts || pc.tied) continue;
+        const name = [...pc.parts].sort((a, b) => pitchOf(state.chart, a.s, a.f) - pitchOf(state.chart, b.s, b.f))
+          .map(p => noteName(pitchOf(state.chart, p.s, p.f), flats)).join(' ');
+        ctx.fillText(name, starts[i] + (pc.start / (bar.n * TPB)) * spans[i], L.namesY);
+      }
+      ctx.closeGroup();
+    }
     for (let j = 0; j < bar.n; j++) points.push([bar.beats[j], starts[i] + (j / bar.n) * spans[i]]);
   });
   const last = bars.length - 1;
@@ -319,7 +340,7 @@ function drawStrip(first) {
   // Each fret number centred under its note, where the playhead crosses it, and on
   // its line: drawn bold and larger (style.css), it's anchored by its middle so it
   // grows about the same point.
-  for (const g of $('nt-strip').querySelectorAll('.vf-tabnote')) {
+  for (const g of el.querySelectorAll('.vf-tabnote')) {
     g.setAttribute('transform', `translate(${TAB_NUDGE} 0)`);
     for (const text of g.querySelectorAll('text')) {
       const b = text.getBBox();
@@ -330,7 +351,7 @@ function drawStrip(first) {
       text.setAttribute('dominant-baseline', 'central');
     }
   }
-  state.strip = { first, points };
+  if (el === $('nt-strip')) state.strip = { first, points };
 }
 
 // Slide the strip so song time t sits under the playhead.
