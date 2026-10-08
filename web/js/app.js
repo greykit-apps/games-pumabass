@@ -26,6 +26,7 @@ const KEY_MUTED = 'pumabass_muted_v1';      // "1" muted, "0" not (§8)
 const KEY_TUNER = 'pumabass_tuner_v1';      // the day and tuning you last tuned to
 const KEY_FAVS = 'pumabass_favorites_v1';   // { id: true } for each favorite part
 const KEY_STATS = 'pumabass_stats_v1';      // { id: { plays, finished, last } }
+const KEY_LESSONS = 'pumabass_lessons_v1';  // { lesson key: { part name: true } }: lesson practice played through
 
 function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
@@ -65,6 +66,8 @@ const prefs = Object.assign({
   favOnly: false,   // the song list shows favorites only
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
   scoring: true,    // score the playing (only ever while an instrument input is open)
+  repeatFrom: 60,   // the riff repeater starts here (%), when the song is at full speed
+  repeatStep: 5,    // and speeds up this much (%) each time round
   inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
@@ -111,7 +114,7 @@ function forgetEverything() {
  * disk, the server only when it starts). Nothing fails silently. */
 const START_AGAIN = 'start it again (start.bat on Windows, ./start.sh on Linux)';
 const SERVER_DOWN = `PumaBass can't reach its server: its window may have been closed. Please ${START_AGAIN} and leave that window open.`;
-const SERVER_API = 3; // must match API_VERSION in server/server.js
+const SERVER_API = 4; // must match API_VERSION in server/server.js
 const SERVER_OLD = `PumaBass was updated while it was running. To finish the update, close its window and ${START_AGAIN}.`;
 async function api(path, opts) {
   let res;
@@ -159,6 +162,7 @@ function titleCfg() {
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? `${parts} ${prefs.type === 'all' ? '' : prefs.type + ' '}parts` : 'choose your songs folder' },
+      { act: 'lessons', label: 'Lessons', key: 'L', meta: "Rocksmith's bass course" },
       { act: 'tuner', label: 'Tuner', key: 'T', meta: prefs.input ? shortLabel(prefs.input.label) : 'Real Tone Cable' },
       'gap',
       { act: 'settings', label: 'Settings', key: 'S' },
@@ -173,6 +177,7 @@ function titleCfg() {
     onAct: act => {
       if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t, { resumed: true }); }
       if (act === 'tuner') showTuner();
+      if (act === 'lessons') { leaveTitle(); showLessons(); }
       if (act === 'new' && !songs.length) pickLibrary();
       else if (act === 'new') { leaveTitle(); showLibrary(); }
     },
@@ -182,6 +187,7 @@ function titleCfg() {
 function showTitle() {
   screen = 'title';
   $('library').classList.add('hidden');
+  $('lessons').classList.add('hidden');
   $('player').classList.add('hidden');
   title = mountTitle($('title-host'), titleCfg());
   return title;
@@ -221,6 +227,10 @@ ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <p class='gk-note'>For every song, the notes land <b>${fmtMs(prefs.avOffset)}</b>${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}, to match this computer's sound and picture. Scoring allows <b>${fmtMs(prefs.inputOffset)}</b> for the cable.</p>
 <div class='gk-row'><button data-set='calibrate'>Sync test</button><button data-set='av' data-v='-10'>&minus;10 ms</button><button data-set='av' data-v='10'>+10 ms</button><button data-set='av' data-v='0'>Reset</button></div>
 <p class='gk-note'>Half a minute on the highway: play the notes as they land, then play along with clicks, eyes closed. With the Real Tone Cable open it sets scoring's timing too; without it, tap any key. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
+<h3>Riff repeater</h3>
+${pick('repfrom', [[50, 'Start at 50%'], [60, '60%'], [70, '70%'], [80, '80%']], prefs.repeatFrom)}
+${pick('repstep', [[2, 'Up 2% a time'], [5, '5%'], [10, '10%']], prefs.repeatStep)}
+<p class='gk-note'>In the player, <kbd>R</kbd> loops the section and plays it a little faster each time round, up to full speed. With scoring on, a time round only counts with 70% of its notes hit.</p>
 <h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 <p class='gk-note'>How far ahead the notes appear. Longer gives more warning; shorter spreads them out.</p>
@@ -269,6 +279,8 @@ async function settingsClick(b, sheet) {
     case 'rb': setRecordedBass(v); break;
     case 'autotune': prefs.autoTune = v === 'true'; break;
     case 'scoring': prefs.scoring = v === 'true'; break;
+    case 'repfrom': prefs.repeatFrom = Number(v); break;
+    case 'repstep': prefs.repeatStep = Number(v); break;
     case 'av':
       if (Number(v) === 0) { prefs.avOffset = 0; prefs.inputOffset = 0; } else prefs.avOffset += Number(v);
       break;
@@ -307,6 +319,7 @@ async function runCalibration() {
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
   $('p-title').textContent = 'Sync test';
+  $('back').innerHTML = '<kbd>Esc</kbd>Back';
   $('p-sub').textContent = input.open ? 'Pluck along: it times the highway, the sound and the cable' : 'Tap along: it times the highway and the sound';
   $('p-tuning').textContent = 'Open D and G strings';
   offsetMs = 0;
@@ -540,7 +553,7 @@ async function maybeAutoTune() {
 document.addEventListener('pointerdown', () => mixer.resume(), true);
 document.addEventListener('keydown', () => mixer.resume(), true);
 // For tests: feed any MediaStream in as the instrument (e.g. an oscillator).
-window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
+window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, highway, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
@@ -663,6 +676,7 @@ function openHelp() {
 
 /* ---- the song list ---- */
 async function loadLibrary() {
+  lessonList = null; lesson = null;
   [songs, info] = await Promise.all([api('/api/songs'), api('/api/info')]);
   if (screen === 'library') renderLibrary();
 }
@@ -670,6 +684,7 @@ async function loadLibrary() {
 function showLibrary() {
   screen = 'library';
   $('player').classList.add('hidden');
+  $('lessons').classList.add('hidden');
   $('library').classList.remove('hidden');
   renderLibrary();
   const first = $('song-list').querySelector('.song:not(.noaudio)');
@@ -791,6 +806,208 @@ function libraryKey(e, typing) {
   }
 }
 
+/* ---- lessons: Rocksmith's bass course (server/lessons.js) ----
+ * The list, then one lesson: the instructor's words (from the videos, which
+ * can't be played here) and the parts to play, each a stretch of the
+ * lesson's chart, looped. Most lessons end with an etude, a short piece. */
+let lessonList = null; // { found, words, lessons } from the server
+let lesson = null;     // the lesson open, in full
+
+/** Note a part of a lesson as played through. True the first time. */
+function markLesson(key, part) {
+  const all = load(KEY_LESSONS, {});
+  const p = all[key] || (all[key] = {});
+  if (p[part]) return false;
+  p[part] = true;
+  save(KEY_LESSONS, all);
+  return true;
+}
+/** What there is to play in a lesson, and how much of it is played. */
+function lessonProgress(l) {
+  const p = load(KEY_LESSONS, {})[l.key] || {};
+  const total = l.practice + (l.etude ? 1 : 0);
+  const done = Object.keys(p).filter(k => k !== 'read').length;
+  return { total, done: Math.min(done, total), read: !!p.read || (total > 0 && done >= total) };
+}
+const lessonName = l => (/^special topics$/i.test(l.name) ? l.topic : l.name);
+const lessonSub = l => (/^special topics$/i.test(l.name) ? '' : l.topic);
+
+async function showLessons(key = null, part = null) {
+  screen = 'lessons';
+  $('library').classList.add('hidden');
+  $('player').classList.add('hidden');
+  $('lessons').classList.remove('hidden');
+  const body = $('lesson-body');
+  if (!lessonList) {
+    body.innerHTML = '<div class="empty">Reading the lessons&hellip;</div>';
+    try { lessonList = await api('/api/lessons'); }
+    catch (e) { body.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  }
+  if (key && lessonList.found) {
+    if (!lesson || lesson.key !== key) await openLesson(key); else renderLesson();
+    const go = part && body.querySelector(part === 'etude' ? '[data-etude]' : `[data-go="${CSS.escape(part)}"]`);
+    if (go) { go.focus({ preventScroll: true }); go.scrollIntoView({ block: 'center' }); }
+  } else renderLessonList(key);
+}
+
+function renderLessonList(focusKey = null) {
+  lesson = null;
+  $('lsn-title').textContent = 'Lessons';
+  $('lsn-back').textContent = 'Menu';
+  const body = $('lesson-body');
+  if (!lessonList.found) {
+    $('lsn-count').textContent = '';
+    body.innerHTML = `<div class="empty"><p>The lessons come from Rocksmith 2014's <code>etudes.psarc</code>, with their words from <code>static.psarc</code>. Neither is in your songs folder${info.libraryDir ? ` (<code>${esc(info.libraryDir)}</code>)` : ''}.</p><p>Copy both from the Rocksmith 2014 folder into it, then Rescan in Settings.</p></div>`;
+    return;
+  }
+  const groups = [['Getting started', l => l.order < 1030], ['The course', l => l.order >= 1030 && l.order < 1310], ['Special topics', l => l.order >= 1310]];
+  let html = '', played = 0;
+  for (const [name, test] of groups) {
+    const list = lessonList.lessons.filter(test);
+    if (!list.length) continue;
+    html += `<div class="lsn-group">${name}</div>`;
+    for (const l of list) {
+      const pr = lessonProgress(l);
+      if (pr.read) played++;
+      const what = l.kind === 'VideoOnly' ? 'Reading' : [l.practice ? `${l.practice} to play` : '', l.etude ? 'etude' : ''].filter(Boolean).join(' \u00b7 ');
+      html += `<div class="lesson" tabindex="0" role="listitem" data-key="${esc(l.key)}">
+        <span class="chk${pr.read ? ' done' : ''}">${pr.read ? '&#10003;' : ''}</span>
+        <div style="min-width:0"><div class="t">${esc(lessonName(l))}</div><div class="a">${esc(lessonSub(l))}</div></div>
+        <span class="what">${esc(what)}</span>
+        <span class="prog">${pr.total ? `${pr.done} of ${pr.total}` : pr.read ? 'read' : ''}</span>
+      </div>`;
+    }
+  }
+  body.innerHTML = `<div role="list">${html}</div>`;
+  $('lsn-count').textContent = `${lessonList.lessons.length} bass lessons \u00b7 ${played} done`;
+  const row = (focusKey && body.querySelector(`.lesson[data-key="${CSS.escape(focusKey)}"]`)) || body.querySelector('.lesson');
+  if (row) { row.focus({ preventScroll: true }); if (focusKey) row.scrollIntoView({ block: 'center' }); }
+}
+
+async function openLesson(key) {
+  const body = $('lesson-body');
+  body.innerHTML = '<div class="empty">Opening the lesson&hellip;</div>';
+  try { lesson = await api(`/api/lessons/${encodeURIComponent(key)}`); }
+  catch (e) { body.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  if (!lesson.practice && !lesson.etudeSong) markLesson(key, 'read'); // words only: reading it is doing it
+  renderLesson();
+  const first = body.querySelector('button');
+  $('lessons').scrollTop = 0;
+  if (first) first.focus({ preventScroll: true });
+}
+
+function renderLesson() {
+  const d = lesson, done = load(KEY_LESSONS, {})[d.key] || {};
+  $('lsn-title').textContent = lessonName(d);
+  $('lsn-back').textContent = 'Lessons';
+  $('lsn-count').textContent = lessonSub(d);
+  const playable = s => s && s.audio !== false;
+  const step = x => {
+    if (x.type === 'read') return `<div class="lsn-read"><h3>${esc(x.title)}</h3>${x.lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>`;
+    const len = Math.round(x.b - x.a);
+    const ok = playable(d.lessonSong);
+    const buttons = x.type === 'riff' && x.demo
+      ? `<button class="primary" data-go="${esc(x.name)}" data-demo ${ok ? '' : 'disabled'}>Watch, then play</button><button data-go="${esc(x.name)}" ${ok ? '' : 'disabled'}>Play</button>`
+      : `<button class="primary" data-go="${esc(x.name)}" ${ok ? '' : 'disabled'}>Play</button>`;
+    return `<div class="lsn-step"><span class="chk${done[x.name] ? ' done' : ''}">${done[x.name] ? '&#10003;' : '&#9675;'}</span>
+      <div class="what"><b>${esc(x.title)}</b><small>${x.type === 'riff' && x.demo ? 'An example first, then your turn. ' : ''}${len} seconds, round and round: <kbd>R</kbd> speeds it up each time</small></div>${buttons}</div>`;
+  };
+  let html = `<div class="lsn-detail">${d.description ? `<p class="lsn-desc">${esc(d.description)}</p>` : ''}`;
+  if (!lessonList.words) html += '<p class="lsn-note">The instructor\'s words come from Rocksmith\'s <code>static.psarc</code>: copy it into your songs folder and Rescan to read them here.</p>';
+  for (const sec of d.sections) html += `<h2 class="lsn-sec">${esc(sec.title)}</h2>${sec.steps.map(step).join('')}`;
+  if (d.etudeSong) {
+    html += `<h2 class="lsn-sec">Etude</h2><div class="lsn-step"><span class="chk${done.etude ? ' done' : ''}">${done.etude ? '&#10003;' : '&#9675;'}</span>
+      <div class="what"><b>${esc(d.etudeSong.title)}</b><small>A short piece with a band, using what this lesson teaches &middot; ${formatTime(d.etudeSong.length)}</small></div>
+      <button class="primary" data-etude ${playable(d.etudeSong) ? '' : 'disabled'}>Play</button></div>`;
+  }
+  if (!d.sections.length && !d.etudeSong) html += '<p class="lsn-note">Nothing to read or play in this one.</p>';
+  if ((d.lessonSong && !playable(d.lessonSong)) || (d.etudeSong && !playable(d.etudeSong))) html += '<p class="lsn-note">Some of this lesson\'s audio is missing: it lives in <code>etudes.psarc</code>, and plays through vgmstream.</p>';
+  $('lesson-body').innerHTML = html + '</div>';
+}
+
+/* Play one part of the lesson: its stretch of the chart, looped (a riff can
+ * start with its example). Or the etude, as a song. */
+function playLessonPart(name, demo) {
+  const d = lesson;
+  const x = d.sections.flatMap(sec => sec.steps).find(st => st.name === name);
+  if (!x) return;
+  const s = { ...d.lessonSong, title: `${lessonName(d)}: ${x.title}`, lessonCtx: { key: d.key, part: name, a: x.a, b: x.b } };
+  openSong(s, demo && x.demo ? x.demo.a : x.a);
+}
+function playEtude() {
+  const d = lesson;
+  openSong({ ...d.etudeSong, lessonCtx: { key: d.key, part: 'etude' } }, 0);
+}
+
+$('lesson-body').addEventListener('click', e => {
+  const row = e.target.closest('.lesson');
+  if (row) { openLesson(row.dataset.key); return; }
+  const go = e.target.closest('[data-go]');
+  if (go) { playLessonPart(go.dataset.go, go.hasAttribute('data-demo')); return; }
+  if (e.target.closest('[data-etude]')) playEtude();
+});
+$('lessons').querySelector('.bar').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.act === 'back') lessonsBack();
+  else if (b.dataset.act === 'help') openHelp();
+});
+function lessonsBack() {
+  if (lesson) renderLessonList(lesson.key);
+  else showTitle().reveal();
+}
+function lessonsKey(e) {
+  const k = e.key;
+  const items = [...$('lesson-body').querySelectorAll('.lesson, button:not([disabled])')];
+  const i = items.indexOf(document.activeElement);
+  if (k === 'Escape') { e.preventDefault(); lessonsBack(); }
+  else if (k === '?' || k === 'h') { e.preventDefault(); openHelp(); }
+  else if (k === 't' || k === 'T') { e.preventDefault(); showTuner(); }
+  else if (k === 'ArrowDown' && items.length) { e.preventDefault(); const n = items[Math.min(items.length - 1, i + 1)]; n.focus(); n.scrollIntoView({ block: 'nearest' }); }
+  else if (k === 'ArrowUp' && items.length) { e.preventDefault(); const n = items[Math.max(0, i - 1)]; n.focus(); n.scrollIntoView({ block: 'nearest' }); }
+  else if (k === 'Enter' && document.activeElement && document.activeElement.classList.contains('lesson')) { e.preventDefault(); openLesson(document.activeElement.dataset.key); }
+}
+
+/* ---- the riff repeater: the loop, a little faster each time round ---- */
+let repeater = null; // while on: { passes, mark } (mark: scoring's counts when this time round began)
+
+function toggleRepeater() {
+  if (!chart) return;
+  if (repeater) { repeater = null; toast('Riff repeater off'); }
+  else {
+    if (!loop) toggleSectionLoop();
+    if (Number($('speed').value) >= 100) setSpeed(prefs.repeatFrom);
+    repeater = { passes: 0, mark: scorer ? { hits: scorer.hits, judged: scorer.judged } : null };
+    toast(`Riff repeater: ${$('speed').value}% up to 100%`);
+  }
+  renderLoop();
+}
+
+/* The loop came round: up the speed (with scoring on, only after a good time round). */
+function repeaterPass() {
+  if (!repeater) return;
+  repeater.passes++;
+  const v = Number($('speed').value);
+  let good = true, note = '';
+  if (scorer && repeater.mark) {
+    const judged = scorer.judged - repeater.mark.judged, hits = scorer.hits - repeater.mark.hits;
+    if (judged >= 3) { good = hits / judged >= 0.7; note = ` \u00b7 ${Math.round((100 * hits) / judged)}% hit`; }
+  }
+  repeater.mark = scorer ? { hits: scorer.hits, judged: scorer.judged } : null;
+  if (v >= 100) { toast(`Full speed, time ${repeater.passes}${note}`); return; }
+  if (!good) { toast(`Again at ${v}%${note} (70% to speed up)`); return; }
+  const next = Math.min(100, v + prefs.repeatStep);
+  setSpeed(next);
+  toast(next >= 100 ? `Full speed!${note}` : `Speed ${next}%${note}`);
+}
+
+/* Each time a loop comes round. */
+function loopCameRound() {
+  repeaterPass();
+  const ctx = song && song.lessonCtx;
+  if (ctx && ctx.part !== 'etude' && markLesson(ctx.key, ctx.part)) setTimeout(() => toast('Played through \u2713 \u00b7 Esc for the lesson'), repeater ? 1500 : 0);
+}
+
 /* ---- the player ---- */
 let chart = null;
 let song = null;
@@ -815,11 +1032,14 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
   closeEndScreen();
   song = s;
   screen = 'player';
+  repeater = null;
   $('library').classList.add('hidden');
+  $('lessons').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
   $('p-title').textContent = s.title;
-  $('p-sub').textContent = `${s.artist} · ${arrangementLabel(s)}`;
+  $('p-sub').textContent = s.lessonCtx ? s.artist : `${s.artist} · ${arrangementLabel(s)}`;
+  $('back').innerHTML = `<kbd>Esc</kbd>${s.lessonCtx ? 'Lesson' : 'Songs'}`;
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
   try {
@@ -863,6 +1083,8 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
   }
   audio.currentTime = startAt;
   pausedAt = startAt > 0.5 ? startAt : null; // Resume game counts back in, too
+  // A lesson's part: its stretch, looped, from where it starts (no run-up: it has its own count-in).
+  if (s.lessonCtx && s.lessonCtx.a !== undefined) { pausedAt = null; loop = { a: s.lessonCtx.a, b: s.lessonCtx.b }; renderLoop(); }
   const last = highway.notes.slice(-40).reduce((m, n) => Math.max(m, n.t + (n.sus || 0)), 0);
   session = { id: s.id, start: startAt, counted: resumed, finished: false, heard: 0, lastT: null, end: last || audio.duration || chart.songLength };
   showFav();
@@ -875,12 +1097,13 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
 }
 
 function saveResume() {
-  if (song && chart && !song.calib) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
+  if (song && chart && !song.calib && !song.lesson) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
 }
 
 /* Stop the song and put the player away. */
 function leaveSong() {
   scorer = null;
+  repeater = null;
   input.tape = null; input.taping = false; take = null;
   $('calib-cue').classList.add('hidden');
   updateHud();
@@ -895,6 +1118,7 @@ function leaveSong() {
 
 function closeSong() {
   if (calib) { endSync(); return; }
+  if (song && song.lessonCtx) { const { key, part } = song.lessonCtx; leaveSong(); showLessons(key, part); return; }
   saveResume();
   leaveSong();
   showLibrary();
@@ -1060,16 +1284,17 @@ function checkFinished(t) {
 }
 
 function showFav() {
-  $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
+  $('fav-btn').classList.toggle('hidden', !!(song && (song.calib || song.lessonCtx)));
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
   $('fav-btn').textContent = on ? '\u2605' : '\u2606';
 }
-$('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
+$('fav-btn').addEventListener('click', () => { if (song && !song.calib && !song.lessonCtx) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
 audio.addEventListener('ended', () => {
   if (calib) { updatePlayButton(); finishSync(); return; }
   checkFinished(Infinity);
+  if (song && song.lessonCtx && song.lessonCtx.part === 'etude' && session && session.finished) markLesson(song.lessonCtx.key, 'etude');
   updatePlayButton();
   pausedAt = null;
   liveAt = null;
@@ -1143,13 +1368,14 @@ function showEndScreen() {
     <div class="gk-row end-acts">
       <button class="primary" data-end="menu"><kbd>Space</kbd>Main menu</button>
       <button data-end="again"><kbd>R</kbd>Play again</button>
-      <button data-end="list"><kbd>Esc</kbd>Song list</button>
+      <button data-end="list"><kbd>Esc</kbd>${song.lessonCtx ? 'The lesson' : 'Song list'}</button>
       ${input.tape && input.tape.samples ? '<button data-end="take" title="Saves what the cable heard, with how each note was judged, in the PumaBass folder (takes), for tuning the scoring"><kbd>S</kbd>Save take</button>' : ''}
     </div>
   </div>`;
   const act = what => {
     const s = song;
     if (what === 'menu') { leaveSong(); showTitle().reveal(); }
+    else if (what === 'list' && s.lessonCtx) { leaveSong(); showLessons(s.lessonCtx.key, s.lessonCtx.part); }
     else if (what === 'list') { leaveSong(); showLibrary(); }
     else if (what === 'again') { leaveSong(); openSong(s); }
     else if (what === 'take') {
@@ -1210,7 +1436,7 @@ $('progress').addEventListener('click', e => {
 });
 
 function toggleSectionLoop() {
-  if (loop) { loop = null; }
+  if (loop) { loop = null; repeater = null; }
   else {
     const t = songTime();
     const sec = currentSection(t) || { t: 0, end: chart.songLength };
@@ -1227,8 +1453,14 @@ function setLoopPoint(t, which) {
   renderLoop();
 }
 
+/* Where a loop goes back to: a second's run-up before its start. */
+const loopFrom = () => Math.max(0, loop.a - 1.0);
+
 function renderLoop() {
+  highway.loop = loop ? { from: loopFrom(), to: loop.b } : null;
   $('loop').setAttribute('aria-pressed', String(!!loop));
+  $('repeat').setAttribute('aria-pressed', String(!!repeater));
+  $('repeat-label').textContent = repeater ? `Riff repeater \u00b7 ${$('speed').value}%` : 'Riff repeater';
   const el = $('loop-region');
   el.classList.toggle('hidden', !loop);
   if (loop) {
@@ -1241,12 +1473,14 @@ $('back').addEventListener('click', closeSong);
 $('tuner-btn').addEventListener('click', showTuner);
 $('play').addEventListener('click', togglePlay);
 $('loop').addEventListener('click', toggleSectionLoop);
+$('repeat').addEventListener('click', toggleRepeater);
 
 function setSpeed(v) {
   v = Math.max(25, Math.min(120, v));
   $('speed').value = v;
   $('speed-val').textContent = `${v}%`;
   audio.playbackRate = v / 100;
+  if (repeater) $('repeat-label').textContent = `Riff repeater \u00b7 ${v}%`;
 }
 $('speed').addEventListener('input', () => setSpeed(Number($('speed').value)));
 
@@ -1321,12 +1555,13 @@ function playerKey(e) {
   else if (k === 'ArrowUp') { e.preventDefault(); setSpeed(Number($('speed').value) + 5); }
   else if (k === 'ArrowDown') { e.preventDefault(); setSpeed(Number($('speed').value) - 5); }
   else if (k === 'l' || k === 'L') toggleSectionLoop();
+  else if (k === 'r' || k === 'R') toggleRepeater();
   else if (k === '[') setLoopPoint(songTime(), 'a');
   else if (k === ']') setLoopPoint(songTime(), 'b');
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
-  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2605 Favorite' : 'Not a favorite'); }
+  else if ((k === 'f' || k === 'F') && !song.lessonCtx) { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2605 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);
@@ -1350,6 +1585,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (screen === 'library') libraryKey(e, typing);
+  else if (screen === 'lessons') lessonsKey(e);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
 
@@ -1366,8 +1602,10 @@ function frame() {
     let t = songTime();
     if (loop && !audio.paused && t >= loop.b) {
       // Restart the loop with a short lead-in so you can get ready.
-      seek(Math.max(0, loop.a - 1.0), false);
+      // Carry on from just as far past the run-up as play went past the end, so the highway runs on unbroken.
+      seek(loopFrom() + Math.min(0.1, t - loop.b), false);
       t = songTime();
+      loopCameRound();
     }
     highway.draw(t);
     const len = chart.songLength;

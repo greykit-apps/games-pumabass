@@ -7,7 +7,7 @@ const path = require('path');
 const { Psarc } = require('./psarc');
 const { parseSng } = require('./sng');
 
-const INDEX_VERSION = 5;
+const INDEX_VERSION = 6;
 const AUDIO_EXTS = new Set(['.mp3', '.ogg', '.oga', '.opus', '.flac', '.m4a', '.aac', '.wav', '.webm']);
 // Where each platform keeps charts and audio inside an archive.
 const LAYOUT = {
@@ -120,8 +120,10 @@ class Library {
       const type = props.pathBass ? 'bass' : props.pathLead ? 'lead' : props.pathRhythm ? 'rhythm' : null;
       if (!type) continue; // vocals, showlights, etc.
       if (/^RS2 Test/i.test(attrs.SongName || '')) continue; // internal test charts shipped with the game
-      if (/^\$\[\d+\]/.test(attrs.SongName || '')) continue; // lessons: names live in the game's string tables (roadmap)
       const sngBase = attrs.SongAsset.split(':').pop();
+      // Lessons and their etudes (etudes.psarc): kept for the Lessons screen
+      // (server/lessons.js), not the song list. Their names are string-table references.
+      const lesson = /^\$\[\d+\]/.test(attrs.SongName || '') || /^ge_/i.test(sngBase);
       const sng = `${layout.sng}/${sngBase}.sng`;
       if (!p.has(sng)) continue;
       // wem is null when the audio isn't there (e.g. RS1 DLC charts); the user can supply a recording.
@@ -147,6 +149,7 @@ class Library {
         file,
         sng,
         wem,
+        ...(lesson ? { lesson: true } : {}),
       });
     }
     return out;

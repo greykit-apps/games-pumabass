@@ -48,8 +48,8 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 .scene .sgem { opacity: .34; }
 
 /* ---- song list: a terminal centred over the stage ---- */
-#library { overflow-y: auto; z-index: 1; }
-#library .stage { position: relative; z-index: 1; min-height: 100dvh; display: flex; justify-content: center; padding: var(--s6) var(--s5); }
+#library, #lessons { overflow-y: auto; z-index: 1; }
+#library .stage, #lessons .stage { position: relative; z-index: 1; min-height: 100dvh; display: flex; justify-content: center; padding: var(--s6) var(--s5); }
 .pb { width: min(var(--term), 100%); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; align-self: flex-start;
   box-shadow: 0 0 0 1px rgba(5, 7, 15, .6), 0 30px 90px rgba(0, 0, 0, .65); }
 .top { display: flex; align-items: baseline; gap: var(--s4); padding: var(--s4) var(--s5) var(--s3); }
@@ -93,6 +93,32 @@ button.star[aria-pressed=true] { color: var(--warn); border: 0; }
 .song.noaudio:hover, .song.noaudio:focus { border-left-color: var(--line); }
 .song.noaudio:hover .t, .song.noaudio:focus .t { color: var(--dim); }
 .empty { padding: var(--s5); color: var(--dim); }
+/* ---- lessons: the list, then a lesson's reading and practice ---- */
+.lsn-group { padding: var(--s4) var(--s5) var(--s2); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; border-bottom: 1px solid var(--line); }
+.lesson { display: grid; grid-template-columns: 24px minmax(0, 1fr) 170px 64px; gap: var(--s3); align-items: center; padding: 0 var(--s5);
+  min-height: 50px; border-bottom: 1px solid var(--line); border-left: 2px solid transparent; cursor: pointer; }
+.lesson:hover, .lesson:focus { background: var(--row); outline: none; border-left-color: var(--accent); }
+.lesson .t { color: var(--text); }
+.lesson:hover .t, .lesson:focus .t { color: var(--accent); }
+.lesson .a, .lesson .what { color: var(--dim); font-size: 12px; }
+.lesson .prog { text-align: right; font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lesson .done, .lsn-step .done { color: var(--good); }
+.lsn-detail { padding: var(--s4) var(--s5) var(--s5); }
+.lsn-topic { margin: 0 0 var(--s2); color: var(--accent); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.lsn-desc { margin: 0 0 var(--s4); color: var(--text); max-width: 68ch; }
+.lsn-sec { margin: var(--s5) 0 var(--s3); font-size: 15px; color: var(--text); letter-spacing: .04em; border-bottom: 1px solid var(--line); padding-bottom: var(--s2); }
+.lsn-read { margin: 0 0 var(--s3); padding-left: var(--s4); border-left: 2px solid var(--line); max-width: 72ch; }
+.lsn-read h3 { margin: 0 0 4px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+.lsn-read p { margin: 0 0 6px; color: var(--ink); line-height: 1.55; }
+.lsn-step { display: flex; align-items: center; gap: var(--s3); margin: 0 0 var(--s3); padding: var(--s3) var(--s4); background: var(--panel); border: 1px solid var(--line); border-radius: 3px; }
+.lsn-step .chk { width: 18px; color: var(--line); }
+.lsn-step .what { flex: 1; min-width: 0; }
+.lsn-step .what b { color: var(--text); font-weight: 600; }
+.lsn-step .what small { display: block; color: var(--dim); font-size: 12px; }
+.lsn-note { color: var(--dim); font-size: 12px; margin: var(--s2) 0 0; }
+@media (max-width: 640px) { .lesson { grid-template-columns: 20px minmax(0, 1fr) 54px; } .lesson .what { display: none; } .lsn-step { flex-wrap: wrap; } }
+#repeat[aria-pressed=true] { color: var(--accent); border-color: var(--accent); }
+
 .bar { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; padding: var(--s4) var(--s5); border-top: 1px solid var(--line); }
 
 /* ---- player: the highway fills the window; the chrome sits over its edges ---- */
@@ -160,7 +186,7 @@ button.star[aria-pressed=true] { color: var(--warn); border: 0; }
 @media (max-width: 720px) {
   .songs-head, .song { grid-template-columns: 28px minmax(0, 1fr) 90px; }
   .songs-head .c-tun, .songs-head .c-len, .songs-head .c-num, .song .tun, .song .len, .song .num { display: none; }
-  #library .stage { padding: var(--s3) 0; }
+  #library .stage, #lessons .stage { padding: var(--s3) 0; }
 }
 
 /* the songs-folder picker */

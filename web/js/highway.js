@@ -31,6 +31,26 @@ export class Highway {
     this.camWidth = MIN_VIEW;
     this.camPath = null;
     this.marks = [];        // scoring's verdicts to show: { ev, hit, wall }
+    // A loop being played: { from, to }. Play goes back to `from` on reaching
+    // `to`, so past `to` the highway shows the loop's start coming round
+    // again, and the camera glides there, and the jump back is seamless.
+    this.loop = null;
+  }
+
+  /** Shifts (s) at which the loop's start shows again within the lookahead of now: one per time round. */
+  loopShifts(now) {
+    const L = this.loop, out = [];
+    if (!L || L.to - L.from < 0.5) return out;
+    const period = L.to - L.from;
+    for (let k = 1; L.to + (k - 1) * period < now + this.lookahead && k < 20; k++) out.push(k * period);
+    return out;
+  }
+
+  /** Where the song will really be at time t, going round the loop. */
+  looped(t) {
+    const L = this.loop;
+    if (!L || t < L.to || L.to - L.from < 0.5) return t;
+    return L.from + ((t - L.to) % (L.to - L.from));
   }
 
   /** Show a note's verdict where it crossed the strings. */
@@ -92,8 +112,20 @@ export class Highway {
     if (!chart) return;
 
     // The camera follows the path planned for the whole song (planCamera).
-    const anchor = this.anchorAt(now + 0.35);
-    const cam = this.camAt(now);
+    const anchor = this.anchorAt(this.looped(now + 0.35));
+    let cam = this.camAt(now);
+    // Coming up to the end of a loop: glide, as unhurried as the camera's
+    // other moves, to where it will be at the loop's start, so the jump back
+    // doesn't jolt.
+    if (this.loop && this.loop.to - this.loop.from >= 0.5) {
+      const glide = Math.min(MOVE_MAX - 1, (this.loop.to - this.loop.from) / 2);
+      const into = now - (this.loop.to - glide);
+      if (into > 0) {
+        const k = Math.min(1, into / glide), e = k * k * (3 - 2 * k);
+        const next = this.camAt(now - (this.loop.to - this.loop.from));
+        cam = { c: cam.c + (next.c - cam.c) * e, w: cam.w + (next.w - cam.w) * e };
+      }
+    }
     this.camX = cam.c;
     this.camWidth = cam.w;
 
@@ -189,12 +221,16 @@ export class Highway {
     // Base floor.
     this.quad([[0, 0, 0], [MAX_FRET, 0, 0], [MAX_FRET, 0, zMax], [0, 0, zMax]], '#151922');
     // Hand-position lanes: highlight the frets you should be covering.
-    for (const a of this.anchors) {
-      if (a.end < now || a.t > now + this.lookahead) continue;
-      const z0 = Math.max(0, this.zOf(a.t, now)), z1 = Math.min(zMax, this.zOf(a.end, now));
+    const lane = (a, at, lo, hi) => {
+      const t0 = Math.max(a.t, lo), t1 = Math.min(a.end, hi);
+      if (t1 < at || t0 > at + this.lookahead || t1 <= t0) return;
+      const z0 = Math.max(0, this.zOf(t0, at)), z1 = Math.min(zMax, this.zOf(t1, at));
       const x0 = a.fret - 1, x1 = a.fret - 1 + a.width;
       this.quad([[x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]], a === current ? 'rgba(80,120,200,0.22)' : 'rgba(80,120,200,0.12)');
-    }
+    };
+    const L = this.loop;
+    for (const a of this.anchors) lane(a, now, -Infinity, L ? L.to : Infinity);
+    for (const shift of this.loopShifts(now)) for (const a of this.anchors) lane(a, now - shift, L.from, L.to);
     // Fret lines running into the distance.
     for (let f = 0; f <= MAX_FRET; f++) {
       this.line([f, 0, 0], [f, 0, zMax], f === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.08)', 1);
@@ -208,9 +244,15 @@ export class Highway {
   }
 
   drawBeats(now, zMax) {
+    const L = this.loop;
+    this.beatsAt(now, -Infinity, L ? L.to : Infinity);
+    for (const shift of this.loopShifts(now)) this.beatsAt(now - shift, L.from, L.to);
+  }
+
+  beatsAt(now, lo, hi) {
     for (const b of this.chart.beats) {
-      if (b.t < now - 0.05) continue;
-      if (b.t > now + this.lookahead) break;
+      if (b.t < now - 0.05 || b.t < lo) continue;
+      if (b.t > now + this.lookahead || b.t >= hi) break;
       const z = this.zOf(b.t, now);
       const measure = b.m !== null;
       const x0 = this.camX - this.camWidth * 2, x1 = this.camX + this.camWidth * 2;
@@ -272,10 +314,22 @@ export class Highway {
     let lo = 0, hi = notes.length;
     while (lo < hi) { const mid = (lo + hi) >> 1; if (notes[mid].t < now - 12) lo = mid + 1; else hi = mid; }
     this.firstVisible = lo;
+    const L = this.loop;
+    // The loop coming round again, beyond its end: furthest first.
+    const shifts = this.loopShifts(now);
+    for (let k = shifts.length - 1; k >= 0; k--) {
+      const at = now - shifts[k], round = [];
+      for (const n of notes) {
+        if (n.t < L.from) continue;
+        if (n.t >= L.to || n.t > at + this.lookahead) break;
+        if (n.t + (n.sus || 0) >= at - 0.25) round.push(n);
+      }
+      for (let i = round.length - 1; i >= 0; i--) this.drawEvent(round[i], at, zMax);
+    }
     const visible = [];
     for (let i = lo; i < notes.length; i++) {
       const n = notes[i];
-      if (n.t > now + this.lookahead) break;
+      if (n.t > now + this.lookahead || (L && n.t >= L.to)) break;
       const end = n.t + (n.sus || 0);
       if (end < now - 0.25) continue;
       visible.push(n);

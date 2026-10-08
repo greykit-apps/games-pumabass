@@ -12,6 +12,7 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 const { Library } = require('./library');
+const { Lessons } = require('./lessons');
 
 const APP_DIR = path.resolve(__dirname, '..');
 const CONFIG_FILE = path.join(APP_DIR, 'config.json');
@@ -24,7 +25,7 @@ const codeStamp = () => fs.readdirSync(__dirname).filter(f => f.endsWith('.js'))
 const STARTED_WITH = codeStamp();
 // What the page and this server agree on. Raise it, here and in web/js/app.js,
 // when the page starts needing something an older server doesn't have.
-const API_VERSION = 3;
+const API_VERSION = 4;
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
@@ -70,7 +71,10 @@ const lib = new Library({
 });
 fs.mkdirSync(lib.musicDir, { recursive: true });
 
+const lessons = new Lessons(lib);
+
 function loadLibrary() {
+  lessons.reset();
   if (!lib.root) { console.log('No song library chosen yet: open PumaBass and pick your songs folder in Settings.'); return; }
   if (!fs.existsSync(lib.root)) { console.log(`The song library folder is missing: ${lib.root}`); }
   console.log(`Reading songs from ${lib.root} ...`);
@@ -80,6 +84,11 @@ function loadLibrary() {
 }
 loadLibrary();
 if (!findVgmstream()) console.log('vgmstream is missing, so song audio cannot play. Run tools/get-vgmstream.sh (see README.md).');
+
+/** A song as the page sees it: no paths, and where its audio comes from. */
+function songJson({ file, sng, wem, userAudio, ...s }) {
+  return { ...s, audio: wem ? 'game' : userAudio ? 'user' : false };
+}
 
 function sendJson(res, obj, status = 200) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -189,7 +198,19 @@ const server = http.createServer(async (req, res) => {
   try {
     if (!hostAllowed(req)) { res.writeHead(403); return res.end('Forbidden'); }
     if (p === '/api/songs') {
-      return sendJson(res, lib.songs.map(({ file, sng, wem, userAudio, ...s }) => ({ ...s, audio: wem ? 'game' : userAudio ? 'user' : false })));
+      return sendJson(res, lib.songs.filter(s => !s.lesson).map(songJson));
+    }
+    if (p === '/api/lessons') {
+      return sendJson(res, { found: !!lessons.lessonArchive(), words: lessons.stringTable().size > 0, lessons: lessons.all() });
+    }
+    let l;
+    if ((l = /^\/api\/lessons\/(.+)$/.exec(p))) {
+      const d = lessons.detail(l[1]);
+      if (!d) return sendJson(res, { error: 'not found' }, 404);
+      // The lesson's charts as songs the player can open, named for the lesson.
+      const asSong = (id, title) => { const e = id && lib.get(id); return e ? { ...songJson(e), title, artist: d.topic } : null; };
+      // (The game names each etude after its lesson.)
+      return sendJson(res, { ...d, lessonSong: asSong(d.lesson, d.name), etudeSong: asSong(d.etude, `${d.name}: Etude`) });
     }
     if (p === '/api/info') {
       return sendJson(res, {

@@ -16,6 +16,7 @@ ${keys([
     ['Left / Right', 'back / forward 5 seconds'],
     ['Up / Down', 'faster / slower (the pitch stays put)'],
     ['L', 'loop the section you are in; again to stop'],
+    ['R', 'riff repeater: the loop, a little faster each time round'],
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
     [',', "the mix (song, recorded bass, your bass) and this song's settings"],
@@ -47,6 +48,20 @@ above the list shows only your favorites: your own library.</p>
 again with Resume game. <b>Finished</b> counts the times you played it through to its last note, having played at
 least half of what was left when you began: jumping to the end doesn't count. Sort by <b>Most played</b> to see your
 regulars first.</p>`],
+  ['Lessons', `
+<p><b>Lessons</b>, on the menu, is Rocksmith 2014's bass course, from holding the bass to slap and pop, in the game's
+order. Start with <b>Bass 101</b>.</p>
+<h3>In a lesson</h3>
+<p>The instructor's words come first: Rocksmith's lesson videos can't be shown here, but everything the
+instructor says is. Then the parts to play. <b>Try it</b> parts are short drills; each <b>riff</b> can start with
+an example (<b>Watch, then play</b>) before your turn. Every part plays round and round until you stop it:
+<kbd>R</kbd> speeds it up each time, <kbd>Esc</kbd> goes back to the lesson. A part gets its tick once you've played
+it through.</p>
+<p>Most lessons end with an <b>etude</b>: a short piece with a band using what the lesson teaches, played like any
+song. It gets its tick once you finish it.</p>
+<h3>Where they come from</h3>
+<p>Your Rocksmith 2014's <code>etudes.psarc</code> (the lessons) and <code>static.psarc</code> (their words), anywhere in
+your songs folder. On a computer without Rocksmith, copy both from its folder, then Rescan.</p>`],
   ['Practice', `
 <h3>Slow it down</h3>
 <p><b>Speed</b> plays the song from 25% to 120% without changing its pitch. Settings can start every song at a
@@ -54,6 +69,10 @@ slower speed.</p>
 <h3>Loop the hard part</h3>
 <p><kbd>L</kbd> loops the section you are in, with a second's run-up each time round. For a tighter loop, set
 your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
+<h3>Riff repeater</h3>
+<p><kbd>R</kbd> loops the section and plays it a little faster each time round, from 60% up to full speed (Settings
+sets where it starts and how big the steps are). With scoring on, a time round only speeds it up when 70% of its
+notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 <h3>Fewer notes</h3>
 <p><b>Difficulty</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>

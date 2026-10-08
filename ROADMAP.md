@@ -18,8 +18,11 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 - [x] **Play counter.** Count how many times each song is played.
 - [x] **Favorites.** A favorite button on each song, and a filter that shows only favorites, as a personal library.
-- [ ] **Lessons.** Rocksmith's `etudes.psarc` holds 47 bass technique lessons with backing audio. Their names are
-      references into the game's string tables (`$[33430]`), so they are skipped until those tables are read.
+- [x] **Lessons.** Rocksmith's 39 bass lessons from `etudes.psarc`, named from the game's string table
+      (`static.psarc`), with the instructor's narration as text (the Bink 2 videos can't play in a browser),
+      each drill and riff looped, and the etudes. A tick per part played through.
+- [x] **Riff repeater.** `R` loops the section and speeds it up each time round, to full speed; with scoring on,
+      only after a time round with 70% hit.
 - [x] **Times finished.** A "times played" count that only counts plays where the song was *finished*.
 
 ## Settings and setup
@@ -56,9 +59,14 @@ copied over by hand.
 - [x] **Low notes in scoring.** The pluck detector took a low string's once-a-period spike for new plucks, so low
       notes went missed; it now compares against more than a period. Takes (`Save take`) and
       `tools/replay-take.mjs` show why any miss was a miss, to tune against a real cable.
-- [ ] **Chords in scoring.** Chords count on the pluck alone; telling which notes are ringing would catch wrong shapes.
 - [x] **Balance.** A mix with your bass boosted (up to +30 dB) against the song, meters on both, and a limiter.
 - [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).
 - [ ] **Recorded bass: removed.** Truly taking the bass out needs stem separation (an AI model such as Demucs),
       run once per song on the PC and cached: a large install, and slow without a graphics card.
 - [ ] **Guitar parts.** Lead and rhythm already load and render on six strings; polish them as first-class parts.
+
+## Far future
+
+- [ ] **Chords in scoring.** Chords count on the pluck alone; telling which notes are ringing would catch wrong shapes.
+- [ ] **Lesson narration as sound.** The instructor's voice is in the lesson audio banks; it could play
+      along with the words.

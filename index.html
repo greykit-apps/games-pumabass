@@ -77,6 +77,28 @@
   </section>
 
   <!-- Player -->
+  <section id="lessons" class="screen hidden" aria-label="Lessons">
+    <div class="scene under" aria-hidden="true"></div>
+    <div class="stage">
+      <div class="pb">
+        <header class="top">
+          <h1 id="lsn-title">Lessons</h1>
+          <span id="lsn-count" class="muted small"></span>
+          <span class="grow"></span>
+          <span class="snd-slot"></span>
+          <span class="brand">PumaBass</span>
+        </header>
+        <div class="topline"><i></i></div>
+        <div id="lesson-body"></div>
+        <nav class="bar">
+          <button data-act="back"><kbd>Esc</kbd><span id="lsn-back">Menu</span></button>
+          <span class="grow"></span>
+          <button data-act="help" aria-label="Help" title="How to play (?)">?</button>
+        </nav>
+      </div>
+    </div>
+  </section>
+
   <section id="player" class="screen hidden" aria-label="Player">
     <canvas id="highway"></canvas>
     <div class="p-top">
@@ -113,6 +135,7 @@
         <button id="play" class="primary" title="Play / pause (Space)"><kbd>Space</kbd><span id="play-label">Play</span></button>
         <span id="time">0:00 / 0:00</span>
         <button id="loop" title="Loop the current section (L)"><kbd>L</kbd>Loop section</button>
+        <button id="repeat" title="Riff repeater: loop, a little faster each time round (R)"><kbd>R</kbd><span id="repeat-label">Riff repeater</span></button>
         <label title="Playback speed (Up / Down)">Speed
           <input id="speed" type="range" min="25" max="120" step="5" value="100"><b id="speed-val">100%</b>
         </label>
