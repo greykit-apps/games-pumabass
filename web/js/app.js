@@ -6,7 +6,7 @@ import { HELP, ABOUT } from './help.js';
 import { InstrumentInput, isRealTone } from './input.js';
 import { openTuner, tuningTargets, tuningKey } from './tuner.js';
 import { Mixer, RECORDED_BASS } from './mixer.js';
-import { syncTest, SyncMeter, syncCue, syncResult } from './calibrate.js';
+import { syncTest, SyncMeter, syncCue, syncResult, metronome, SYNC } from './calibrate.js';
 import { Scorer } from './scoring.js';
 
 const $ = id => document.getElementById(id);
@@ -226,7 +226,7 @@ ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <h3>Timing</h3>
 <p class='gk-note'>For every song, the notes land <b>${fmtMs(prefs.avOffset)}</b>${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}, to match this computer's sound and picture. Scoring allows <b>${fmtMs(prefs.inputOffset)}</b> for the cable.</p>
 <div class='gk-row'><button data-set='calibrate'>Sync test</button><button data-set='av' data-v='-10'>&minus;10 ms</button><button data-set='av' data-v='10'>+10 ms</button><button data-set='av' data-v='0'>Reset</button></div>
-<p class='gk-note'>Half a minute on the highway: play the notes as they land, then play along with clicks, eyes closed. With the Real Tone Cable open it sets scoring's timing too; without it, tap any key. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
+<p class='gk-note'>A tick and a swinging bar: move the bar until it lands on the tick, and the notes will land on the music. With the Real Tone Cable open, you then pluck along with the tick for half a minute, which sets scoring's timing too. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
 <h3>Riff repeater</h3>
 ${pick('repfrom', [[50, 'Start at 50%'], [60, '60%'], [70, '70%'], [80, '80%']], prefs.repeatFrom)}
 ${pick('repstep', [[2, 'Up 2% a time'], [5, '5%'], [10, '10%']], prefs.repeatStep)}
@@ -303,25 +303,30 @@ async function settingsClick(b, sheet) {
 const fmtMs = ms => `${ms > 0 ? '+' : ms < 0 ? '\u2212' : ''}${Math.abs(Math.round(ms))} ms`;
 
 /* The sync test (web/js/calibrate.js) runs in the player as a short song of
- * its own; calib holds it while it runs, and the screen to go back to. */
+ * its own. First the line-up: a tick and a swinging bar, the bar moved (the
+ * picture's offset, live) until it lands on the tick. Then, with the cable,
+ * the play-along: notes with the tick, the plucks measured. calib holds it
+ * while it runs: the step, the offsets it started from, and the screen to go
+ * back to. */
 let calib = null;
 
 async function runCalibration() {
   if (prefs.input) await ensureInput({ ask: false }); // the cable, if it was chosen and is plugged in
   const test = syncTest();
-  calib = { test, meter: new SyncMeter(test.targets), back: screen };
+  calib = { test, meter: new SyncMeter(test.targets), back: screen, phase: 'align', orig: { av: prefs.avOffset, input: prefs.inputOffset } };
   if (screen === 'title') leaveTitle();
   closeEndScreen();
   song = { id: test.chart.id, title: 'Sync test', artist: 'PumaBass', type: 'bass', calib: true };
   chart = test.chart;
   screen = 'player';
   $('library').classList.add('hidden');
+  $('lessons').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
   $('p-title').textContent = 'Sync test';
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
-  $('p-sub').textContent = input.open ? 'Pluck along: it times the highway, the sound and the cable' : 'Tap along: it times the highway and the sound';
-  $('p-tuning').textContent = 'Open D and G strings';
+  $('p-sub').textContent = input.open ? 'Line up the picture with the sound, then play along on the cable' : 'Line up the picture with the sound';
+  $('p-tuning').textContent = 'Open E string';
   offsetMs = 0;
   $('offset').value = 0; showOffset();
   loop = null;
@@ -337,45 +342,81 @@ async function runCalibration() {
   session = null;
   showFav();
   setSpeed(100);
-  updatePlayButton();
   startScoring();
+  $('metro').classList.remove('hidden', 'playing');
+  $('metro-done').innerHTML = `<kbd>Enter</kbd>${input.open ? 'They match: play along' : 'They match'}`;
+  togglePlay();
+  updatePlayButton();
 }
 
-/* A tap (a key or a click) during the test, at the event's moment. */
-function syncTap(e) {
-  if (!calib || audio.paused) return;
-  const t = songTime() - ((performance.now() - e.timeStamp) / 1000) * audio.playbackRate;
-  const tg = calib.meter.tap(t, audio.playbackRate);
-  if (tg && tg.ev && !input.open) highway.mark(tg.ev, true);
+/* Move the bar: the picture's offset, live. */
+function nudgeSync(ms) {
+  if (!calib || calib.phase !== 'align') return;
+  prefs.avOffset = Math.max(-1000, Math.min(1000, prefs.avOffset + ms));
 }
 
-async function finishSync() {
+/* The bar lands on the tick: on to the play-along (with the cable), or done. */
+async function alignDone() {
+  if (!calib || calib.phase !== 'align') return;
+  if (!input.open) { await finishSync(); return; }
+  calib.phase = 'play';
+  calib.meter.reset();
+  $('metro').classList.add('playing');
+  seek(SYNC.PLAY);
+  if (audio.paused) togglePlay();
+}
+
+/* The play-along is over: show what it measured. */
+async function playAlongDone() {
   const current = { av: prefs.avOffset, input: prefs.inputOffset };
-  const res = calib.meter.result(current, input.open);
+  const res = calib.meter.result(prefs.inputOffset);
   const choice = await syncResult(res, current);
   if (choice === 'retry') {
     calib.meter.reset();
-    seek(0);
+    seek(SYNC.PLAY);
+    if (audio.paused) togglePlay();
     return;
   }
-  if (choice === 'use') {
-    if (res.av !== null) prefs.avOffset = res.av;
-    if (res.input !== null) prefs.inputOffset = res.input;
-    savePrefs();
-  }
+  // The picture's offset was lined up by eye: it stays whatever is chosen here.
+  if (choice === 'use') prefs.inputOffset = res.input;
+  await finishSync();
+}
+
+/* Keep the offsets the test arrived at, and leave. */
+async function finishSync() {
+  savePrefs();
+  const { orig } = calib;
+  calib.kept = true;
   endSync();
-  if (choice === 'use') {
-    await alertSheet(`Timing set. For every song, the notes land ${fmtMs(prefs.avOffset)}${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}${res.input !== null ? `, and scoring allows ${fmtMs(prefs.inputOffset)} for the cable` : ''}. You can nudge the notes in Settings.`, 'Sync test');
+  if (prefs.avOffset !== orig.av || prefs.inputOffset !== orig.input) {
+    await alertSheet(`Timing set. For every song, the notes land ${fmtMs(prefs.avOffset)}${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' sooner') : ''}${prefs.inputOffset !== orig.input ? `, and scoring allows ${fmtMs(prefs.inputOffset)} for the cable` : ''}. You can nudge the notes in Settings.`, 'Sync test');
   }
 }
 
+/* Leave the test; left any other way than finishing, the offsets go back. */
 function endSync() {
-  const { back, test } = calib;
+  const { back, test, kept, orig } = calib;
+  if (!kept) { prefs.avOffset = orig.av; prefs.inputOffset = orig.input; savePrefs(); }
   calib = null;
   leaveSong();
   URL.revokeObjectURL(test.url);
   if (back === 'title') showTitle().reveal(); else showLibrary();
 }
+
+/* Keys during the test. True when handled. */
+function calibKey(e) {
+  const k = e.key;
+  if (k === ' ' || k === 'Escape') return false; // play / pause, and leave, as ever
+  e.preventDefault();
+  if (calib.phase === 'align') {
+    if (k === 'ArrowLeft') nudgeSync(e.shiftKey ? -20 : -5);
+    else if (k === 'ArrowRight') nudgeSync(e.shiftKey ? 20 : 5);
+    else if (k === 'Enter') alignDone();
+  }
+  return true;
+}
+for (const b of document.querySelectorAll('[data-av]')) b.addEventListener('click', () => nudgeSync(Number(b.dataset.av)));
+$('metro-done').addEventListener('click', alignDone);
 
 /* ---- the instrument input and the tuner ---- */
 const input = new InstrumentInput(mixer);
@@ -1110,6 +1151,7 @@ function leaveSong() {
   repeater = null;
   input.tape = null; input.taping = false; take = null;
   $('calib-cue').classList.add('hidden');
+  $('metro').classList.add('hidden');
   updateHud();
   audio.pause();
   audio.removeAttribute('src');
@@ -1247,8 +1289,8 @@ function renderOverlay() {
   else if (audio.paused) {
     mode = 'paused';
     liveShownAt = 0;
-    big = calib && pausedAt === null && audio.currentTime < 0.5 ? 'SYNC TEST' : 'PAUSED';
-    small = big === 'SYNC TEST' ? `Press <kbd>Space</kbd> to start &middot; ${input.open ? 'pluck' : 'tap any key'} as each note lands, then with the clicks` : pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
+    big = 'PAUSED';
+    small = pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
   } else if (liveAt !== null) {
     const left = (liveAt - audio.currentTime) / audio.playbackRate;
     if (left > 0) { mode = 'count'; big = String(Math.ceil(left)); small = 'back in at ' + formatTime(liveAt); liveShownAt = 0; }
@@ -1296,7 +1338,7 @@ function showFav() {
 $('fav-btn').addEventListener('click', () => { if (song && !song.calib && !song.lessonCtx) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
 audio.addEventListener('ended', () => {
-  if (calib) { updatePlayButton(); finishSync(); return; }
+  if (calib) { updatePlayButton(); playAlongDone(); return; }
   checkFinished(Infinity);
   if (song && song.lessonCtx && song.lessonCtx.part === 'etude' && session && session.finished) markLesson(song.lessonCtx.key, 'etude');
   updatePlayButton();
@@ -1583,17 +1625,12 @@ document.addEventListener('keydown', e => {
   if (document.querySelector('.gk-sheet')) return; // an open sheet has the keys
   const typing = !!(e.target.closest && e.target.closest('input[type=search],input[type=text],select'));
   if ((e.key === 'm' || e.key === 'M') && !typing) { e.preventDefault(); setMuted(!muted); return; }
-  if (calib && screen === 'player' && !audio.paused && e.key !== ' ' && e.key !== 'Escape') {
-    e.preventDefault();
-    if (!e.repeat) syncTap(e);
-    return;
-  }
+  if (calib && screen === 'player' && calibKey(e)) return;
   if (screen === 'library') libraryKey(e, typing);
   else if (screen === 'lessons') lessonsKey(e);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
 
-$('highway').addEventListener('pointerdown', e => { if (calib) syncTap(e); });
 $('highway').addEventListener('wheel', e => {
   if (!chart || !audio.paused) return;
   e.preventDefault();
@@ -1639,12 +1676,19 @@ function frame() {
         });
         updateHud();
       }
-      if (calib && input.open) calib.meter.update(t, audio.playbackRate, inputBetween, (tg, heard) => { if (tg.ev) highway.mark(tg.ev, heard); });
+      if (calib && calib.phase === 'play' && input.open) calib.meter.update(t, audio.playbackRate, inputBetween, (tg, heard) => highway.mark(tg.ev, heard));
+      // The line-up goes round again for as long as it takes (by a whole number of beats).
+      if (calib && calib.phase === 'align' && t >= SYNC.ALIGN_END - 1) { seek(audio.currentTime - 60, false); t = songTime(); }
     }
     input.taping = !!(scorer && !audio.paused);
     if (calib) {
-      const cue = $('calib-cue'), c = syncCue(t, calib.meter, input.open);
-      cue.classList.toggle('hidden', audio.paused);
+      // The bar: at a side on every tick.
+      const m = metronome(t), bar = $('metro-bar');
+      bar.style.left = `calc((100% - 16px) * ${m.x.toFixed(4)})`;
+      bar.classList.toggle('hit', m.since < 0.09);
+      if (calib.phase === 'align') $('metro-val').textContent = fmtMs(prefs.avOffset);
+      const cue = $('calib-cue'), c = syncCue(calib.phase, t, calib.meter, prefs.avOffset);
+      cue.classList.toggle('hidden', audio.paused || calib.phase === 'align');
       if (cue.dataset.big !== c.big) { cue.dataset.big = c.big; cue.firstElementChild.textContent = c.big; }
       if (cue.lastElementChild.textContent !== c.small) cue.lastElementChild.textContent = c.small;
     }

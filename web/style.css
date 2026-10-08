@@ -144,6 +144,18 @@ button.star[aria-pressed=true] { color: var(--warn); border: 0; }
 #overlay.tick #ov-big { animation: ov-tick .9s cubic-bezier(.22, 1, .36, 1); }
 @keyframes ov-tick { from { transform: scale(1.35); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #overlay.tick #ov-big { animation: none; } }
+/* the sync test's bar: big and central in the line-up, a strip up top in the play-along */
+#metro { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); width: min(720px, calc(100% - 32px));
+  padding: var(--s4); background: rgba(5, 7, 15, .88); border: 1px solid var(--line); border-radius: 4px; text-align: center; }
+.metro-say { margin: 0 0 var(--s3); color: var(--text); }
+.metro-track { position: relative; height: 34px; border-left: 3px solid var(--lit); border-right: 3px solid var(--lit); background: var(--panel); }
+#metro-bar { position: absolute; top: 0; bottom: 0; width: 16px; background: var(--accent); box-shadow: 0 0 10px rgba(84, 242, 255, .5); }
+#metro-bar.hit { background: #fff; box-shadow: 0 0 22px rgba(255, 255, 255, .9); }
+.metro-acts { display: flex; justify-content: center; align-items: center; gap: var(--s3); margin-top: var(--s3); flex-wrap: wrap; }
+#metro-val { min-width: 76px; color: var(--accent); font-size: 18px; font-variant-numeric: tabular-nums; }
+#metro.playing { top: 64px; padding: 6px; background: transparent; border: 0; width: min(420px, calc(100% - 32px)); pointer-events: none; }
+#metro.playing .metro-say, #metro.playing .metro-acts { display: none; }
+#metro.playing .metro-track { height: 14px; }
 /* the sync test's instructions: what to do now, and how many were heard */
 #calib-cue { position: absolute; right: var(--s4); top: 100px; width: min(300px, 32%); text-align: right; pointer-events: none;
   text-shadow: 0 0 6px rgba(5, 7, 15, .95); }

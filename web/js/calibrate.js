@@ -1,44 +1,42 @@
-// The sync test: lines up the notes, the sound and the cable, played on the
-// highway itself.
+// The sync test: lines up the picture with the sound, then the cable with both.
 //
-// Two short passes, the way rhythm games do it:
-//   Watch  - silence, notes on the highway: play each one as it lands.
-//   Listen - clicks, no notes: play along with what you hear.
-// Each measures how late your playing is against the beat. Both include your
-// own feel and the input's delay; only Watch includes the picture's delay,
-// only Listen the sound's (speakers, a TV, Bluetooth). So:
-//   Listen minus Watch: how much later the sound arrives than the picture,
-//     the offset the highway needs (positive = notes land later);
-//   Watch, played on the cable: how late your plucks reach PumaBass against
-//     the notes you see, the offset scoring needs.
-// The notes are open strings (D and G): nothing to fret, just the timing.
-// With no cable, any key or a click on the highway is a tap; that sets the
-// highway's offset only.
+// 1. Line up. A tick sounds on every beat, and a bar swings left and right,
+//    reaching a side on every beat. You move it earlier or later until it
+//    lands right on the tick: that is how much later (or sooner) this
+//    computer's sound reaches you than its picture, the offset every song's
+//    notes need. The tick plays through the same media path as a song, and the
+//    bar runs on the same clock as the highway, so what lines up here lines
+//    up in a song.
+// 2. Play along (with the Real Tone Cable open). Quarter notes on the open E
+//    string come down the highway with the tick: pluck along for a while. With
+//    picture and sound lined up, how late the plucks reach PumaBass against
+//    the notes is the cable's delay (and your own feel), the allowance scoring
+//    needs. Plucks are found the way scoring finds them, through the same
+//    clock, so what is measured is what scoring sees.
 //
-// The test runs in the player as a short song: the clicks play through the
-// same media path as a song, and plucks are found through the same clock as
-// scoring's, so what is measured is what a song does.
+// The test runs in the player as a short song.
 
 import { onsets } from './scoring.js';
 
-const BEAT = 0.6;        // seconds between beats (100 BPM)
-const LEAD = 3.0;        // before the first note: time to see them coming
-const N = 20;            // beats in each pass (12 s)
-const WARMUP = 4;        // beats to find the groove before they count
-const GAP = 2.4;         // between the passes
-const TAIL = 1.5;        // after the last click
-const WINDOW = 0.28;     // s either side of a beat a pluck or tap belongs to it
-const SR = 48000;
+const BEAT = 0.6;        // seconds between ticks (100 BPM)
+const ALIGN_END = 90;    // the line-up part runs this long (and goes round again if need be)
+const PLAY = 90;         // where the play-along starts: an exact number of beats in
+const COUNT = 4;         // ticks to count you in before the first note
+const NOTES = 32;        // notes to play along with
+const WARMUP = 4;        // notes to find the groove before they count
+const TAIL = 2;          // after the last note
+const WINDOW = 0.28;     // s either side of a note a pluck belongs to it
+const SR = 22050;        // ample for a tick, and keeps the track small
 
-const LISTEN0 = LEAD + N * BEAT + GAP;
-const END = LISTEN0 + N * BEAT + TAIL;
+const END = PLAY + (COUNT + NOTES) * BEAT + TAIL;
 
-/** A WAV (as a blob URL): silence through Watch, then clicks on the Listen beats. */
+/** A WAV (as a blob URL): a tick on every beat, the first of each four higher. */
 function track() {
   const n = Math.ceil(END * SR);
   const data = new Int16Array(n);
-  for (let b = 0; b < N; b++) {
-    const start = Math.round((LISTEN0 + b * BEAT) * SR), f = b % 4 === 0 ? 1500 : 1000;
+  const beats = Math.floor((END - TAIL) / BEAT + 0.5);
+  for (let b = 0; b < beats; b++) {
+    const start = Math.round(b * BEAT * SR), f = b % 4 === 0 ? 1500 : 1000;
     for (let i = 0; i < 0.03 * SR; i++) data[start + i] = Math.round(0.7 * 32767 * Math.sin((2 * Math.PI * f * i) / SR) * Math.exp(-i / (0.006 * SR)));
   }
   const head = new DataView(new ArrayBuffer(44));
@@ -52,27 +50,23 @@ function track() {
 
 /**
  * The test as a song: its chart (shaped like the server's, for the player),
- * its audio, and the beats to measure ({ t, pass, i, ev }: ev is the note on
- * the highway, for Watch).
+ * its audio, and the notes to measure ({ t, i, ev }).
  */
 export function syncTest() {
   const notes = [], targets = [], beats = [];
-  for (let i = 0; i < N; i++) {
-    const t = LEAD + i * BEAT;
-    // A bar on the D string, a bar on the G, and so on.
-    const ev = { t, s: Math.floor(i / 4) % 2 ? 3 : 2, f: 0, pi: 0 };
+  for (let i = 0; i < NOTES; i++) {
+    const t = PLAY + (COUNT + i) * BEAT;
+    const ev = { t, s: 0, f: 0, pi: 0 }; // the open E string
     notes.push(ev);
-    targets.push({ t, pass: 'watch', i, ev });
+    targets.push({ t, i, ev });
   }
-  for (let i = 0; i < N; i++) targets.push({ t: LISTEN0 + i * BEAT, pass: 'listen', i, ev: null });
-  // Beat lines through Watch only: in Listen there is nothing to watch.
-  for (let k = -8; k < N + 2; k++) beats.push({ t: LEAD + k * BEAT, m: k % 4 === 0 ? k / 4 : null });
-  const watchEnd = LEAD + N * BEAT + GAP / 2;
+  // Beat lines through the play-along only: the line-up has the bar.
+  for (let k = -8; k < COUNT + NOTES + 2; k++) beats.push({ t: PLAY + k * BEAT, m: k % 4 === 0 ? k / 4 : null });
   const chart = {
     id: '__sync__', title: 'Sync test', artist: 'PumaBass', arrangement: 'Bass', type: 'bass',
     strings: 4, tuning: [0, 0, 0, 0], centOffset: 0, capo: 0, songLength: END,
-    beats: beats.filter(b => b.t >= 0),
-    sections: [{ name: 'Watch', t: 0, end: watchEnd }, { name: 'Listen', t: watchEnd, end: END }],
+    beats,
+    sections: [{ name: 'Line up', t: 0, end: PLAY }, { name: 'Play along', t: PLAY, end: END }],
     phrases: [{ name: 'sync', maxDifficulty: 0 }],
     phraseIterations: [{ phrase: 0, t: 0, end: END }],
     chordTemplates: [], maxDifficulty: 0,
@@ -81,19 +75,28 @@ export function syncTest() {
   return { chart, url: track(), targets };
 }
 
+/**
+ * The bar at song time t: where it is across its track (0 left, 1 right),
+ * reaching a side on every beat, and how long ago (s) it reached one.
+ */
+export function metronome(t) {
+  const beat = t / BEAT;
+  const ph = ((beat % 2) + 2) % 2;
+  return { x: ph < 1 ? ph : 2 - ph, since: (beat - Math.floor(beat)) * BEAT };
+}
+
 const median = xs => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[s.length >> 1] : NaN; };
 
 /** The middle of the errors and how much they wander (both ms), or null with too few. */
 export function summarise(errors) {
-  if (errors.length < 6) return null;
+  if (errors.length < 8) return null;
   const mid = median(errors);
   return { ms: mid * 1000, spread: median(errors.map(e => Math.abs(e - mid))) * 1000, n: errors.length };
 }
 
 /**
- * Measures the playing against the test's beats: plucks heard on the cable
- * (found the way scoring finds them) and taps. Each beat keeps one error, so
- * playing a stretch again after a pause replaces it.
+ * Measures the plucks against the notes, found the way scoring finds them.
+ * Each note keeps one error, so playing a stretch again after a pause replaces it.
  */
 export class SyncMeter {
   constructor(targets) {
@@ -104,17 +107,16 @@ export class SyncMeter {
   reset() {
     this.next = 0;
     this.plucks = new Map(); // target -> error (s, + = late)
-    this.taps = new Map();
   }
 
-  /** After a jump: measure again from the first beat at or after t. */
+  /** After a jump: measure again from the first note at or after t. */
   seek(t) {
     this.next = this.targets.findIndex(x => x.t >= t - WINDOW);
     if (this.next < 0) this.next = this.targets.length;
   }
 
   /**
-   * Find the plucks around every beat that has gone by: input(t0, t1) as in
+   * Find the plucks around every note that has gone by: input(t0, t1) as in
    * scoring (the input for song time t0..t1, 'later' or null). found(target,
    * heard) for the highway's marks.
    */
@@ -136,75 +138,44 @@ export class SyncMeter {
     }
   }
 
-  /** A tap at song time t (keys, clicks). Returns the beat it belongs to, if any. */
-  tap(t, rate) {
-    let best = null;
-    for (const tg of this.targets) if (!best || Math.abs(tg.t - t) < Math.abs(best.t - t)) best = tg;
-    if (!best || Math.abs(best.t - t) > WINDOW * rate) return null;
-    this.taps.set(best, (t - best.t) / rate);
-    return best;
-  }
-
-  /** How many beats of a pass have been heard (plucks) or tapped, after the warm-up. */
-  count(pass, which = 'plucks') {
+  /** How many notes after the warm-up were heard. */
+  get heard() {
     let n = 0;
-    for (const tg of this[which].keys()) if (tg.pass === pass && tg.i >= WARMUP) n++;
+    for (const tg of this.plucks.keys()) if (tg.i >= WARMUP) n++;
     return n;
   }
 
-  errors(pass, which) {
-    return [...this[which]].filter(([tg]) => tg.pass === pass && tg.i >= WARMUP).map(([, e]) => e);
-  }
-
-  /**
-   * The result, given the offsets in use now ({ av, input }, ms) and whether
-   * the cable was open. Plucks are used when there are enough of them, else
-   * taps.
-   *   { source, watch, listen, av, input }: av and input are the offsets to
-   *   use (input only from plucks), or null when they couldn't be measured.
-   */
-  result(current, cable) {
-    const from = which => ({ watch: summarise(this.errors('watch', which)), listen: summarise(this.errors('listen', which)) });
-    const plucks = from('plucks');
-    const usePlucks = cable && (plucks.watch || plucks.listen);
-    const { watch, listen } = usePlucks ? plucks : from('taps');
-    return {
-      source: usePlucks ? 'cable' : 'taps',
-      watch, listen,
-      heard: usePlucks ? { watch: this.count('watch'), listen: this.count('listen') } : null,
-      av: watch && listen ? Math.round(current.av + listen.ms - watch.ms) : null,
-      input: usePlucks && watch ? Math.round(current.input + watch.ms) : null,
-    };
+  /** The result, given the cable's allowance in use now (ms): { timing, heard, input }. */
+  result(currentInput) {
+    const timing = summarise([...this.plucks].filter(([tg]) => tg.i >= WARMUP).map(([, e]) => e));
+    return { timing, heard: this.heard, input: timing ? Math.round(currentInput + timing.ms) : null };
   }
 }
 
-/** What to show over the highway at song time t. */
-export function syncCue(t, meter, cable) {
-  const per = N - WARMUP;
-  const heard = pass => (cable ? meter.count(pass) : meter.count(pass, 'taps'));
-  const how = cable ? 'pluck' : 'tap any key';
-  if (t < LISTEN0 - GAP / 2) {
-    const beat = Math.floor((t - LEAD) / BEAT + 0.5);
+/** What to say over the highway: in the line-up (with the offset now), or the play-along. */
+export function syncCue(phase, t, meter, av) {
+  const per = NOTES - WARMUP;
+  if (phase === 'align') {
     return {
-      big: 'Watch',
-      small: beat < WARMUP ? cable ? 'Pluck each open string as its note lands. The first four warm you up.' : 'Tap any key as each note lands. The first four warm you up.'
-        : `${heard('watch')} of ${per} ${cable ? 'heard' : 'tapped'}`,
+      big: 'Line up',
+      small: `Move the bar until it reaches each side right on the tick. Now ${fmt(av)}.`,
     };
   }
-  const beat = Math.floor((t - LISTEN0) / BEAT + 0.5);
+  const beat = Math.floor((t - PLAY) / BEAT + 0.5);
   return {
-    big: 'Listen',
-    small: beat < WARMUP ? `Close your eyes and ${how} along with the clicks. Four count you in.` : `${heard('listen')} of ${per} ${cable ? 'heard' : 'tapped'}`,
+    big: 'Play along',
+    small: beat < COUNT + WARMUP ? 'Pluck the open E string on every tick, with the notes. The first few warm you up.'
+      : `${meter.heard} of ${per} heard`,
   };
 }
 
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = ms => `${ms >= 0 ? '+' : '−'}${Math.abs(Math.round(ms))} ms`;
 
 /**
- * The result, in a sheet. Resolves 'use', 'retry' or null (leave it as it was).
+ * The play-along's result, in a sheet. Resolves 'use' (the cable's figure
+ * too), 'retry', or null (the lined-up picture offset only).
  *   res      SyncMeter.result
- *   current  { av, input } in use now (ms)
+ *   current  { av, input } (ms): the picture's offset just set, and the cable's in use
  */
 export function syncResult(res, current) {
   return new Promise(resolve => {
@@ -213,31 +184,18 @@ export function syncResult(res, current) {
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', 'Sync test');
-    const per = N - WARMUP;
-    const cable = res.source === 'cable';
-    const usable = res.av !== null || res.input !== null;
-    const row = (name, r, heard) => `<tr><td>${name}</td><td>${r ? fmt(r.ms) : '&ndash;'}</td><td>${r ? `within &plusmn;${Math.round(r.spread)} ms` : 'too few'}${heard !== undefined ? ` &middot; ${heard} of ${per} heard` : ''}</td></tr>`;
-    let body;
-    if (!usable) {
-      body = `<p>${cable ? `Too few plucks were heard to measure (${res.heard.watch} of ${per} in Watch, ${res.heard.listen} of ${per} in Listen). Pluck firmly on every beat after the first four; check the cable's level in the Mix panel (<kbd>,</kbd>).` : 'Too few taps to measure. Tap on every beat, after the first four.'}</p>`;
-    } else {
-      const lines = [];
-      if (res.av !== null) {
-        const d = res.av;
-        lines.push(`<p class="calib-result">${fmt(d)}</p><p>${Math.abs(d) < 10 ? 'Sound and picture reach you together.' : d > 0 ? `The sound reaches you ${Math.round(d)} ms after the picture, so the notes will land that much later.` : `The picture reaches you ${Math.round(-d)} ms after the sound, so the notes will land that much earlier.`} <span class="muted">Now: ${fmt(current.av)}.</span></p>`);
-      }
-      if (res.input !== null) {
-        lines.push(`<p class="calib-result small">Cable ${fmt(res.input)}</p><p>Your plucks reach PumaBass ${Math.abs(res.input) < 10 ? 'right with the notes' : `${Math.round(Math.abs(res.input))} ms ${res.input > 0 ? 'after' : 'before'} the notes you see`}; scoring will allow for it. <span class="muted">Now: ${fmt(current.input)}.</span></p>`);
-      }
-      const shaky = [res.watch, res.listen].some(r => r && r.spread > 35);
-      body = `${lines.join('')}
-        <table class="calib-table">${row('Watch', res.watch, cable ? res.heard.watch : undefined)}${row('Listen', res.listen, cable ? res.heard.listen : undefined)}</table>
-        ${res.av === null ? `<p class="gk-note warn">${res.watch ? 'Listen' : 'Watch'} had too few ${cable ? 'plucks' : 'taps'}, so the highway's offset is unchanged.</p>` : ''}
-        ${shaky ? `<p class="gk-note warn">The ${cable ? 'plucks' : 'taps'} wandered quite a bit, so this is a rough reading. Another go may give a steadier one.</p>` : ''}
-        ${cable ? '' : '<p class="gk-note">With the Real Tone Cable open, the test also sets scoring\'s timing.</p>'}`;
-    }
+    const per = NOTES - WARMUP;
+    const usable = res.input !== null;
+    const body = usable
+      ? `<p class="calib-result small">Picture ${fmt(current.av)}</p><p>As you lined it up: the notes land ${Math.abs(current.av) < 10 ? 'right with the sound' : `${Math.round(Math.abs(current.av))} ms ${current.av > 0 ? 'later' : 'sooner'}, to meet the sound`}.</p>
+        <p class="calib-result">Cable ${fmt(res.input)}</p>
+        <p>Your plucks reach PumaBass ${Math.abs(res.input) < 10 ? 'right with the notes' : `${Math.round(Math.abs(res.input))} ms ${res.input > 0 ? 'after' : 'before'} the notes`}; scoring will allow for it. <span class="muted">Now: ${fmt(current.input)}.</span></p>
+        <table class="calib-table"><tr><td>Plucks</td><td>${res.heard} of ${per} heard</td><td>within &plusmn;${Math.round(res.timing.spread)} ms of each other</td></tr></table>
+        ${res.timing.spread > 35 ? '<p class="gk-note warn">The plucks wandered quite a bit, so this is a rough reading. Another go may give a steadier one.</p>' : ''}`
+      : `<p>Too few plucks were heard to measure (${res.heard} of ${per}). Pluck the open E string firmly on every tick after the first few; check the cable's level in the Mix panel (<kbd>,</kbd>).</p>
+        <p class="gk-note">The picture's offset you lined up (${fmt(current.av)}) is kept either way.</p>`;
     el.innerHTML = `<div class="gk-box calib"><div class="gk-head"><h2>Sync test</h2><button data-x aria-label="Close">&times;</button></div><div class="gk-body">${body}
-      <div class="gk-row">${usable ? '<button class="primary" data-use><kbd>Enter</kbd>Use these</button>' : ''}<button ${usable ? '' : 'class="primary" '}data-retry>${usable ? '' : '<kbd>Enter</kbd>'}Try again</button><button data-x>Cancel</button></div></div></div>`;
+      <div class="gk-row">${usable ? '<button class="primary" data-use><kbd>Enter</kbd>Use these</button>' : ''}<button ${usable ? '' : 'class="primary" '}data-retry>${usable ? '' : '<kbd>Enter</kbd>'}Play along again</button><button data-x>${usable ? 'Keep the picture only' : 'Done'}</button></div></div></div>`;
     const close = v => {
       document.removeEventListener('keydown', onKey, true);
       el.remove();
@@ -262,4 +220,4 @@ export function syncResult(res, current) {
   });
 }
 
-export const SYNC = { BEAT, LEAD, N, WARMUP, LISTEN0, END, WINDOW };
+export const SYNC = { BEAT, ALIGN_END, PLAY, COUNT, NOTES, WARMUP, END, WINDOW };

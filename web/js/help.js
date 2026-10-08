@@ -78,10 +78,11 @@ notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
 <p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
-<b>Settings → Timing → Sync test</b> measures all three, on the highway: first play the notes as they land
-(open D and G strings), then close your eyes and play along with clicks. With the Real Tone Cable open,
-pluck; it sets the notes' timing for every song and scoring's timing for the cable. Without it, tap any key or
-click, and it sets the notes' timing. Run it again after changing speakers, headphones or screen.</p>
+<b>Settings → Timing → Sync test</b> lines them up. First a tick sounds and a bar swings from side to side:
+move it with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigger steps) until it reaches each side
+right on the tick, then press <kbd>Enter</kbd>. It starts from the timing you have now, so a small fix is a few
+presses. With the Real Tone Cable open, you then pluck the open E string along with the tick for half a minute,
+which sets scoring's timing for the cable. Run it again after changing speakers, headphones or screen.</p>
 <p>For one song only (say, your own recording of it), open the song's settings with <kbd>,</kbd> and nudge its
 <b>audio offset</b>; it adds to the calibrated one.</p>`],
   ['Tuner', `

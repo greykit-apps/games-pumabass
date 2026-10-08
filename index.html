@@ -118,6 +118,17 @@
     <div id="toast" class="hidden" role="status"></div>
     <div id="loading" class="hidden">Loading</div>
     <!-- Over the highway: PAUSED while paused, and the run-up countdown after a pause. -->
+    <!-- The sync test: a bar that swings to a side on every tick, and its controls. -->
+    <div id="metro" class="hidden">
+      <p class="metro-say">Move the bar until it reaches each side right on the tick.</p>
+      <div class="metro-track" aria-hidden="true"><i id="metro-bar"></i></div>
+      <div class="metro-acts">
+        <button data-av="-5" title="The bar sooner (Left; Shift for bigger steps)"><kbd>&larr;</kbd>Sooner</button>
+        <b id="metro-val"></b>
+        <button data-av="5" title="The bar later (Right; Shift for bigger steps)">Later<kbd>&rarr;</kbd></button>
+        <button id="metro-done" class="primary"><kbd>Enter</kbd>They match</button>
+      </div>
+    </div>
     <!-- The sync test's instructions, while it runs. -->
     <div id="calib-cue" class="hidden" aria-live="polite"><b></b><span></span></div>
     <div id="overlay" class="hidden" aria-live="polite">

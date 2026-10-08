@@ -104,21 +104,22 @@ song's audio offset (`,`), which goes up to ±15 s for these. It is remembered p
 
 ## Timing
 
-**Settings → Timing → Sync test** lines up the notes, the sound and the cable, in half a minute on
-the highway itself. It plays like a short song in two passes:
+**Settings → Timing → Sync test** lines up the picture, the sound and the cable. It runs in the
+player like a short song, in two steps:
 
-- **Watch:** no sound; open-string notes on the D and G strings.
-  Play each one as it lands.
-- **Listen:** no notes; clicks. Close your eyes and play along.
+- **Line up.** A tick sounds on every beat while a bar swings left and right, reaching a side on every
+  beat. Move the bar (`←` / `→`, 5 ms a press, `Shift` for 20; or the buttons) until it lands right on
+  the tick, then `Enter`. That is the offset for every song's notes, changed live as you go and starting
+  from the one in use, so a small correction is a few presses. The tick plays through the same media
+  path as a song, and the bar runs on the highway's clock, so what lines up here lines up in a song.
+- **Play along** (with the Real Tone Cable open). Quarter notes on the open E string come down the
+  highway with the tick: after a count-in, 32 of them, the first four a warm-up. With picture and sound
+  lined up, how late your plucks reach PumaBass against the notes is the allowance scoring makes for the
+  cable (measured from the allowance in use). Plucks are found the way scoring finds them, through the
+  same clock, so what is measured is what scoring sees.
 
-Each pass measures how late your playing is. Your own feel and the cable's delay are in both; the
-picture's delay only in Watch, the sound's only in Listen. So Listen minus Watch is how much later the
-sound reaches you than the picture: the offset for every song's notes (nudge it by 10 ms in Settings;
-a song's own offset, `,`, adds to it). And with the Real Tone Cable open, Watch is how late your plucks
-reach PumaBass against the notes you see: the allowance scoring makes for the cable. Plucks are found
-the way scoring finds them, through the same clock, so what the test measures is what scoring sees.
-Without the cable, tap any key or click; that sets the notes' offset only. Run it again when you change
-speakers, headphones or screen: Bluetooth and TVs add delay.
+`Esc` at any point leaves with the offsets as they were. A song's own offset (`,`) adds to the one set
+here. Run it again when you change speakers, headphones or screen: Bluetooth and TVs add delay.
 
 ## Real Tone Cable and the tuner
 

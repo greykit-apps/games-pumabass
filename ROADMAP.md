@@ -31,8 +31,9 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
 
 - [x] **Calibrate the offset.** Settings gets a global audio/video offset with a calibration test: the player taps,
       clicks or strums along with what they see as "in time", and the measured difference sets the offset.
-- [x] **Sync test on the highway.** The calibration plays on the real highway: open-string notes to pluck as they land,
-      then clicks with eyes closed. With the cable it also sets scoring's allowance for the cable's delay.
+- [x] **Sync test on the highway.** A tick and a bar swinging left and right: the player moves the bar (starting from the
+      offset in use) until it lands on the tick. Then, with the cable, quarter notes on the open E string with the tick,
+      plucked along for half a minute, which sets scoring's allowance for the cable's delay.
 - [x] **Tuner.** A tuner that appears automatically on the first song of the day and when the next song needs a
       different tuning, and can be opened by hand. Best paired with the Real Tone Cable input.
       Done with the Real Tone Cable input; still to try with a real cable.
