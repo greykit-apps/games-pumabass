@@ -231,7 +231,19 @@ class Library {
   }
 
   // Writes the decoded audio to the cache (if needed) and returns the WAV path.
-  async audioFile(id, vgmstreamExe) {
+  /* A song's audio as a file: its own recording, or its .wem decoded to a cached .wav.
+   * The browser asks for a song more than once while it loads (and two players may
+   * open the same song), so a decode already under way is shared, not started twice:
+   * two decodes of one song would write the same .part file and trip over each other. */
+  audioFile(id, vgmstreamExe) {
+    this.decoding = this.decoding || new Map();
+    if (this.decoding.has(id)) return this.decoding.get(id);
+    const job = this.decodeAudio(id, vgmstreamExe).finally(() => this.decoding.delete(id));
+    this.decoding.set(id, job);
+    return job;
+  }
+
+  async decodeAudio(id, vgmstreamExe) {
     const entry = this.get(id);
     if (!entry) return null;
     if (!entry.wem) return entry.userAudio;

@@ -81,7 +81,7 @@
 
   <!-- Player -->
   <section id="player" class="screen hidden" aria-label="Player">
-    <canvas id="highway"></canvas>
+    <canvas id="highway" role="img" aria-label="The note highway: each note comes towards you and lands on its string when it's time to play it"></canvas>
     <div class="p-top">
       <span class="wordmark" aria-hidden="true">Puma<b>Bass</b></span>
       <button id="back" title="Back to the song list (Esc)"><kbd>Esc</kbd>Songs</button>
@@ -89,6 +89,7 @@
       <button id="fav-btn" class="heart" aria-label="Favorite" aria-pressed="false" title="Favorite (F)">&#9825;</button>
       <div id="p-tuning" class="chip"></div>
       <span id="score-hud" class="chip hidden" aria-live="off" title="Accuracy so far, and your current streak"></span>
+      <button id="no-score" class="hidden" title="Scoring is on, but no instrument input is open: choose one">Not scoring: no input</button>
       <button id="tuner-btn" title="Tune with the Real Tone Cable (T)"><kbd>T</kbd>Tuner</button>
     </div>
     <!-- The notation band: standard notation over tab, scrolling over the top of the highway (web/js/notation.js). -->

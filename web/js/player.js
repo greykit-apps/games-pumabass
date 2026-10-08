@@ -105,6 +105,9 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   updatePlayButton();
   saveResume();
   await maybeAutoTune();
+  // Scoring on and an input chosen before: open it now, quietly, so a song never goes unscored
+  // just because nothing had opened the cable since PumaBass started.
+  if (prefs.scoring && prefs.input && !input.open) await ensureInput({ ask: false });
   startScoring();
   // Straight into it: every song has ten seconds or so before its first note.
   // (Resume game counts back in, as a play after a pause does.)
@@ -269,6 +272,9 @@ export function inputBetween(t0, t1) {
 }
 
 export function updateHud() {
+  // Scoring wanted but no input open: say so where the score would be, and offer the input.
+  const off = !scorer && prefs.scoring && !!chart && !(song && song.calib) && !input.open;
+  $('no-score').classList.toggle('hidden', !off);
   const el = $('score-hud');
   el.classList.toggle('hidden', !scorer);
   if (!scorer) return;
@@ -380,6 +386,7 @@ export function showFav() {
   $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
+  $('fav-btn').setAttribute('aria-label', song ? `Favorite: ${song.title}` : 'Favorite');
   $('fav-btn').textContent = on ? '\u2665' : '\u2661';
 }
 $('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
@@ -475,6 +482,7 @@ export function renderLoop() {
 }
 
 $('back').addEventListener('click', closeSong);
+$('no-score').addEventListener('click', async () => { if (await ensureInput()) startScoring(); });
 $('tuner-btn').addEventListener('click', showTuner);
 $('play').addEventListener('click', togglePlay);
 $('loop').addEventListener('click', toggleSectionLoop);

@@ -35,6 +35,20 @@ document.addEventListener('keydown', e => {
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
 
+/* Tab stays inside an open sheet, whichever made it (the title's own, Settings, Help, a question):
+ * at either end it wraps round, and from outside it comes back in. Sheets that already keep Tab
+ * themselves have handled it by the time it bubbles up here. */
+window.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.defaultPrevented) return;
+  const sheet = [...document.querySelectorAll('.gk-sheet')].pop();
+  if (!sheet) return;
+  const items = [...sheet.querySelectorAll('button, input, select, a[href], [tabindex="0"]')].filter(x => !x.disabled && x.offsetParent);
+  if (!items.length) return;
+  const i = items.indexOf(document.activeElement);
+  const to = i < 0 ? items[0] : e.shiftKey && i === 0 ? items[items.length - 1] : !e.shiftKey && i === items.length - 1 ? items[0] : null;
+  if (to) { e.preventDefault(); to.focus(); }
+});
+
 window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, highway, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
 /* ---- start: the boot plays while the song index loads, then the title ---- */
