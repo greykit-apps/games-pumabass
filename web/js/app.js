@@ -1094,8 +1094,10 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
   saveResume();
   await maybeAutoTune();
   startScoring();
-  // A lesson's part or etude starts right away: each has its own count-in.
-  if (s.lessonCtx && song === s) audio.play().catch(() => {});
+  // Straight into it: every song has ten seconds or so before its first note,
+  // and a lesson's part its own count-in. (Resume game counts back in, as a
+  // play after a pause does.)
+  if (song === s && audio.paused) togglePlay();
 }
 
 function saveResume() {
@@ -1228,7 +1230,7 @@ function togglePlay() {
       seek(Math.max(0, pausedAt - RUNUP), false);
       pausedAt = null;
     }
-    audio.play();
+    audio.play().catch(() => {}); // the browser may hold it back until a click or key: then it stays PAUSED
   } else {
     // Pausing during a countdown still comes back in at the original spot.
     pausedAt = liveAt !== null && audio.currentTime < liveAt ? liveAt : audio.currentTime;

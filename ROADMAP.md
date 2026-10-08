@@ -13,6 +13,8 @@ Issues and features to pick up. Add to the list as they come up; tick them off a
       on-screen countdown to when you are "live", so you can get back into the groove.
 - [x] **Fret numbers on gems.** The numbers inside the notes overlap the gem borders in an unattractive way.
 - [x] **Start paused.** A song opens paused, with a big PAUSED and "Press Space to play" over the highway.
+      Later reversed at the user's request: songs and lessons start playing at once (every song has ~10 s
+      before its first note); PAUSED shows only after pausing.
 
 ## Song library
 

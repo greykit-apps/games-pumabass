@@ -5,7 +5,7 @@ const keys = rows => `<table class="keys">${rows.map(([k, v]) => `<tr><td>${k}</
 export const HELP = [
   ['Playing', `
 <h3>Getting going</h3>
-<p><b>Learn a song</b> opens your song list. A song opens paused: press <kbd>Space</kbd> to play. The notes come
+<p><b>Learn a song</b> opens your song list. A song starts playing as it opens, with ten seconds or so before the first note; <kbd>Space</kbd> pauses. The notes come
 towards you down the highway and land on the strings at the bottom, on time with the record.</p>
 <p>Play after a pause starts six seconds back and counts you in, so you can find the groove again before you
 reach the spot you stopped at. <b>Resume game</b> does the same. Jump somewhere yourself (click the bar, the arrow
