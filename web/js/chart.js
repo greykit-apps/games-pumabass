@@ -65,8 +65,8 @@ export function formatTime(sec) {
 const SECTION_WORDS = { noguitar: 'Rest', prechorus: 'Pre-chorus', postchorus: 'Post-chorus', postvs: 'Post-verse', postbrdg: 'Post-bridge',
   preverse: 'Pre-verse', modchorus: 'Chorus', modverse: 'Verse', buildup: 'Build-up', fadein: 'Fade-in', fadeout: 'Fade-out', brdg: 'Bridge' };
 export function sectionName(name) {
-  const k = String(name || '').toLowerCase().replace(/[\s\d]+$/, '').replace(/\s+/g, '');
-  return SECTION_WORDS[k] || (k ? k[0].toUpperCase() + k.slice(1) : 'Section');
+  const n = String(name || '').trim().replace(/[\s\d]+$/, ''), k = n.toLowerCase().replace(/\s+/g, '');
+  return SECTION_WORDS[k] || (n ? n[0].toUpperCase() + n.slice(1).toLowerCase() : 'Section');
 }
 
 export function arrangementLabel(s) {

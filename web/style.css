@@ -133,7 +133,7 @@ html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
 .tools .sort { display: flex; align-items: center; gap: 6px; color: var(--dim); }
 .check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--dim); }
 #count { padding: 0 var(--s5) var(--s2); font-size: 16px; color: var(--dim); }
-.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 110px 100px 130px 52px 72px 60px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
+.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 96px 90px 168px 52px 76px 60px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
 .songs-head { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); padding-top: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
 .songs-head .c-num { text-align: right; }
 /* the list's groups: Recently played, then initials, tunings or difficulty, as sorted */
@@ -347,6 +347,7 @@ html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: r
 .tn-name { font-family: var(--display); font-size: 72px; line-height: 1; font-weight: 800; color: var(--text); }
 .tuner-sheet.good .tn-name { color: var(--good); }
 .tn-hz { font-size: 16px; color: var(--dim); font-variant-numeric: tabular-nums; min-width: 170px; }
+.tn-hz:empty { display: none; } /* idle: the dash alone, centred */
 .tn-meter { position: relative; height: 46px; margin: 6px 6px 22px; border-bottom: 1px solid var(--lit); }
 .tn-meter i { position: absolute; bottom: 0; width: 1px; height: 12px; background: var(--lit); }
 .tn-meter b { position: absolute; bottom: -18px; transform: translateX(-50%); font-size: 14px; font-weight: 500; color: var(--dim); }
@@ -382,7 +383,7 @@ html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: r
 .end-score { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 16px; margin-bottom: 16px;
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .end-score-value { font-family: var(--display); font-weight: 800; font-size: 104px; line-height: 1.05; color: var(--text); transform: var(--lean);
-  text-shadow: 0 0 40px rgba(var(--hot-rgb), .4); }
+  text-shadow: 0 8px 30px rgba(0, 0, 0, .6); }
 .end-score-note { font-size: 16px; color: var(--text); }
 .end-score-note b { color: var(--good); font-weight: 700; }
 .end-more { margin: 8px 0 0; font-size: 16px; color: var(--dim); text-align: center; }
