@@ -122,7 +122,7 @@ input, so playing through an amp is never marked wrong. Tune first: the pitch ha
 <h3>Many misses?</h3>
 <p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
 PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
-panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or <kbd>S</kbd> on the end screen) keeps what the cable
+panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or on the end screen) keeps what the cable
 heard in the PumaBass folder, to find out why. Both are under <b>Takes</b>, at the foot of the Mix.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,

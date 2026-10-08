@@ -125,7 +125,7 @@ html .gk-menu button:hover:not(:disabled) { border-color: var(--lit); background
 html .gk-menu button.gk-primary { color: var(--text); background: linear-gradient(#18304a, #0f2034); border-color: var(--lit); font-weight: 700; }
 html .gk-menu button.gk-primary:hover:not(:disabled) { border-color: var(--lit); background: linear-gradient(#18304a, #0f2034); }
 html .gk-menu button.gk-primary kbd { color: var(--accent); border-color: rgba(var(--hot-rgb), .5); }
-html .gk-menu button.gk-primary .gk-meta { color: var(--dim); }
+html .gk-menu button.gk-primary .gk-meta { color: var(--ink); }
 html .gk-menu button:focus-visible { color: var(--bar-ink); border-color: var(--bar-top); background: linear-gradient(var(--bar-top), var(--bar-bot));
   box-shadow: var(--bar-lift); transform: scale(1.05); }
 html .gk-menu button:focus-visible .gk-meta, html .gk-menu button:focus-visible kbd { color: var(--bar-ink2); border-color: rgba(var(--bar-ink-rgb), .35); }
@@ -187,7 +187,6 @@ html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
 .song.noaudio .t, .song.noaudio .arr { color: var(--dim); }
 /* the favorite heart: hollow, then red when it's a favorite */
 button.heart { background: none; border: 0; box-shadow: none; min-height: 0; padding: 2px; font-size: 20px; line-height: 1; color: var(--lit); }
-button.heart:focus-visible { color: var(--bar-ink); }
 button.heart:hover:not(:disabled) { color: var(--danger); }
 button.heart[aria-pressed=true] { color: var(--danger); border: 0; background: none; }
 #fav-filter .heart-ico { color: var(--danger); }
@@ -202,7 +201,7 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; background: n
 #highway { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: var(--highway); }
 .p-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: var(--s4); padding: var(--s3) var(--s4);
   background: linear-gradient(rgba(var(--bg-rgb), .95), rgba(var(--bg-rgb), 0)); }
-.chip { color: var(--text); background: rgba(var(--panel-rgb), .9); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.chip { color: var(--text); background: rgba(var(--panel-rgb), .9); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 16px; font-weight: 600; white-space: nowrap; }
 /* the wordmark: Puma plain, Bass in the accent, leaning like the title */
 .wordmark { font-family: var(--display); font-size: 28px; font-weight: 800; text-transform: uppercase; color: var(--text); white-space: nowrap; transform: var(--lean); }
 .wordmark b { color: var(--accent); font-weight: 800; }
@@ -352,6 +351,7 @@ html .gk-sheet .gk-head [data-x]::after { content: ''; width: 18px; height: 18px
 html .gk-sheet .gk-head [data-x]:focus-visible::before { color: var(--bar-ink); border-color: rgba(var(--bar-ink-rgb), .4); background: none; }
 html .gk-sheet .gk-body h3 { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .06em; color: var(--accent); }
 html .gk-sheet .gk-note { font-size: 14px; }
+html .gk-sheet .gk-body p, html .gk-sheet .gk-note { max-width: 70ch; }
 html .gk-sheet kbd { font: 700 14px var(--ui); color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
 html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: rgba(var(--bar-ink-rgb), .4); background: none; }
 .gk-sheet code { color: var(--text); word-break: break-all; }
@@ -363,6 +363,10 @@ html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: r
   border: 1px solid var(--line); border-radius: 6px; padding: 4px; background: var(--bg); }
 .gk-sheet .folders button { text-align: left; min-height: 32px; border-color: transparent; background: none; box-shadow: none; }
 .gk-sheet .folders button:hover { background: var(--row); border-color: var(--lit); }
+/* buttons drawn without a tile still take the bar when they have focus */
+.gk-sheet .folders button:focus-visible, button.heart:focus-visible { color: var(--bar-ink); border-color: var(--bar-top);
+  background: linear-gradient(var(--bar-top), var(--bar-bot)); box-shadow: var(--bar-lift); border-radius: 6px; }
+button.heart:focus-visible { padding: 2px 6px; }
 .gk-sheet .warn { color: var(--warn); }
 
 @media (max-width: 720px) {

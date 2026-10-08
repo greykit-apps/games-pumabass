@@ -356,6 +356,7 @@ export function renderOverlay() {
   }
   el.classList.toggle('hidden', !mode);
   if (!mode) return;
+  el.setAttribute('aria-live', mode === 'count' ? 'off' : 'polite');
   if (el.dataset.big !== big) {
     // Each new number pulses in.
     el.classList.remove('tick');
@@ -504,9 +505,32 @@ $('difficulty').addEventListener('input', () => {
   applyDifficulty();
 });
 
-export const toggleSettingsPanel = () => $('settings').classList.toggle('hidden');
+/* The Mix: opening it puts the keys in it (the Song level first; Left/Right set a level,
+ * Tab moves on and stays inside), and closing it gives them back to where they were. */
+let mixBack = null;
+export function toggleSettingsPanel() {
+  const el = $('settings');
+  if (el.classList.contains('hidden')) {
+    mixBack = document.activeElement;
+    el.classList.remove('hidden');
+    $('volume').focus({ preventScroll: true });
+  } else closeMix();
+}
+export function closeMix() {
+  $('settings').classList.add('hidden');
+  if (mixBack && mixBack.isConnected && mixBack !== document.body) mixBack.focus({ preventScroll: true });
+  else document.activeElement.blur();
+  mixBack = null;
+}
 $('settings-btn').addEventListener('click', toggleSettingsPanel);
-$('settings-close').addEventListener('click', () => $('settings').classList.add('hidden'));
+$('settings-close').addEventListener('click', closeMix);
+$('settings').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const items = [...$('settings').querySelectorAll('input, button, summary')].filter(x => !x.disabled && x.offsetParent);
+  const i = items.indexOf(document.activeElement);
+  const to = e.shiftKey ? (i <= 0 ? items[items.length - 1] : null) : (i === items.length - 1 ? items[0] : null);
+  if (to) { e.preventDefault(); to.focus(); }
+});
 
 $('volume').addEventListener('input', () => { prefs.volume = Number($('volume').value); savePrefs(); applyMix(); });
 $('boost').addEventListener('input', () => { prefs.bassBoost = Number($('boost').value); savePrefs(); applyMix(); syncPlayerPrefs(); });
@@ -579,7 +603,7 @@ export function playerKey(e) {
   else if (k === '?' || k === 'h') openHelp();
   else if (k === 's' || k === 'S') { if (!audio.paused) togglePlay(); openSettings(); }
   else if (k === 'Escape') {
-    if (!$('settings').classList.contains('hidden')) $('settings').classList.add('hidden');
+    if (!$('settings').classList.contains('hidden')) closeMix();
     else closeSong();
   }
 }

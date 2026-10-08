@@ -108,7 +108,8 @@ export function showEndScreen() {
     e.stopPropagation(); // nothing reaches the player behind
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key;
-    if (k === ' ' || (k === 'Enter' && !e.target.closest('button'))) { e.preventDefault(); act('again'); }
+    if ((k === ' ' || k === 'Enter') && e.target.closest('button')) return; // the focused button takes it
+    if (k === ' ' || k === 'Enter') { e.preventDefault(); act('again'); }
     else if (k === 'r' || k === 'R') { e.preventDefault(); act('again'); }
     else if ((k === 'p' || k === 'P') && weak) { e.preventDefault(); act('practise'); }
     else if (k === 'm' || k === 'M') { e.preventDefault(); act('menu'); }

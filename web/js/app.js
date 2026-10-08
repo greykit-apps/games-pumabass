@@ -19,7 +19,7 @@ import { SERVER_API, SERVER_OLD } from './api.js';
 import { $, mixer, highway, input, screen, songs, info } from './core.js';
 import { applyMix } from './instrument.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
-import { title, showTitle, libraryLabel } from './menu.js';
+import { title, showTitle, libraryLabel, sheetKeys } from './menu.js';
 import { chart, session, openSong, scorer, sync, inputBetween, playerKey } from './player.js';
 import { calib, runCalibration, calibKey } from './sync-test.js';
 import { saveTake } from './takes.js';
@@ -39,9 +39,11 @@ document.addEventListener('keydown', e => {
  * at either end it wraps round, and from outside it comes back in. Sheets that already keep Tab
  * themselves have handled it by the time it bubbles up here. */
 window.addEventListener('keydown', e => {
-  if (e.key !== 'Tab' || e.defaultPrevented) return;
+  if (e.defaultPrevented) return;
   const sheet = [...document.querySelectorAll('.gk-sheet')].pop();
   if (!sheet) return;
+  if (sheetKeys(e, sheet)) return; // the title's own sheets scroll and switch tabs by keys too
+  if (e.key !== 'Tab') return;
   const items = [...sheet.querySelectorAll('button, input, select, a[href], [tabindex="0"]')].filter(x => !x.disabled && x.offsetParent);
   if (!items.length) return;
   const i = items.indexOf(document.activeElement);

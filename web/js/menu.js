@@ -151,6 +151,27 @@ export async function settingsClick(b, sheet) {
 }
 
 
+/* Keys inside any sheet: Up/Down, Page Up/Down (and Space when no button has it)
+ * scroll its body; Left/Right on a tab switch tabs. true when the key was one of these. */
+export function sheetKeys(e, el) {
+  const t = e.target, body = el.querySelector('.gk-body');
+  if (t.closest && t.closest('input, select, textarea')) return false;
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && t.getAttribute && t.getAttribute('role') === 'tab') {
+    const tabs = [...el.querySelectorAll('[role=tab]')], i = tabs.indexOf(t);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+    e.preventDefault(); next.click();
+    const now = el.querySelector(`[data-tab="${next.dataset.tab}"]`); if (now) now.focus();
+    return true;
+  }
+  if (!body) return false;
+  const step = { ArrowDown: 60, ArrowUp: -60, PageDown: body.clientHeight * 0.85, PageUp: -body.clientHeight * 0.85 }[e.key]
+    ?? (e.key === ' ' && !(t.closest && t.closest('button')) ? body.clientHeight * 0.85 : null);
+  if (step === null) return false;
+  e.preventDefault();
+  body.scrollBy({ top: step, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  return true;
+}
+
 /* A sheet of the title's style over the song list or the player: Help and
  * Settings away from the title. Tab stays inside it; Esc, × or a click
  * outside closes it, and focus goes back where it was. */
@@ -171,6 +192,7 @@ function openSheet(name, draw, onClick) {
   const onKey = e => {
     if ([...document.querySelectorAll('.gk-sheet')].pop() !== el) return; // a question asked over it has the keys
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+    if (sheetKeys(e, el)) { e.stopPropagation(); return; }
     if (e.key === 'Tab') {
       const bs = [...el.querySelectorAll('button, input, select')], i = bs.indexOf(document.activeElement);
       e.preventDefault();
