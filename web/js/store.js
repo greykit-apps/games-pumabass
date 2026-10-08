@@ -52,12 +52,19 @@ export const prefs = Object.assign({
   scoring: true,    // score the playing (only ever while an instrument input is open)
   inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
   screen: 'couch',  // 'couch': drawn bigger on a TV, to read from across the room; 'desk': as is
-  noteLabels: true, // fret numbers and technique marks on the notes
+  noteLabels: 'fret', // on the highway's notes: 'fret' numbers, note 'name's, or 'off'
+  notation: true,   // the notation band: standard notation over tab, above the highway
+  notationStaff: true, // the notation band's standard notation...
+  notationTab: true,   // ...and its tab, each on or off
+  staffNames: true, // note names under the notes in the notation band
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 // Settings that are gone: the tuner always offers itself, the riff repeater has
 // fixed steps, sound is always on.
 for (const k of ['hearLast', 'autoTune', 'repeatFrom', 'repeatStep']) delete prefs[k];
+// Note labels were on or off before note names joined them.
+if (prefs.noteLabels === true) prefs.noteLabels = 'fret';
+if (prefs.noteLabels === false) prefs.noteLabels = 'off';
 // Low string on top became the default, as in Rocksmith. Every saved setting carries
 // "invert", so the old default can't be told from a choice: everyone moves over
 // once, and Settings decides after that.

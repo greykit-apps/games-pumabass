@@ -8,6 +8,7 @@ import { Scorer } from './scoring.js';
 import { api } from './api.js';
 import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen, setInfo } from './core.js';
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
+import { setNotationSong, updateNotation } from './notation.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
 import { showLibrary } from './library-screen.js';
 import { openHelp } from './menu.js';
@@ -27,7 +28,7 @@ export let chart = null;
 export let song = null;
 export let loop = null; // { a, b }
 export let offsetMs = 0;
-export const clock = { raw: 0, stamp: 0 };
+export const clock = { raw: 0, stamp: 0, est: 0, at: 0 };
 export let lastResumeSave = 0;
 /* This sitting with the song, for the play counts: a play is counted the first
  * time it starts (a resumed song is the same play), and a finish when playback
@@ -50,8 +51,6 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
-  $('p-title').textContent = s.title;
-  $('p-sub').textContent = `${s.artist} · ${arrangementLabel(s)}`;
   $('back').innerHTML = '<kbd>Esc</kbd>Songs';
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
@@ -77,6 +76,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   renderLoop();
   applyDifficulty();
   buildSectionBar();
+  setNotationSong(chart, s.type);
 
   audio.src = `/api/audio/${encodeURIComponent(s.id)}`;
   audio.preservesPitch = true;
@@ -108,6 +108,36 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   // Straight into it: every song has ten seconds or so before its first note.
   // (Resume game counts back in, as a play after a pause does.)
   if (song === s && audio.paused) togglePlay();
+  if (song === s) showCaption(s.title, s.artist, [arrangementLabel(s), s.album, s.year].filter(Boolean).join(' · '));
+}
+
+/* N: the notation band goes standard notation, tab, both, off, and round again. */
+const NOTATION_STEPS = [
+  { name: 'staff', staff: true, tab: false, say: 'Standard notation' },
+  { name: 'tab', staff: false, tab: true, say: 'Tab' },
+  { name: 'both', staff: true, tab: true, say: 'Standard notation and tab' },
+  { name: 'off', say: 'Notation off' },
+];
+function cycleNotation() {
+  const now = !prefs.notation || (!prefs.notationStaff && !prefs.notationTab) ? 'off'
+    : prefs.notationStaff && prefs.notationTab ? 'both' : prefs.notationStaff ? 'staff' : 'tab';
+  const next = NOTATION_STEPS[(NOTATION_STEPS.findIndex(s => s.name === now) + 1) % NOTATION_STEPS.length];
+  prefs.notation = next.name !== 'off';
+  if (prefs.notation) { prefs.notationStaff = next.staff; prefs.notationTab = next.tab; }
+  savePrefs();
+  toast(next.say);
+}
+
+/* The song's name, as a music video credits it: lower left, just over the board,
+ * fading in as the song starts and out again (style.css). */
+function showCaption(title, by, more) {
+  const el = $('caption');
+  $('cap-title').textContent = title;
+  $('cap-by').textContent = by;
+  $('cap-more').textContent = more;
+  el.classList.remove('hidden', 'run');
+  void el.offsetWidth; // restart the fade
+  el.classList.add('run');
 }
 
 /* The sync test's song (web/js/sync-test.js): its own chart and audio, not the server's. */
@@ -120,9 +150,7 @@ export async function openTestSong(test, sub) {
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   $('loading').classList.remove('hidden');
-  $('p-title').textContent = 'Sync';
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
-  $('p-sub').textContent = sub;
   $('p-tuning').textContent = 'Open E string';
   $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
   offsetMs = 0;
@@ -141,6 +169,7 @@ export async function openTestSong(test, sub) {
   showFav();
   setSpeed(100);
   startScoring();
+  showCaption('Sync', sub, '');
 }
 
 export function saveResume() {
@@ -154,6 +183,8 @@ export function leaveSong() {
   clearTake();
   $('calib-cue').classList.add('hidden');
   $('metro').classList.add('hidden');
+  $('caption').classList.add('hidden');
+  $('caption').classList.remove('run');
   $('player').classList.remove('syncing');
   updateHud();
   audio.pause();
@@ -216,22 +247,31 @@ export function updateHud() {
   if (el.textContent !== text) el.textContent = text;
 }
 
-// Smooth song clock: audio.currentTime updates in coarse steps, so extrapolate between them.
+/* The song's time, as everything is drawn and judged by. The audio element reports
+ * its position in uneven steps (every 14 to 21 ms), and snapping to each report made
+ * the highway twitch, a little jump about once a second as the steps drifted against
+ * the frames. So the clock runs on steadily at the playback rate and is eased toward
+ * the reports (a tenth of the gap a call); a real jump (a seek, a stall) snaps. */
 export function songTime() {
   const t = audio.currentTime;
   const now = performance.now();
-  let est = t;
-  if (!audio.paused) {
+  if (audio.paused) {
+    clock.raw = t; clock.stamp = now; clock.est = t; clock.at = now;
+  } else {
+    const rate = audio.playbackRate;
     if (t !== clock.raw) { clock.raw = t; clock.stamp = now; }
-    est = clock.raw + Math.min(0.25, ((now - clock.stamp) / 1000) * audio.playbackRate);
-  } else { clock.raw = t; clock.stamp = now; }
-  return est - (offsetMs + prefs.avOffset) / 1000;
+    const reported = clock.raw + Math.min(0.25, ((now - clock.stamp) / 1000) * rate);
+    const steady = clock.est + ((now - clock.at) / 1000) * rate;
+    clock.est = Math.abs(reported - steady) > 0.05 ? reported : steady + (reported - steady) * 0.1;
+    clock.at = now;
+  }
+  return clock.est - (offsetMs + prefs.avOffset) / 1000;
 }
 
 export function seek(t, chosen = true) {
   if (chosen) { pausedAt = null; liveAt = null; }
   audio.currentTime = Math.max(0, Math.min(t, (audio.duration || chart.songLength) - 0.05));
-  clock.raw = audio.currentTime; clock.stamp = performance.now();
+  clock.raw = clock.est = audio.currentTime; clock.stamp = clock.at = performance.now();
   if (scorer) scorer.seek(songTime()); // carry on judging from here
   if (calib) calib.meter.seek(songTime());
 }
@@ -326,6 +366,21 @@ export function currentSection(t) {
   return cur;
 }
 
+/* The bar along the bottom: a block per section, coloured by its kind (every verse
+ * the same colour), with no names. Neighbouring kinds differ in hue and lightness. */
+const SECTION_KINDS = [
+  [/^(intro|outro|fade|silence|ambient|noguitar)/, '#3b4a66'], // slate: the ends, and gaps
+  [/^(pre|build)/, '#1f8790'],                                 // teal: the run into a chorus
+  [/chorus/, '#b4426b'],                                       // rose
+  [/verse|postvs/, '#2f63b3'],                                 // blue
+  [/bridge|brdg|transition|variation/, '#7a54c2'],             // violet
+  [/solo|tapping/, '#c07a1f'],                                 // amber
+  [/hook|melody/, '#36955a'],                                  // green
+  [/riff|vamp|head/, '#a39a2c'],                               // mustard
+  [/break|interlude/, '#9c5a3c'],                              // brown
+];
+const sectionColor = name => (SECTION_KINDS.find(([re]) => re.test(String(name).toLowerCase())) || [, '#5c6884'])[1];
+
 export function buildSectionBar() {
   const el = $('sections');
   el.innerHTML = '';
@@ -334,8 +389,9 @@ export function buildSectionBar() {
     const d = document.createElement('div');
     d.style.left = `${(s.t / len) * 100}%`;
     d.style.width = `${((s.end - s.t) / len) * 100}%`;
-    d.textContent = s.name === 'noguitar' ? '' : s.name;
+    d.style.background = sectionColor(s.name);
     d.title = `${s.name} (${formatTime(s.t)})`;
+    d.setAttribute('aria-label', d.title);
     el.appendChild(d);
   }
 }
@@ -475,6 +531,7 @@ export function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
+  else if (k === 'n' || k === 'N') cycleNotation();
   else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2665 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
@@ -506,6 +563,7 @@ export function frame() {
       t = songTime();
       loopCameRound();
     }
+    updateNotation(t, !calib);
     highway.draw(t);
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
@@ -544,8 +602,7 @@ export function frame() {
         $(id).classList.toggle('hot', db > -1);
       }
     }
-    const sec = currentSection(t);
-    $('section-name').textContent = sec && sec.name !== 'noguitar' ? sec.name : '';
+    if (!$('caption').classList.contains('hidden')) $('caption').style.bottom = `${highway.H - highway.boardTop + 12}px`;
     if (!audio.paused && performance.now() - lastResumeSave > 3000) { lastResumeSave = performance.now(); saveResume(); }
   }
   requestAnimationFrame(frame);

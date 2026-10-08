@@ -49,6 +49,7 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Home | Back to loop start (or song start) |
 | , | This song's settings: audio offset, highway, volume |
 | T | The tuner |
+| N | The notation over the highway: standard notation, tab, both, off |
 | B | Recorded bass: full, reduced, cut |
 | F | Make the song a favorite |
 | Mouse wheel (paused) | Scrub |
@@ -82,6 +83,27 @@ of your settings (and cleared by Forget everything).
 **Riff repeater** (`R`, or the button by Loop): loops the section and speeds it up each time round,
 from 60% to full speed in 5% steps. With scoring on, a time round only speeds it
 up when 70% of its notes were hit.
+
+## Reading music
+
+Over the top of the highway, the part scrolls by in **standard notation over tab**, as a printed bass
+chart has it, so you can learn to read while you play. `N` steps through standard notation, tab, both, and off
+(Settings → Notation has the same, and the names).
+A blue playhead sits a little in from the left: notes cross it as you play them, and the rest of the band
+is what's coming. The standard notation, the tab and the note names under the notes each turn on and off in Settings →
+Notation; with both staff and tab up, the gap between them is set for each song from its lowest and
+highest notes, so nothing runs into the tab. Settings → Highway can also put note names on the highway's
+notes instead of frets.
+
+- It's written from the chart: each note is fitted to the chart's own beats (16ths, or triplets where they
+  fit a beat better), its pitch is worked out from the string, fret and tuning, and the key signature is
+  the one that leaves the fewest accidentals. Bass is written an octave above where it sounds, in bass
+  clef, as bass parts are; guitar likewise in treble clef.
+- Rocksmith's timings aren't perfectly on the grid, so now and then a rhythm is written a little
+  differently from how you'd write it by hand. Slides, hammer-ons and the like are shown on the highway,
+  not yet marked in the notation or the tab.
+- Drawn by [VexFlow](https://www.vexflow.com/) 5.0.0 (MIT), kept in `web/vendor/vexflow/` so it works
+  without the internet.
 
 ## Songs without audio
 

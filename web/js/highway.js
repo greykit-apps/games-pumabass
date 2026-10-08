@@ -2,6 +2,8 @@
 // World units: X = frets (fret wire k sits at x = k), Y = height above the floor,
 // Z = distance into the screen (proportional to time until the note).
 
+import { pitchOf, keyOf, noteName, isDownbeat } from './chart.js';
+
 export const STRING_COLORS = ['#e8413c', '#f2c623', '#2e8ff0', '#f5892a', '#3fc75e', '#b351e8'];
 const INLAYS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
 const MAX_FRET = 24;
@@ -20,6 +22,10 @@ const moveTime = frets => Math.min(MOVE_MAX, Math.max(MOVE_MIN, 1.4 + 0.18 * Mat
 // A single note comes in standing on end and turns as it nears, lying flat along its
 // string the moment it reaches it, as in Rocksmith: a second way to see when. Seconds:
 const TURN_S = 1;
+// Notes come into being past the far end of the floor, fully transparent, and fade
+// in as they approach: no popping into view. As fractions of the lookahead's depth:
+const SPAWN = 1.12;  // where a note (or beat line) first exists
+const SOLID = 0.8;   // where it is fully drawn
 
 export class Highway {
   constructor(canvas) {
@@ -30,7 +36,7 @@ export class Highway {
     this.anchors = [];
     this.lookahead = 3.0;   // seconds of notes visible
     this.invert = true;     // true = low string on top, as in Rocksmith
-    this.labels = true;     // fret numbers and technique marks on the notes
+    this.labels = 'fret';   // on the notes: 'fret' numbers, note 'name's, or 'off'; technique marks with either
     this.camX = 5;
     this.camWidth = MIN_VIEW;
     this.camPath = null;
@@ -46,7 +52,7 @@ export class Highway {
     const L = this.loop, out = [];
     if (!L || L.to - L.from < 0.5) return out;
     const period = L.to - L.from;
-    for (let k = 1; L.to + (k - 1) * period < now + this.lookahead && k < 20; k++) out.push(k * period);
+    for (let k = 1; L.to + (k - 1) * period < now + this.lookahead * SPAWN && k < 20; k++) out.push(k * period);
     return out;
   }
 
@@ -69,6 +75,7 @@ export class Highway {
     this.notes = playable.notes;
     this.anchors = playable.anchors;
     this.camPath = planCamera(this.notes, this.anchors);
+    this.flats = keyOf(chart, this.notes).flats; // how note names are spelt
   }
 
   // The camera window (centre and visible width, in frets) at song time t,
@@ -145,6 +152,7 @@ export class Highway {
     const boardBottom = H - 96 - this.labelPx - 10; // leave room for fret numbers and the control bar
     this.zScale = 40 / this.lookahead;             // world units per second
     const zMax = this.lookahead * this.zScale;
+    this.zSolid = zMax * SOLID; this.zSpawn = zMax * SPAWN;
     // Pick the camera height so the far end of the highway lands near the top of the screen
     // (shrink = how small the far end is drawn), but always high enough to look down onto the strings.
     const shrink = D / (zMax + D);
@@ -221,6 +229,11 @@ export class Highway {
   }
 
   zOf(t, now) { return (t - now) * this.zScale; }
+  // How solid a thing at depth z is drawn: 0 where it spawns, 1 from zSolid in, eased.
+  farAlpha(z) {
+    const k = Math.min(1, Math.max(0, (this.zSpawn - z) / (this.zSpawn - this.zSolid)));
+    return k * k * (3 - 2 * k);
+  }
 
   drawFloor(now, zMax, current) {
     // Base floor.
@@ -255,13 +268,16 @@ export class Highway {
   }
 
   beatsAt(now, lo, hi) {
-    for (const b of this.chart.beats) {
+    const beats = this.chart.beats;
+    for (let i = 0; i < beats.length; i++) {
+      const b = beats[i];
       if (b.t < now - 0.05 || b.t < lo) continue;
-      if (b.t > now + this.lookahead || b.t >= hi) break;
-      const z = this.zOf(b.t, now);
-      const measure = b.m !== null;
+      if (b.t > now + this.lookahead * SPAWN || b.t >= hi) break;
+      const z = this.zOf(b.t, now), a = this.farAlpha(z);
+      if (a <= 0) continue;
+      const measure = isDownbeat(beats, i); // a bar line, stronger than a beat's
       const x0 = this.camX - this.camWidth * 2, x1 = this.camX + this.camWidth * 2;
-      this.line([x0, 0, z], [x1, 0, z], measure ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.12)', measure ? 2 : 1);
+      this.line([x0, 0, z], [x1, 0, z], `rgba(255,255,255,${(measure ? 0.32 : 0.12) * a})`, measure ? 2 : 1);
     }
   }
 
@@ -269,6 +285,7 @@ export class Highway {
     const { ctx } = this;
     const nStr = this.chart.strings;
     const yTop = this.stringY(this.invert ? 0 : nStr - 1) + 0.3;
+    this.boardTop = this.P(0, yTop, 0)[1]; // the board's top edge on screen, for what sits over it
     // Board backing.
     this.quad([[0, 0, 0], [MAX_FRET, 0, 0], [MAX_FRET, yTop, 0], [0, yTop, 0]], 'rgba(30,24,20,0.55)');
     // Fret wires.
@@ -326,7 +343,7 @@ export class Highway {
       const at = now - shifts[k], round = [];
       for (const n of notes) {
         if (n.t < L.from) continue;
-        if (n.t >= L.to || n.t > at + this.lookahead) break;
+        if (n.t >= L.to || n.t > at + this.lookahead * SPAWN) break;
         if (n.t + (n.sus || 0) >= at - 0.25) round.push(n);
       }
       for (let i = round.length - 1; i >= 0; i--) this.drawEvent(round[i], at, zMax);
@@ -334,7 +351,7 @@ export class Highway {
     const visible = [];
     for (let i = lo; i < notes.length; i++) {
       const n = notes[i];
-      if (n.t > now + this.lookahead || (L && n.t >= L.to)) break;
+      if (n.t > now + this.lookahead * SPAWN || (L && n.t >= L.to)) break;
       const end = n.t + (n.sus || 0);
       if (end < now - 0.25) continue;
       visible.push(n);
@@ -354,9 +371,10 @@ export class Highway {
     }
     if (zNote < -0.5) return; // the gem has passed; only the sustain remains
     const passed = n.t < now;
-    const alpha = passed ? Math.max(0, 1 - (now - n.t) / 0.2) : 1;
-    if (alpha <= 0) return;
     const z = Math.max(0, zNote);
+    // Fading out once played, and in from the far end.
+    const alpha = (passed ? Math.max(0, 1 - (now - n.t) / 0.2) : 1) * this.farAlpha(z);
+    if (alpha <= 0) return;
 
     // Every note's tail first, so none is drawn over a note: notes played together
     // (an open string under a fretted one, say) stack on one mark and land as one.
@@ -372,8 +390,8 @@ export class Highway {
 
   drawSustain(p, t, sus, now, zMax, anchor) {
     const z0 = Math.max(0, this.zOf(t, now));
-    const z1 = Math.min(zMax, this.zOf(t + sus, now));
-    if (z1 <= z0) return;
+    const z1 = Math.min(this.zSpawn, this.zOf(t + sus, now));
+    if (z1 <= z0 || z0 >= this.zSpawn) return;
     const y = this.stringY(p.s);
     const startX = this.noteX(p.f, anchor);
     const endX = p.slideTo !== undefined ? this.noteX(p.slideTo, anchor) : startX;
@@ -395,7 +413,15 @@ export class Highway {
     left.forEach(([x, yy], i) => (i ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy)));
     for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
     ctx.closePath();
-    ctx.fillStyle = hexA(STRING_COLORS[p.s], 0.45);
+    const color = STRING_COLORS[p.s];
+    if (z1 <= this.zSolid) ctx.fillStyle = hexA(color, 0.45);
+    else {
+      // Reaching into the far end: fade along its length, as the notes do there.
+      const a = this.P(startX, y, z0), b = this.P(xAt(z1), y, z1);
+      const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
+      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, hexA(color, 0.45 * this.farAlpha(z0 + ((z1 - z0) * i) / 4)));
+      ctx.fillStyle = g;
+    }
     ctx.fill();
   }
 
@@ -485,13 +511,14 @@ export class Highway {
     // box, is fitted to the gem's height and width and centred on the gem.
     // (The border is stroked on the edge, so half of it is inside.) It stays
     // upright while the gem turns, shrinking to what fits at any angle.
-    if (!muted && this.labels) {
+    if (!muted && this.labels !== 'off') {
       const k = Math.sin(turn), inner = h - border - Math.max(2, h * 0.14);
-      drawFitted(ctx, String(p.f), cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k);
+      const text = this.labels === 'name' ? noteName(pitchOf(this.chart, p.s, p.f), this.flats) : String(p.f);
+      drawFitted(ctx, text, cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k);
     }
 
     // Technique labels above the gem.
-    const label = this.labels && techLabel(p, tech);
+    const label = this.labels !== 'off' && techLabel(p, tech);
     if (label && s > 12) {
       ctx.font = `bold ${Math.round(s * 0.24)}px system-ui, sans-serif`;
       ctx.textBaseline = 'bottom';
@@ -517,7 +544,11 @@ function drawFitted(ctx, text, cx, cy, maxW, maxH) {
   ctx.font = `bold ${px}px system-ui, sans-serif`;
   m = ctx.measureText(text);
   ctx.fillStyle = '#111';
+  // Fade in as it grows legible, rather than appear at a size.
+  const was = ctx.globalAlpha;
+  ctx.globalAlpha = was * Math.min(1, (px - 6) / 5);
   ctx.fillText(text, cx, cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+  ctx.globalAlpha = was;
 }
 
 function techLabel(p, tech) {

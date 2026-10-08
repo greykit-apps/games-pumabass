@@ -23,13 +23,15 @@ ${keys([
     ['B', 'recorded bass: full, reduced, cut'],
     ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
+    ['N', 'the notation over the highway: standard, tab, both, off'],
     ['Esc', 'back to the song list'],
   ])}
 <h3>At the end of a song</h3>
 <p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
 your score when scoring was on. <kbd>Space</kbd> goes to the
 main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
-<p>Click the bar along the bottom to jump; it is split into the song's sections. Shift+click moves the nearest
+<p>Click the bar along the bottom to jump; it is split into the song's sections, coloured by kind (every verse
+the same colour, every chorus another). Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
 <h3>Keys in the song list</h3>
 ${keys([
@@ -114,6 +116,9 @@ heard in the PumaBass folder, to find out why.</p>`],
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
 <b style="color:#b351e8">e</b> purple), with the low string on top (Settings can turn it over). The number on a note is the
 fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
+<p>Over the top, the same part scrolls by as standard notation over tab (<kbd>N</kbd> steps through standard, tab, both and off). Each
+note crosses the blue line as you play it; what's to the right is coming. The names under the notes are there
+to learn the clef by. The notation, the tab and the names each turn on and off in Settings.</p>
 <p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
 as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
 floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>
