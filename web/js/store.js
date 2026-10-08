@@ -6,7 +6,6 @@ export const KEY_PREFS = 'pumabass_prefs_v1';      // song-list filters and play
 export const KEY_OFFSETS = 'pumabass_offsets_v1';  // per-song audio offset, ms
 export const KEY_RECENT = 'pumabass_recent_v1';    // per-song last-opened time
 export const KEY_RESUME = 'pumabass_resume_v1';    // the song and spot you left off at
-export const KEY_MUTED = 'pumabass_muted_v1';      // "1" muted, "0" not (§8)
 export const KEY_TUNER = 'pumabass_tuner_v1';      // the day and tuning you last tuned to
 export const KEY_FAVS = 'pumabass_favorites_v1';   // { id: true } for each favorite part
 export const KEY_STATS = 'pumabass_stats_v1';      // { id: { plays, finished, last } }
@@ -40,7 +39,7 @@ export function save(key, value) {
 })();
 
 // Lessons were taken out: their progress goes too.
-try { localStorage.removeItem('pumabass_lessons_v1'); } catch (e) { /* no storage */ }
+try { localStorage.removeItem('pumabass_lessons_v1'); localStorage.removeItem('pumabass_muted_v1'); } catch (e) { /* no storage */ }
 
 export const prefs = Object.assign({
   type: 'bass', sort: 'artist', showMissing: false, difficulty: 100, lookahead: 3, invert: false, volume: 100, startSpeed: 100,
@@ -48,16 +47,15 @@ export const prefs = Object.assign({
   hear: false,      // play the input through the speakers
   bassBoost: 12,    // dB added to the input: the cable's signal is quiet next to a finished record
   recordedBass: 'full', // the song's own bass: full, reduced or cut (RECORDED_BASS)
-  autoTune: true,   // open the tuner on the day's first song and when the tuning changes
   favOnly: false,   // the song list shows favorites only
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
   scoring: true,    // score the playing (only ever while an instrument input is open)
-  repeatFrom: 60,   // the riff repeater starts here (%), when the song is at full speed
-  repeatStep: 5,    // and speeds up this much (%) each time round
   inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
-delete prefs.hearLast;
+// Settings that are gone: the tuner always offers itself, the riff repeater has
+// fixed steps, sound is always on.
+for (const k of ['hearLast', 'autoTune', 'repeatFrom', 'repeatStep']) delete prefs[k];
 export const savePrefs = () => save(KEY_PREFS, prefs);
 
 /* ---- favorites and play counts ---- */

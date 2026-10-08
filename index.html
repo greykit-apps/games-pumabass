@@ -42,7 +42,6 @@
           <h1>Songs</h1>
           <span id="count" class="muted small"></span>
           <span class="grow"></span>
-          <span class="snd-slot"></span>
           <span class="brand">PumaBass</span>
         </header>
         <div class="topline"><i></i></div>
@@ -68,7 +67,7 @@
         <nav class="bar">
           <button data-act="menu"><kbd>Esc</kbd>Menu</button>
           <span class="grow"></span>
-          <span id="missing-note" class="muted small"></span>
+          <button id="missing-toggle" class="hidden" title="Charts with no audio yet: put a recording in the music folder, then Rescan"></button>
           <button data-act="rescan" title="Look for new songs and for recordings in the music folder">Rescan</button>
           <button data-act="help" aria-label="Help" title="How to play (?)">?</button>
         </nav>
@@ -90,7 +89,6 @@
       <div id="p-tuning" class="chip"></div>
       <span id="score-hud" class="chip hidden" aria-live="off" title="Accuracy so far, and your current streak"></span>
       <button id="tuner-btn" title="Tune with the Real Tone Cable (T)"><kbd>T</kbd>Tuner</button>
-      <span class="snd-slot"></span>
     </div>
     <div id="section-name"></div>
     <div id="toast" class="hidden" role="status"></div>

@@ -167,7 +167,7 @@ export async function showTuner() {
 /* The tuner by itself: on the day's first song, and when the tuning changes.
  * Only when an input was chosen before and is plugged in now: never a nag. */
 export async function maybeAutoTune() {
-  if (!prefs.autoTune || !prefs.input || !chart) return;
+  if (!prefs.input || !chart) return;
   const last = load(KEY_TUNER, {});
   if (last.day === today() && last.tuning === tuningKey(chart.tuning, chart.strings, chart.centOffset)) return;
   if (await ensureInput({ ask: false })) await showTuner();

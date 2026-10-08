@@ -2,9 +2,11 @@
 
 import { $, toast } from './core.js';
 import { chart, loop, scorer, toggleSectionLoop, renderLoop, setSpeed } from './player.js';
-import { prefs } from './store.js';
 
 /* ---- the riff repeater: the loop, a little faster each time round ---- */
+const REPEAT_FROM = 60; // % it starts at, when the song is at full speed
+const REPEAT_STEP = 5;  // % faster each time round
+
 export let repeater = null; // while on: { passes, mark } (mark: scoring's counts when this time round began)
 export function stopRepeater() { repeater = null; }
 
@@ -13,7 +15,7 @@ export function toggleRepeater() {
   if (repeater) { repeater = null; toast('Riff repeater off'); }
   else {
     if (!loop) toggleSectionLoop();
-    if (Number($('speed').value) >= 100) setSpeed(prefs.repeatFrom);
+    if (Number($('speed').value) >= 100) setSpeed(REPEAT_FROM);
     repeater = { passes: 0, mark: scorer ? { hits: scorer.hits, judged: scorer.judged } : null };
     toast(`Riff repeater: ${$('speed').value}% up to 100%`);
   }
@@ -33,7 +35,7 @@ export function repeaterPass() {
   repeater.mark = scorer ? { hits: scorer.hits, judged: scorer.judged } : null;
   if (v >= 100) { toast(`Full speed, time ${repeater.passes}${note}`); return; }
   if (!good) { toast(`Again at ${v}%${note} (70% to speed up)`); return; }
-  const next = Math.min(100, v + prefs.repeatStep);
+  const next = Math.min(100, v + REPEAT_STEP);
   setSpeed(next);
   toast(next >= 100 ? `Full speed!${note}` : `Speed ${next}%${note}`);
 }

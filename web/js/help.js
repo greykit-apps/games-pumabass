@@ -23,7 +23,6 @@ ${keys([
     ['B', 'recorded bass: full, reduced, cut'],
     ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
-    ['M', 'sound on / off, anywhere'],
     ['Esc', 'back to the song list'],
   ])}
 <h3>At the end of a song</h3>
@@ -56,8 +55,8 @@ slower speed.</p>
 <p><kbd>L</kbd> loops the section you are in, with a second's run-up each time round. For a tighter loop, set
 your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 <h3>Riff repeater</h3>
-<p><kbd>R</kbd> loops the section and plays it a little faster each time round, from 60% up to full speed (Settings
-sets where it starts and how big the steps are). With scoring on, a time round only speeds it up when 70% of its
+<p><kbd>R</kbd> loops the section and plays it a little faster each time round, from 60% up to full speed, 5% at a
+time. With scoring on, a time round only speeds it up when 70% of its
 notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 <h3>Fewer notes</h3>
 <p><b>Difficulty</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
@@ -76,8 +75,8 @@ which sets scoring's timing for the cable. Run it again after changing speakers,
 player). The tuner knows the tuning the song wants, including the few cents some Rocksmith songs are off A440
 because their recording was. Play each open string: the needle shows how far off it is, and a string is ticked
 once it holds in tune.</p>
-<p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Settings can
-turn that off.</p>
+<p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Already in
+tune? Close it and play.</p>
 <h3>Hearing your bass</h3>
 <p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner, the Mix, or
 Settings) plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
@@ -135,7 +134,7 @@ their charts, the second their audio.</p>
 <h3>Charts without audio</h3>
 <p>Some charts arrive without their audio (the Rocksmith 1 DLC pack, for one). Drop your own recording into the
 PumaBass <code>music</code> folder, named like <code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press
-<b>Rescan</b>. Settings can show the charts that are still waiting for one.</p>
+<b>Rescan</b>. The song list hides the charts still waiting for one; the button at its foot shows them.</p>
 <p>A recording of your own rarely lines up with the chart exactly: use the song's audio offset (<kbd>,</kbd>), which
 goes up to 15 seconds either way for these.</p>`],
 ];

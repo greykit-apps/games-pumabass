@@ -162,7 +162,8 @@ export function renderLibrary() {
   el.appendChild(frag);
   $('count').textContent = `${list.length} ${prefs.favOnly ? (list.length === 1 ? 'favorite' : 'favorites') : list.length === 1 ? 'part' : 'parts'}`;
   const missing = ofType.filter(s => s.audio === false).length;
-  $('missing-note').textContent = missing && !prefs.showMissing ? `${missing} without audio hidden (Settings)` : '';
+  $('missing-toggle').classList.toggle('hidden', !missing);
+  $('missing-toggle').textContent = prefs.showMissing ? `Hide the ${missing} without audio` : `Show ${missing} without audio`;
 }
 
 /* Star a part, from its row: the row stays where it is (it only leaves the
@@ -183,6 +184,7 @@ $('song-list').addEventListener('click', e => {
   if (s && s.audio !== false) openSong(s);
 });
 $('search').addEventListener('input', renderLibrary);
+$('missing-toggle').addEventListener('click', () => { prefs.showMissing = !prefs.showMissing; savePrefs(); renderLibrary(); });
 $('sort').addEventListener('change', () => { prefs.sort = $('sort').value; savePrefs(); renderLibrary(); });
 $('fav-filter').addEventListener('click', () => { prefs.favOnly = !prefs.favOnly; savePrefs(); renderLibrary(); });
 $('type-filter').addEventListener('click', e => {

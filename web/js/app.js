@@ -15,7 +15,7 @@
 import { runBoot, bootReloadLine, injectTitleCSS, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { SERVER_API, SERVER_OLD } from './api.js';
-import { $, mixer, highway, input, muted, setMuted, screen, songs, info } from './core.js';
+import { $, mixer, highway, input, screen, songs, info } from './core.js';
 import { applyMix } from './instrument.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
 import { title, showTitle } from './menu.js';
@@ -27,7 +27,6 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (document.querySelector('.gk-sheet')) return; // an open sheet has the keys
   const typing = !!(e.target.closest && e.target.closest('input[type=search],input[type=text],select'));
-  if ((e.key === 'm' || e.key === 'M') && !typing) { e.preventDefault(); setMuted(!muted); return; }
   if (calib && screen === 'player' && calibKey(e)) return;
   if (screen === 'library') libraryKey(e, typing);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
