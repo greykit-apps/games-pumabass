@@ -225,6 +225,11 @@ On a big screen PumaBass draws every screen larger, laid out as a 1280 × 720 wi
 on a 1080p TV), so it reads from the couch. At a desk, **Settings → Screen → Computer, up close**
 turns that off.
 
+While PumaBass is open it keeps the screen from sleeping (the browser's Screen Wake Lock), so the TV
+doesn't dim mid-song. The browser passes the
+request on to the system, and how well that holds depends on the desktop: if the screen still blanks on
+the set-top PC, switch its screensaver or display power saving off (e.g. `xset s off -dpms`).
+
 ### Notes
 
 - vgmstream is found in `tools/vgmstream/`, or on your `PATH`. The release is pinned in

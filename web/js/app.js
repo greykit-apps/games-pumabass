@@ -11,6 +11,7 @@
 //   takes.js           takes, for tuning scoring
 //   sync-test.js       the sync test's flow
 //   instrument.js      the input, the mix, the tuner
+//   wake.js            keeping the screen on while PumaBass is open
 
 import { runBoot, bootReloadLine, injectTitleCSS, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
@@ -23,6 +24,7 @@ import { chart, session, openSong, scorer, sync, inputBetween, playerKey } from 
 import { calib, runCalibration, calibKey } from './sync-test.js';
 import { saveTake } from './takes.js';
 import { applyScreen } from './store.js';
+import { keepScreenOn } from './wake.js';
 
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -37,6 +39,7 @@ window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix
 
 /* ---- start: the boot plays while the song index loads, then the title ---- */
 applyScreen();
+keepScreenOn();
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'), 'pb-beam-list');
 const boot = runBoot({ lines: [bootReloadLine(), 'local server: your Rocksmith 2014 install'] });
