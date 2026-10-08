@@ -1,7 +1,7 @@
 // The player: a song on the highway, its controls, and
 // the frame loop that drives them.
 
-import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel } from './chart.js';
+import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel, sectionName } from './chart.js';
 import { alertSheet } from './title.js';
 import { RECORDED_BASS } from './mixer.js';
 import { Scorer } from './scoring.js';
@@ -10,8 +10,8 @@ import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen,
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
 import { setNotationSong, updateNotation } from './notation.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
-import { showLibrary } from './library-screen.js';
-import { openHelp } from './menu.js';
+import { showLibrary, showSongInList } from './library-screen.js';
+import { openHelp, openSettings } from './menu.js';
 import { repeater, stopRepeater, toggleRepeater, repeaterPass } from './repeater.js';
 import { KEY_OFFSETS, KEY_RECENT, KEY_RESUME, load, save, prefs, savePrefs, isFav, toggleFav, bumpStat } from './store.js';
 import { calib, playAlongDone, endSync, syncFrame } from './sync-test.js';
@@ -50,7 +50,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   stopRepeater();
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
-  $('loading').classList.remove('hidden');
+  showLoading(`Loading ${s.title}`);
   $('back').innerHTML = '<kbd>Esc</kbd>Songs';
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
@@ -72,6 +72,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   const range = s.audio === 'user' ? 15000 : 500;
   $('offset').min = -range; $('offset').max = range; $('offset').step = s.audio === 'user' ? 10 : 5;
   $('offset').value = offsetMs; showOffset();
+  $('settings').classList.toggle('own-audio', s.audio === 'user'); // whole seconds only make sense for your own recordings
   loop = null;
   renderLoop();
   applyDifficulty();
@@ -80,18 +81,19 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
 
   audio.src = `/api/audio/${encodeURIComponent(s.id)}`;
   audio.preservesPitch = true;
+  // A song's first play decodes its audio on the server, which takes a few seconds; after that it's kept.
+  const slow = setTimeout(() => { if (song === s) showLoading(`Loading ${s.title}`, 'Decoding its audio: the first play of a song takes a few seconds'); }, 1200);
   await new Promise(resolve => {
     const done = () => { audio.removeEventListener('canplay', done); audio.removeEventListener('error', done); resolve(); };
     audio.addEventListener('canplay', done); audio.addEventListener('error', done);
   });
+  clearTimeout(slow);
   $('loading').classList.add('hidden');
   if (audio.error) {
-    setInfo(await api('/api/info').catch(() => info));
+    const why = await audioTrouble(s);
     chart = null; // nothing to resume
     closeSong();
-    await alertSheet(info.vgmstream === false
-      ? `Song audio needs vgmstream, which isn't installed yet. In the PumaBass folder run tools/get-vgmstream.sh (on Windows, see README.md), then open "${s.title}" again.`
-      : `The audio for "${s.title}" couldn't be played.`, "Can't play the song");
+    await alertSheet(why, "Can't play the song");
     return;
   }
   audio.currentTime = startAt;
@@ -104,11 +106,36 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   updatePlayButton();
   saveResume();
   await maybeAutoTune();
+  // Scoring on and an input chosen before: open it now, quietly, so a song never goes unscored
+  // just because nothing had opened the cable since PumaBass started.
+  if (prefs.scoring && prefs.input && !input.open) await ensureInput({ ask: false });
   startScoring();
   // Straight into it: every song has ten seconds or so before its first note.
   // (Resume game counts back in, as a play after a pause does.)
   if (song === s && audio.paused) togglePlay();
   if (song === s) showCaption(s.title, s.artist, [arrangementLabel(s), s.album, s.year].filter(Boolean).join(' · '));
+}
+
+/* What's being loaded, and why it's taking a while when it is. */
+function showLoading(what, more = '') {
+  $('loading').innerHTML = `<b></b><span></span>`;
+  $('loading').firstChild.textContent = what;
+  $('loading').lastChild.textContent = more;
+  $('loading').classList.remove('hidden');
+}
+
+/* The song's audio didn't play: ask the server why, and say what to do about it. */
+async function audioTrouble(s) {
+  setInfo(await api('/api/info').catch(() => info));
+  if (info.vgmstream === false) return `Song audio needs vgmstream, which isn't installed yet. In the PumaBass folder run tools/get-vgmstream.sh (on Windows, see README.md), then open "${s.title}" again.`;
+  const r = await fetch(`/api/audio/${encodeURIComponent(s.id)}`, { headers: { Range: 'bytes=0-0' } }).catch(() => null);
+  if (!r) return `PumaBass's server isn't answering, so "${s.title}" couldn't load. Check that it's running, then open the song again.`;
+  if (r.status === 404) return `The audio for "${s.title}" isn't where it was: its song file may have been moved or deleted. Rescan the song list (at its foot), then try again.`;
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    return `Decoding the audio for "${s.title}" failed${e.error ? ` (${e.error})` : ''}. Open it again; if it fails twice, its song file may be damaged.`;
+  }
+  return `The browser couldn't play the audio for "${s.title}". Open it again; if it fails twice, its file may be in a format this browser can't play.`;
 }
 
 /* N: the notation band goes standard notation, tab, both, off, and round again. */
@@ -149,7 +176,7 @@ export async function openTestSong(test, sub) {
   stopRepeater();
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
-  $('loading').classList.remove('hidden');
+  showLoading('Loading the sync test');
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
   $('p-tuning').textContent = 'Open E string';
   $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
@@ -200,9 +227,16 @@ export function closeSong() {
   if (calib) { endSync(); return; }
   saveResume();
   leaveSong();
-  showLibrary();
-  const row = $('song-list').querySelector(`.song[data-id="${CSS.escape(song.id)}"]`);
-  if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'center' }); }
+  showSongInList(song.id);
+}
+
+/* From the end screen: the song again from one section, looped, with the riff
+ * repeater on, so it starts slower and comes up to speed. */
+export async function practiseSection(s, sec) {
+  await openSong(s, sec.t);
+  if (song !== s || !chart) return;
+  loop = { a: sec.t, b: sec.end };
+  if (!repeater) toggleRepeater(); else renderLoop();
 }
 
 export function applyDifficulty() {
@@ -239,6 +273,9 @@ export function inputBetween(t0, t1) {
 }
 
 export function updateHud() {
+  // Scoring wanted but no input open: say so where the score would be, and offer the input.
+  const off = !scorer && prefs.scoring && !!chart && !(song && song.calib) && !input.open;
+  $('no-score').classList.toggle('hidden', !off);
   const el = $('score-hud');
   el.classList.toggle('hidden', !scorer);
   if (!scorer) return;
@@ -293,6 +330,10 @@ export function togglePlay() {
   }
 }
 
+/* While paused, the keys worth knowing, so none has to be remembered. */
+const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['\u2191 \u2193', 'speed'], ['N', 'notation'], [',', 'mix'], ['?', 'all keys'], ['Esc', 'song list']]
+  .map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</span>`;
+
 /* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
 export function renderOverlay() {
   const el = $('overlay');
@@ -303,6 +344,7 @@ export function renderOverlay() {
     liveShownAt = 0;
     big = 'PAUSED';
     small = pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
+    small += PAUSED_KEYS;
   } else if (liveAt !== null) {
     const left = (liveAt - audio.currentTime) / audio.playbackRate;
     if (left > 0) { mode = 'count'; big = String(Math.ceil(left)); small = 'back in at ' + formatTime(liveAt); liveShownAt = 0; }
@@ -314,6 +356,7 @@ export function renderOverlay() {
   }
   el.classList.toggle('hidden', !mode);
   if (!mode) return;
+  el.setAttribute('aria-live', mode === 'count' ? 'off' : 'polite');
   if (el.dataset.big !== big) {
     // Each new number pulses in.
     el.classList.remove('tick');
@@ -338,14 +381,14 @@ export function checkFinished(t) {
   if (session.heard < 0.5 * Math.max(1, session.end - session.start)) return;
   session.finished = true;
   bumpStat(session.id, 'finished');
-  toast('Finished \u2713');
+  toast('Finished');
 }
 
 export function showFav() {
   $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
-  $('fav-btn').textContent = on ? '\u2665' : '\u2661';
+  $('fav-btn').setAttribute('aria-label', song ? `Favorite: ${song.title}` : 'Favorite');
 }
 $('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
@@ -390,7 +433,7 @@ export function buildSectionBar() {
     d.style.left = `${(s.t / len) * 100}%`;
     d.style.width = `${((s.end - s.t) / len) * 100}%`;
     d.style.background = sectionColor(s.name);
-    d.title = `${s.name} (${formatTime(s.t)})`;
+    d.title = `${sectionName(s.name)} (${formatTime(s.t)})`;
     d.setAttribute('aria-label', d.title);
     el.appendChild(d);
   }
@@ -440,6 +483,7 @@ export function renderLoop() {
 }
 
 $('back').addEventListener('click', closeSong);
+$('no-score').addEventListener('click', async () => { if (await ensureInput()) startScoring(); });
 $('tuner-btn').addEventListener('click', showTuner);
 $('play').addEventListener('click', togglePlay);
 $('loop').addEventListener('click', toggleSectionLoop);
@@ -461,9 +505,32 @@ $('difficulty').addEventListener('input', () => {
   applyDifficulty();
 });
 
-export const toggleSettingsPanel = () => $('settings').classList.toggle('hidden');
+/* The Mix: opening it puts the keys in it (the Song level first; Left/Right set a level,
+ * Tab moves on and stays inside), and closing it gives them back to where they were. */
+let mixBack = null;
+export function toggleSettingsPanel() {
+  const el = $('settings');
+  if (el.classList.contains('hidden')) {
+    mixBack = document.activeElement;
+    el.classList.remove('hidden');
+    $('volume').focus({ preventScroll: true });
+  } else closeMix();
+}
+export function closeMix() {
+  $('settings').classList.add('hidden');
+  if (mixBack && mixBack.isConnected && mixBack !== document.body) mixBack.focus({ preventScroll: true });
+  else document.activeElement.blur();
+  mixBack = null;
+}
 $('settings-btn').addEventListener('click', toggleSettingsPanel);
-$('settings-close').addEventListener('click', () => $('settings').classList.add('hidden'));
+$('settings-close').addEventListener('click', closeMix);
+$('settings').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const items = [...$('settings').querySelectorAll('input, button, summary')].filter(x => !x.disabled && x.offsetParent);
+  const i = items.indexOf(document.activeElement);
+  const to = e.shiftKey ? (i <= 0 ? items[items.length - 1] : null) : (i === items.length - 1 ? items[0] : null);
+  if (to) { e.preventDefault(); to.focus(); }
+});
 
 $('volume').addEventListener('input', () => { prefs.volume = Number($('volume').value); savePrefs(); applyMix(); });
 $('boost').addEventListener('input', () => { prefs.bassBoost = Number($('boost').value); savePrefs(); applyMix(); syncPlayerPrefs(); });
@@ -477,8 +544,6 @@ $('hear').addEventListener('change', async () => {
 });
 $('score-toggle').addEventListener('change', () => { prefs.scoring = $('score-toggle').checked; savePrefs(); if (screen === 'player') startScoring(); });
 $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
-$('lookahead').addEventListener('input', () => { prefs.lookahead = Number($('lookahead').value); highway.lookahead = prefs.lookahead; savePrefs(); syncPlayerPrefs(); });
-$('invert').addEventListener('change', () => { prefs.invert = $('invert').checked; highway.invert = prefs.invert; savePrefs(); });
 
 /* The player's controls follow the saved preferences, wherever they were changed. */
 export function syncPlayerPrefs() {
@@ -486,9 +551,6 @@ export function syncPlayerPrefs() {
   highway.invert = prefs.invert;
   highway.labels = prefs.noteLabels;
   audio.volume = 1; // the song's volume is the mixer's
-  $('lookahead').value = prefs.lookahead;
-  $('lookahead-val').textContent = `${prefs.lookahead}s`;
-  $('invert').checked = prefs.invert;
   $('volume').value = prefs.volume;
   $('hear').checked = prefs.hear;
   $('score-toggle').checked = prefs.scoring;
@@ -501,8 +563,8 @@ export function syncPlayerPrefs() {
 syncPlayerPrefs();
 
 export function showOffset() {
-  $('offset-val').textContent = `${offsetMs > 0 ? '+' : ''}${offsetMs} ms (positive = notes arrive later)`
-    + (prefs.avOffset ? `, on top of ${fmtMs(prefs.avOffset)} for every song` : '');
+  $('offset-val').textContent = `${offsetMs ? fmtMs(offsetMs) : 'none'}${offsetMs > 0 ? ', notes later' : offsetMs < 0 ? ', notes sooner' : ''}`
+    + (prefs.avOffset ? ` (on top of ${fmtMs(prefs.avOffset)} for every song)` : '');
 }
 export function setOffset(ms) {
   offsetMs = Math.max(Number($('offset').min), Math.min(Number($('offset').max), ms));
@@ -532,15 +594,17 @@ export function playerKey(e) {
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
   else if (k === 'n' || k === 'N') cycleNotation();
-  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2665 Favorite' : 'Not a favorite'); }
+  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? 'Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);
     toast(`Recorded bass: ${RECORDED_BASS[prefs.recordedBass].label}`);
   }
   else if (k === '?' || k === 'h') openHelp();
+  else if (k === 's' || k === 'S') { if (!audio.paused) togglePlay(); openSettings(); }
   else if (k === 'Escape') {
-    if (!$('settings').classList.contains('hidden')) $('settings').classList.add('hidden');
+    if (!$('settings').classList.contains('hidden')) closeMix();
+    else if (!audio.paused || liveAt !== null) { togglePlay(); toast('Paused: Esc again for the song list'); } // a stray Esc only pauses
     else closeSong();
   }
 }
@@ -568,6 +632,8 @@ export function frame() {
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
+    const sec = currentSection(t), secName = sec ? sectionName(sec.name) : '';
+    if ($('section-name').textContent !== secName) $('section-name').textContent = secName;
     renderOverlay();
     // How much of the song was actually played: each step forward, measured
     // against the clock, so a jump (far more song than time passed) counts for

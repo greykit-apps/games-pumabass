@@ -311,7 +311,7 @@ export class Highway {
     for (let f = 1; f <= MAX_FRET; f++) {
       const [x, y, s] = this.P(f - 0.5, 0, 0);
       const inAnchor = f >= anchor.fret && f < anchor.fret + anchor.width;
-      ctx.font = `${inAnchor ? 'bold ' : ''}${Math.round(this.labelPx)}px system-ui, sans-serif`;
+      ctx.font = `${inAnchor ? 'bold ' : ''}${Math.round(this.labelPx)}px Saira, system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = inAnchor ? '#ffd76a' : 'rgba(255,255,255,0.45)';
@@ -437,7 +437,7 @@ export class Highway {
     ctx.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
     const name = this.chart.chordTemplates[n.chord]?.name;
     if (name && a[2] > 14) {
-      ctx.font = `bold ${Math.round(a[2] * 0.35)}px system-ui, sans-serif`;
+      ctx.font = `bold ${Math.round(a[2] * 0.35)}px Saira, system-ui, sans-serif`;
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
@@ -520,7 +520,7 @@ export class Highway {
     // Technique labels above the gem.
     const label = this.labels !== 'off' && techLabel(p, tech);
     if (label && s > 12) {
-      ctx.font = `bold ${Math.round(s * 0.24)}px system-ui, sans-serif`;
+      ctx.font = `bold ${Math.round(s * 0.24)}px Saira, system-ui, sans-serif`;
       ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#fff';
       ctx.fillText(label, cx, cy - (h / 2) * Math.cos(turn) - (w / 2) * Math.sin(turn) - 2);
@@ -535,13 +535,13 @@ function drawFitted(ctx, text, cx, cy, maxW, maxH) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic'; // the ink measurements below are from the baseline
   let px = Math.floor(maxH * 1.35);
-  ctx.font = `bold ${px}px system-ui, sans-serif`;
+  ctx.font = `bold ${px}px Saira, system-ui, sans-serif`;
   let m = ctx.measureText(text);
   const inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
   const scale = Math.min(maxH / inkH, maxW / m.width);
   px = Math.floor(px * scale);
   if (px < 7) return;
-  ctx.font = `bold ${px}px system-ui, sans-serif`;
+  ctx.font = `bold ${px}px Saira, system-ui, sans-serif`;
   m = ctx.measureText(text);
   ctx.fillStyle = '#111';
   // Fade in as it grows legible, rather than appear at a size.

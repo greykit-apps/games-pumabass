@@ -1,7 +1,7 @@
 // The title screen, its Settings sheet, and Help.
 
 import { formatTime } from './chart.js';
-import { mountTitle, alertSheet } from './title.js';
+import { mountTitle, alertSheet, confirmSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
 import { api } from './api.js';
@@ -95,11 +95,9 @@ ${pick('invert', [['true', 'Low string on top'], ['false', 'Low string at the bo
 ${pick('labels', [['fret', 'Fret numbers'], ['name', 'Note names'], ['off', 'Plain notes']], prefs.noteLabels)}
 <p class='gk-note'>How far ahead the notes appear, which way up the strings go, and what the notes carry: fret numbers, note names, or nothing.</p>
 <h3>Notation</h3>
-${pick('notation', [['true', 'On'], ['false', 'Off']], prefs.notation)}
-${pick('notationStaff', [['true', 'Standard notation'], ['false', 'No standard notation']], prefs.notationStaff)}
-${pick('notationTab', [['true', 'Tab'], ['false', 'No tab']], prefs.notationTab)}
-${pick('staffNames', [['true', 'Note names under the notes'], ['false', 'No names']], prefs.staffNames)}
-<p class='gk-note'>The part scrolling over the top of the highway: standard notation, tab, or both, each on or off. <kbd>N</kbd> steps through standard notation, tab, both and off while you play.</p>
+<div class='gk-row'>${[['notationStaff', 'Standard notation', prefs.notation && prefs.notationStaff], ['notationTab', 'Tab', prefs.notation && prefs.notationTab],
+    ['staffNames', 'Names under the notes', prefs.staffNames]].map(([set, l, on]) => `<button data-set='${set}' aria-pressed='${on}'>${l}</button>`).join('')}</div>
+<p class='gk-note'>The part scrolling over the top of the highway: each turns on and off; with neither standard notation nor tab, there's none. <kbd>N</kbd> steps through standard notation, tab, both and off while you play.</p>
 <h3>Speed</h3>
 ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
@@ -114,10 +112,15 @@ export async function settingsClick(b, sheet) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;
     case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
-    case 'notation': prefs.notation = v === 'true'; break;
-    case 'staffNames': prefs.staffNames = v === 'true'; break;
-    case 'notationStaff': prefs.notationStaff = v === 'true'; break;
-    case 'notationTab': prefs.notationTab = v === 'true'; break;
+    case 'staffNames': prefs.staffNames = !prefs.staffNames; break;
+    case 'notationStaff': case 'notationTab': {
+      // One toggle each; the band shows while either is on (N may have turned the band off with both set).
+      const k = b.dataset.set;
+      if (!prefs.notation) { prefs.notationStaff = prefs.notationTab = false; prefs[k] = true; }
+      else prefs[k] = !prefs[k];
+      prefs.notation = prefs.notationStaff || prefs.notationTab;
+      break;
+    }
     case 'speed': prefs.startSpeed = Number(v); break;
     case 'screen': prefs.screen = v; applyScreen(); break;
     case 'rescan':
@@ -148,36 +151,82 @@ export async function settingsClick(b, sheet) {
 }
 
 
-/* Help from the song list or the player, in the title's sheet style. */
-export function openHelp() {
-  if (document.querySelector('.gk-sheet')) return;
+/* Keys inside any sheet: Up/Down, Page Up/Down (and Space when no button has it)
+ * scroll its body; Left/Right on a tab switch tabs. true when the key was one of these. */
+export function sheetKeys(e, el) {
+  const t = e.target, body = el.querySelector('.gk-body');
+  if (t.closest && t.closest('input, select, textarea')) return false;
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && t.getAttribute && t.getAttribute('role') === 'tab') {
+    const tabs = [...el.querySelectorAll('[role=tab]')], i = tabs.indexOf(t);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+    e.preventDefault(); next.click();
+    const now = el.querySelector(`[data-tab="${next.dataset.tab}"]`); if (now) now.focus();
+    return true;
+  }
+  if (!body) return false;
+  const step = { ArrowDown: 60, ArrowUp: -60, PageDown: body.clientHeight * 0.85, PageUp: -body.clientHeight * 0.85 }[e.key]
+    ?? (e.key === ' ' && !(t.closest && t.closest('button')) ? body.clientHeight * 0.85 : null);
+  if (step === null) return false;
+  e.preventDefault();
+  body.scrollBy({ top: step, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  return true;
+}
+
+/* A sheet of the title's style over the song list or the player: Help and
+ * Settings away from the title. Tab stays inside it; Esc, × or a click
+ * outside closes it, and focus goes back where it was. */
+function openSheet(name, draw, onClick) {
+  if (document.querySelector('.gk-sheet')) return null;
   const back = document.activeElement;
   const el = document.createElement('div');
   el.className = 'gk-sheet';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
-  el.setAttribute('aria-label', 'Help');
-  let tab = 0;
-  const draw = () => {
-    el.innerHTML = `<div class="gk-box"><div class="gk-head"><h2>Help</h2><button data-x aria-label="Close">&times;</button></div>
-      <div class="gk-tabs" role="tablist">${HELP.map(([t], i) => `<button role="tab" data-tab="${i}" aria-selected="${i === tab}" aria-pressed="${i === tab}">${esc(t)}</button>`).join('')}</div>
-      <div class="gk-body">${HELP[tab][1]}</div></div>`;
-  };
+  el.setAttribute('aria-label', name);
+  const paint = () => { el.innerHTML = `<div class="gk-box"><div class="gk-head"><h2>${esc(name)}</h2><button data-x aria-label="Close">&times;</button></div>${draw()}</div>`; };
   const close = () => {
     document.removeEventListener('keydown', onKey, true);
     el.remove();
     if (back && back.isConnected) back.focus({ preventScroll: true });
   };
-  const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } };
+  const onKey = e => {
+    if ([...document.querySelectorAll('.gk-sheet')].pop() !== el) return; // a question asked over it has the keys
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+    if (sheetKeys(e, el)) { e.stopPropagation(); return; }
+    if (e.key === 'Tab') {
+      const bs = [...el.querySelectorAll('button, input, select')], i = bs.indexOf(document.activeElement);
+      e.preventDefault();
+      bs[(i + (e.shiftKey ? -1 : 1) + bs.length) % bs.length].focus();
+    }
+    e.stopPropagation();
+  };
+  const sheet = { el, close, refresh: () => { const f = document.activeElement && document.activeElement.dataset; const at = f && JSON.stringify({ ...f }); paint(); const same = at && [...el.querySelectorAll('button')].find(b => JSON.stringify({ ...b.dataset }) === at); (same || el.querySelector('[data-x]')).focus({ preventScroll: true }); },
+    confirm: (q, yes) => confirmSheet(q, yes) };
   el.addEventListener('click', e => {
     if (e.target === el) return close();
     const b = e.target.closest('button');
     if (!b) return;
     if (b.hasAttribute('data-x')) return close();
-    if (b.dataset.tab !== undefined) { tab = Number(b.dataset.tab); draw(); el.querySelector(`[data-tab="${tab}"]`).focus(); }
+    onClick(b, sheet);
   });
-  draw();
+  paint();
   document.addEventListener('keydown', onKey, true);
   document.body.appendChild(el);
-  el.querySelector('[aria-selected="true"]').focus();
+  return sheet;
+}
+
+/* Help from the song list or the player. */
+export function openHelp() {
+  let tab = 0;
+  const sheet = openSheet('Help', () => `<div class="gk-tabs" role="tablist">${HELP.map(([t], i) => `<button role="tab" data-tab="${i}" aria-selected="${i === tab}" aria-pressed="${i === tab}">${esc(t)}</button>`).join('')}</div>
+      <div class="gk-body">${HELP[tab][1]}</div>`, (b, sh) => {
+    if (b.dataset.tab !== undefined) { tab = Number(b.dataset.tab); sh.refresh(); sh.el.querySelector(`[data-tab="${tab}"]`).focus(); }
+  });
+  if (sheet) sheet.el.querySelector('[aria-selected="true"]').focus();
+}
+
+/* Settings from the song list or the player: the title's own, in a sheet of their own. */
+export function openSettings() {
+  const sheet = openSheet('Settings', () => `<div class="gk-body">${settingsHTML()}</div>`, settingsClick);
+  if (sheet) (sheet.el.querySelector('.gk-body button') || sheet.el.querySelector('[data-x]')).focus();
 }

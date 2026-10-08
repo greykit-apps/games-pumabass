@@ -19,31 +19,44 @@ ${keys([
     ['R', 'riff repeater: the loop, a little faster each time round'],
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
-    [',', "the mix (song, recorded bass, your bass) and this song's settings"],
+    [',', "the mix: the song, your bass, the recorded bass, and this song's timing"],
     ['B', 'recorded bass: full, reduced, cut'],
     ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
     ['N', 'the notation over the highway: standard, tab, both, off'],
-    ['Esc', 'back to the song list'],
+    ['S', 'Settings (pauses the song)'],
+    ['?', 'this help'],
+    ['Esc', 'pause; again, back to the song list'],
   ])}
 <h3>At the end of a song</h3>
 <p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
-your score when scoring was on. <kbd>Space</kbd> goes to the
-main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
+your score when scoring was on. <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes back to it in the song list,
+<kbd>M</kbd> to the main menu. When you stopped before the end, it leads with how far you got. When a section went badly, <kbd>P</kbd> practises it: the song from there,
+looped, with the riff repeater bringing it up to speed.</p>
 <p>Click the bar along the bottom to jump; it is split into the song's sections, coloured by kind (every verse
-the same colour, every chorus another). Shift+click moves the nearest
+the same colour, every chorus another), and the section you're in is named beside the time. Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
 <h3>Keys in the song list</h3>
+<p>The songs you played last wait at the top, under <b>Recently played</b>; the list opens there. Below them,
+every song, in groups by what the list is sorted on: initials, tunings or difficulty.</p>
 ${keys([
     ['/', 'search'],
     ['Up / Down', 'move through the list'],
+    ['Page Up / Down', 'a screenful at a time'],
+    ['Left / Right', 'the previous / next group (initial, tuning, difficulty)'],
+    ['Home / End', 'the top / bottom of the list'],
     ['Enter', 'play the song'],
     ['F', 'heart the song: a favorite'],
+    ['Shift+F', 'favorites only, or every song'],
+    ['O', 'sort: artist, title, difficulty, tuning, recently played, most played'],
+    ['P', 'parts: bass, lead, rhythm, every part'],
+    ['T', 'the tuner'],
+    ['S', 'Settings'],
     ['Esc', 'back to the menu'],
   ])}`],
   ['Your library', `
 <h3>Favorites</h3>
-<p>Heart a song with the <b>&#9825;</b> at the start of its row (or <kbd>F</kbd>), or in the player. <b>&#9829; Favorites</b>
+<p>Heart a song with the heart at the start of its row (or <kbd>F</kbd>), or in the player. <b>Favorites</b>
 above the list shows only your favorites: your own library.</p>
 <h3>Plays and Finished</h3>
 <p><b>Plays</b> counts each time you start a song. Pausing and carrying on is the same play, and so is picking it up
@@ -62,7 +75,7 @@ your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
 time. With scoring on, a time round only speeds it up when 70% of its
 notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
 <h3>Fewer notes</h3>
-<p><b>Difficulty</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
+<p><b>Notes</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; lower values
 thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
 <p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
@@ -71,8 +84,8 @@ move it with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigge
 right on the tick, then press <kbd>Enter</kbd>. It starts from the timing you have now, so a small fix is a few
 presses. With the Real Tone Cable open, you then pluck the open E string along with the tick for half a minute,
 which sets scoring's timing for the cable. Run it again after changing speakers, headphones or screen.</p>
-<p>For one song only (say, your own recording of it), open the song's settings with <kbd>,</kbd> and nudge its
-<b>audio offset</b>; it adds to the calibrated one.</p>`],
+<p>For one song only (say, your own recording of it), open the Mix with <kbd>,</kbd> and nudge its
+<b>audio offset</b> under <b>This song's timing</b>; it adds to the calibrated one.</p>`],
   ['Tuner', `
 <p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd> (or <b>Tuner</b> on the menu or in the
 player). The tuner knows the tuning the song wants, including the few cents some Rocksmith songs are off A440
@@ -109,8 +122,8 @@ input, so playing through an amp is never marked wrong. Tune first: the pitch ha
 <h3>Many misses?</h3>
 <p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
 PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
-panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or <kbd>S</kbd> on the end screen) keeps what the cable
-heard in the PumaBass folder, to find out why.</p>`],
+panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or on the end screen) keeps what the cable
+heard in the PumaBass folder, to find out why. Both are under <b>Takes</b>, at the foot of the Mix.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
@@ -118,7 +131,7 @@ heard in the PumaBass folder, to find out why.</p>`],
 fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
 <p>Over the top, the same part scrolls by as standard notation over tab (<kbd>N</kbd> steps through standard, tab, both and off). Each
 note crosses the blue line as you play it; what's to the right is coming. The names under the notes are there
-to learn the clef by. The notation, the tab and the names each turn on and off in Settings.</p>
+to learn the clef by. Standard notation, tab and the names under the notes each turn on and off in Settings.</p>
 <p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
 as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
 floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>
