@@ -84,10 +84,6 @@ ${pick('scoring', [['true', 'On'], ['false', 'Off']], prefs.scoring)}
 <h3>Tune before playing</h3>
 ${pick('autotune', [['true', 'On'], ['false', 'Off']], prefs.autoTune)}
 <p class='gk-note'>Opens the tuner on your first song of the day, and when a song needs a different tuning from the last.</p>
-<h3>Timing</h3>
-<p class='gk-note'>For every song, the notes land <b>${fmtMs(prefs.avOffset)}</b>${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' earlier') : ''}, to match this computer's sound and picture. Scoring allows <b>${fmtMs(prefs.inputOffset)}</b> for the cable.</p>
-<div class='gk-row'><button data-set='av' data-v='-10'>&minus;10 ms</button><button data-set='av' data-v='10'>+10 ms</button><button data-set='av' data-v='0'>Reset</button></div>
-<p class='gk-note'><b>Sync</b>, on the menu, sets these: a tick and a swinging bar, the bar moved until it lands on the tick; then, with the Real Tone Cable open, half a minute of plucking along. Run it again when you change speakers, headphones or screen; Bluetooth and TVs add delay.</p>
 <h3>Riff repeater</h3>
 ${pick('repfrom', [[50, 'Start at 50%'], [60, '60%'], [70, '70%'], [80, '80%']], prefs.repeatFrom)}
 ${pick('repstep', [[2, 'Up 2% a time'], [5, '5%'], [10, '10%']], prefs.repeatStep)}
@@ -142,9 +138,6 @@ export async function settingsClick(b, sheet) {
     case 'scoring': prefs.scoring = v === 'true'; break;
     case 'repfrom': prefs.repeatFrom = Number(v); break;
     case 'repstep': prefs.repeatStep = Number(v); break;
-    case 'av':
-      if (Number(v) === 0) { prefs.avOffset = 0; prefs.inputOffset = 0; } else prefs.avOffset += Number(v);
-      break;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: your favorites and play counts, every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();
       return;

@@ -69,7 +69,7 @@ export async function finishSync() {
   calib.kept = true;
   endSync();
   if (prefs.avOffset !== orig.av || prefs.inputOffset !== orig.input) {
-    await alertSheet(`Timing set. For every song, the notes land ${fmtMs(prefs.avOffset)}${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' sooner') : ''}${prefs.inputOffset !== orig.input ? `, and scoring allows ${fmtMs(prefs.inputOffset)} for the cable` : ''}. You can nudge the notes in Settings.`, 'Sync');
+    await alertSheet(`Timing set. For every song, the notes land ${fmtMs(prefs.avOffset)}${prefs.avOffset ? (prefs.avOffset > 0 ? ' later' : ' sooner') : ''}${prefs.inputOffset !== orig.input ? `, and scoring allows ${fmtMs(prefs.inputOffset)} for the cable` : ''}. Run Sync again to change them.`, 'Sync');
   }
 }
 
