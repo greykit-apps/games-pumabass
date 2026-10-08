@@ -50,7 +50,17 @@ export function showTitle() {
   $('library').classList.add('hidden');
   $('player').classList.add('hidden');
   title = mountTitle($('title-host'), titleCfg());
+  colorName($('title-host').querySelector('h1'));
   return title;
+}
+/* The name in the wordmark's colors, BASS in the accent like the player's
+ * corner. The canon writes the h1 as plain text and its decode ends by writing
+ * it again, so the colors go in whenever it settles on the bare name. */
+function colorName(h1) {
+  if (!h1) return;
+  const paint = () => { if (h1.textContent === 'PumaBass' && !h1.firstElementChild) h1.innerHTML = 'Puma<b>Bass</b>'; };
+  paint();
+  new MutationObserver(paint).observe(h1, { childList: true });
 }
 export function leaveTitle() {
   if (title) title.unmount();

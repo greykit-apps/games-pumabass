@@ -113,6 +113,7 @@ html .gk-title>.gk-shade { background: linear-gradient(rgba(var(--bg-rgb), .85),
 html .gk-title { padding-top: 40px; padding-bottom: 56px; }
 html .gk-title h1 { font-family: var(--display); font-weight: 800; font-size: 80px; line-height: .9; letter-spacing: -.01em; padding: 0;
   color: var(--text); transform: var(--lean); text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
+html .gk-title h1 b { color: var(--accent); font-weight: inherit; }
 html .gk-title .gk-rule { width: 220px; height: 4px; margin: 14px 0 20px; background: linear-gradient(90deg, var(--accent), #8af6ff); transform: skewX(-20deg); }
 html .gk-menu { gap: 6px; width: min(460px, 100%); }
 html .gk-menu .gk-lbl { display: inline-block; transform: var(--lean); }
