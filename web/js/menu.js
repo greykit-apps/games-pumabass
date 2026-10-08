@@ -99,7 +99,7 @@ ${pick('notation', [['true', 'On'], ['false', 'Off']], prefs.notation)}
 ${pick('notationStaff', [['true', 'Standard notation'], ['false', 'No standard notation']], prefs.notationStaff)}
 ${pick('notationTab', [['true', 'Tab'], ['false', 'No tab']], prefs.notationTab)}
 ${pick('staffNames', [['true', 'Note names under the notes'], ['false', 'No names']], prefs.staffNames)}
-<p class='gk-note'>The part scrolling over the top of the highway: standard notation, tab, or both, each on or off. <kbd>N</kbd> shows or hides it while you play.</p>
+<p class='gk-note'>The part scrolling over the top of the highway: standard notation, tab, or both, each on or off. <kbd>N</kbd> steps through standard notation, tab, both and off while you play.</p>
 <h3>Speed</h3>
 ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>

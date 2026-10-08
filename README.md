@@ -49,7 +49,7 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Home | Back to loop start (or song start) |
 | , | This song's settings: audio offset, highway, volume |
 | T | The tuner |
-| N | The notation over the highway, on or off |
+| N | The notation over the highway: standard notation, tab, both, off |
 | B | Recorded bass: full, reduced, cut |
 | F | Make the song a favorite |
 | Mouse wheel (paused) | Scrub |
@@ -87,7 +87,8 @@ up when 70% of its notes were hit.
 ## Reading music
 
 Over the top of the highway, the part scrolls by in **standard notation over tab**, as a printed bass
-chart has it, so you can learn to read while you play (`N`, or Settings → Notation, turns it on and off).
+chart has it, so you can learn to read while you play. `N` steps through standard notation, tab, both, and off
+(Settings → Notation has the same, and the names).
 A blue playhead sits a little in from the left: notes cross it as you play them, and the rest of the band
 is what's coming. The standard notation, the tab and the note names under the notes each turn on and off in Settings →
 Notation; with both staff and tab up, the gap between them is set for each song from its lowest and

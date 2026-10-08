@@ -111,6 +111,23 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   if (song === s) showCaption(s.title, s.artist, [arrangementLabel(s), s.album, s.year].filter(Boolean).join(' · '));
 }
 
+/* N: the notation band goes standard notation, tab, both, off, and round again. */
+const NOTATION_STEPS = [
+  { name: 'staff', staff: true, tab: false, say: 'Standard notation' },
+  { name: 'tab', staff: false, tab: true, say: 'Tab' },
+  { name: 'both', staff: true, tab: true, say: 'Standard notation and tab' },
+  { name: 'off', say: 'Notation off' },
+];
+function cycleNotation() {
+  const now = !prefs.notation || (!prefs.notationStaff && !prefs.notationTab) ? 'off'
+    : prefs.notationStaff && prefs.notationTab ? 'both' : prefs.notationStaff ? 'staff' : 'tab';
+  const next = NOTATION_STEPS[(NOTATION_STEPS.findIndex(s => s.name === now) + 1) % NOTATION_STEPS.length];
+  prefs.notation = next.name !== 'off';
+  if (prefs.notation) { prefs.notationStaff = next.staff; prefs.notationTab = next.tab; }
+  savePrefs();
+  toast(next.say);
+}
+
 /* The song's name, as a music video credits it: lower left, just over the board,
  * fading in as the song starts and out again (style.css). */
 function showCaption(title, by, more) {
@@ -505,7 +522,7 @@ export function playerKey(e) {
   else if (k === 'Home') seek(loop ? loop.a : 0);
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
-  else if (k === 'n' || k === 'N') { prefs.notation = !prefs.notation; savePrefs(); toast(prefs.notation ? 'Notation on' : 'Notation off'); }
+  else if (k === 'n' || k === 'N') cycleNotation();
   else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2665 Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
