@@ -112,7 +112,11 @@ heard in the PumaBass folder, to find out why.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
-<b style="color:#b351e8">e</b> purple). The number on a note is the fret. A long bar across the lit lane is an open string.</p>
+<b style="color:#b351e8">e</b> purple), with the low string on top (Settings can turn it over). The number on a note is the
+fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
+<p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
+as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
+floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>
 <p>The lit lane on the floor is where your hand should be; the fret numbers at the bottom light up to match.
 On a big jump the view pulls back until you can see both ends, then settles on the new spot.
 A tail behind a note means hold it; a tail that bends sideways is a slide to the fret shown.</p>

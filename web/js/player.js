@@ -428,6 +428,7 @@ $('invert').addEventListener('change', () => { prefs.invert = $('invert').checke
 export function syncPlayerPrefs() {
   highway.lookahead = prefs.lookahead;
   highway.invert = prefs.invert;
+  highway.labels = prefs.noteLabels;
   audio.volume = 1; // the song's volume is the mixer's
   $('lookahead').value = prefs.lookahead;
   $('lookahead-val').textContent = `${prefs.lookahead}s`;
