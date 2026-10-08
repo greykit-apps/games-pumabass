@@ -1,0 +1,137 @@
+/* A look being tried out: SETLIST. The gig itself: a matte black stage floor, the
+ * set list written in paint marker on strips of black gaffer tape, and glow tape
+ * (the phosphor strips crews mark the stage with in the dark) for what's live:
+ * the focus, "now", the next thing to press. Loaded by ?look=setlist (app.js). */
+
+@font-face { font-family: 'Permanent Marker'; src: url(../fonts/permanent-marker.woff2) format('woff2'); font-weight: 400; font-display: block; }
+@font-face { font-family: 'Barlow Condensed'; src: url(../fonts/barlow-condensed-500.woff2) format('woff2'); font-weight: 500; font-display: block; }
+@font-face { font-family: 'Barlow Condensed'; src: url(../fonts/barlow-condensed-600.woff2) format('woff2'); font-weight: 600; font-display: block; }
+@font-face { font-family: 'Barlow Condensed'; src: url(../fonts/barlow-condensed-700.woff2) format('woff2'); font-weight: 700; font-display: block; }
+
+html[data-look=setlist] {
+  --bg: #0b0b0a; --panel: #141412; --panel2: #1b1b18; --line: #2e2d29; --lit: #77736a;
+  --text: #f3f1ea; --ink: #cfcbbf; --dim: #a29d90; --accent: #d6ff3d; --warn: #ffb21f; --danger: #ff5a4e; --good: #8ef07a;
+  --steel: #b9b4a6; --row: #191917; --highway: #0b0b0a;
+  --tape: #161614; --tape-hi: #24231f; --glow: #d6ff3d; --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
+  --ui: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+html[data-look=setlist] body { font: 500 17px/1.4 var(--ui); letter-spacing: .01em; background: var(--bg); }
+html[data-look=setlist] ::selection { background: var(--glow); color: #0b0b0a; }
+
+/* tape: a strip with a torn end, matte, a hair of sheen along its top */
+html[data-look=setlist] button, html[data-look=setlist] input, html[data-look=setlist] select {
+  font-family: var(--ui); font-weight: 600; font-size: 17px; letter-spacing: .03em;
+  background: linear-gradient(var(--tape-hi), var(--tape) 30%); border: 0; border-radius: 0;
+  color: var(--text); box-shadow: 0 1px 0 rgba(0, 0, 0, .6);
+}
+html[data-look=setlist] button { clip-path: polygon(0 6%, 3% 0, 97% 4%, 100% 0, 99% 52%, 100% 100%, 96% 94%, 3% 100%, 0 95%, 1% 48%); padding: 6px 14px; }
+html[data-look=setlist] button:hover:not(:disabled) { background: var(--tape-hi); }
+html[data-look=setlist] button.primary, html[data-look=setlist] button[aria-pressed=true], html[data-look=setlist] button.on {
+  color: var(--text); background: linear-gradient(90deg, var(--glow) 0 6px, var(--tape-hi) 6px); }
+/* focus: the whole strip goes glow tape, marker black on it; nothing else ever looks like this */
+html[data-look=setlist] button:focus-visible, html[data-look=setlist] .song:focus, html[data-look=setlist] input:focus-visible, html[data-look=setlist] select:focus-visible {
+  outline: none; background: var(--glow) !important; color: #0b0b0a !important; }
+html[data-look=setlist] button:focus-visible kbd, html[data-look=setlist] .song:focus * { color: #0b0b0a !important; border-color: rgba(11, 11, 10, .45) !important; }
+html[data-look=setlist] kbd { font-family: var(--ui); font-weight: 700; font-size: 14px; color: var(--glow); border: 1.5px solid currentColor; border-radius: 3px; padding: 0 5px; }
+html[data-look=setlist] input { clip-path: none; border-bottom: 2px solid var(--lit); }
+html[data-look=setlist] input::placeholder { color: var(--dim); }
+
+/* ---- the stage behind the title and list: warm line work, the LEDs glow tape ---- */
+html[data-look=setlist] .scene { background: radial-gradient(ellipse at 50% 110%, #1d1b16 0%, #0b0b0a 60%); }
+html[data-look=setlist] .scene .sf { fill: #10100e; stroke: #3a3832; }
+html[data-look=setlist] .scene .sl, html[data-look=setlist] .scene .sd { stroke: #2e2c27; }
+html[data-look=setlist] .scene .sa { stroke: var(--glow); opacity: .5; }
+html[data-look=setlist] .scene .sled { fill: var(--glow); opacity: .9; }
+html[data-look=setlist] .scene stop { stop-color: #fff6d8; }
+
+/* ---- the title: the name on a strip of white gaffer tape, the menu the set list ---- */
+html[data-look=setlist] .gk-title>.gk-shade { background: linear-gradient(rgba(11, 11, 10, .88), rgba(11, 11, 10, .55) 50%, rgba(11, 11, 10, .1)); }
+html[data-look=setlist] .gk-title h1 { font-family: var(--marker); font-weight: 400; font-size: 64px; letter-spacing: .02em; padding: 10px 40px 6px; text-transform: none;
+  color: #111; background: #ecebe3; text-shadow: none; transform: rotate(-2deg);
+  clip-path: polygon(0 8%, 2% 0, 50% 5%, 98% 0, 100% 10%, 99% 50%, 100% 92%, 97% 100%, 50% 95%, 2% 100%, 0 90%, 1% 50%); }
+html[data-look=setlist] .gk-title .gk-rule { background: none; height: 18px; }
+html[data-look=setlist] .gk-menu { gap: 10px; width: min(420px, 100%); }
+html[data-look=setlist] .gk-menu button { font-family: var(--marker); font-weight: 400; font-size: 22px; letter-spacing: .02em; text-transform: none; min-height: 54px;
+  background: var(--tape); color: var(--text); border: 0; }
+html[data-look=setlist] .gk-menu button:nth-child(odd) { transform: rotate(-.6deg); }
+html[data-look=setlist] .gk-menu button:nth-child(even) { transform: rotate(.5deg); }
+html[data-look=setlist] .gk-menu button.gk-primary { background: linear-gradient(90deg, var(--glow) 0 8px, var(--tape-hi) 8px); color: var(--text); font-weight: 400; }
+html[data-look=setlist] .gk-menu button.gk-primary kbd { color: var(--glow); border-color: currentColor; }
+html[data-look=setlist] .gk-menu button.gk-primary .gk-meta { color: var(--ink); }
+html[data-look=setlist] .gk-menu button:focus-visible { background: var(--glow); color: #0b0b0a; box-shadow: none; }
+html[data-look=setlist] .gk-menu button:focus-visible .gk-meta, html[data-look=setlist] .gk-menu button:focus-visible kbd { color: #0b0b0a; border-color: rgba(11, 11, 10, .5); }
+html[data-look=setlist] .gk-menu .gk-meta { font-family: var(--ui); font-size: 15px; font-weight: 500; color: var(--dim); }
+html[data-look=setlist] .gk-menu kbd { font-size: 14px; }
+html[data-look=setlist] .gk-title>footer { font-family: var(--ui); font-size: 14px; }
+
+/* ---- the song list: the set list ---- */
+html[data-look=setlist] .pb { background: rgba(11, 11, 10, .9); border: 0; box-shadow: none; }
+html[data-look=setlist] .top h1 { font-family: var(--marker); font-weight: 400; font-size: 38px; letter-spacing: 0; transform: rotate(-1.5deg); }
+html[data-look=setlist] .top .brand { font-family: var(--marker); letter-spacing: .04em; font-size: 18px; text-transform: none; color: var(--glow); font-weight: 400; }
+html[data-look=setlist] .topline { height: 3px; background: var(--line); }
+html[data-look=setlist] .topline i { width: 120px; background: var(--glow); }
+html[data-look=setlist] #count { font-size: 16px; }
+html[data-look=setlist] .songs-head { font-family: var(--ui); font-size: 14px; letter-spacing: .12em; color: var(--dim); border-bottom: 0; }
+html[data-look=setlist] #song-list .group { font-family: var(--marker); font-weight: 400; font-size: 30px; letter-spacing: 0; color: var(--glow); border: 0; padding-top: 20px; padding-bottom: 0; }
+html[data-look=setlist] .song { min-height: 58px; border: 0; border-left: 0; margin: 4px 16px; padding: 0 var(--s4);
+  background: var(--tape); clip-path: polygon(0 4%, 1% 0, 99% 3%, 100% 0, 99.6% 50%, 100% 100%, 98.5% 96%, 1% 100%, 0 96%, .4% 50%); }
+html[data-look=setlist] .song:nth-child(3n) { transform: rotate(-.25deg); }
+html[data-look=setlist] .song:nth-child(3n+1) { transform: rotate(.2deg); }
+html[data-look=setlist] .song .t { font-family: var(--marker); font-weight: 400; font-size: 22px; letter-spacing: .01em; color: var(--text); }
+html[data-look=setlist] .song .a, html[data-look=setlist] .song .arr, html[data-look=setlist] .song .len, html[data-look=setlist] .song .num { font-size: 16px; }
+html[data-look=setlist] .song .tun { font-size: 16px; }
+html[data-look=setlist] .song .diff { color: var(--glow); font-size: 15px; }
+html[data-look=setlist] .song .diff i { color: #3a3832; }
+html[data-look=setlist] .song .num.zero, html[data-look=setlist] button.heart { color: var(--dim); }
+html[data-look=setlist] button.heart { background: none; clip-path: none; box-shadow: none; }
+html[data-look=setlist] .song:hover { background: var(--tape-hi); }
+html[data-look=setlist] .song:hover .t { color: var(--text); }
+html[data-look=setlist] .bar { border-top: 0; }
+
+/* ---- the player's chrome: tape over the edges of the board ---- */
+html[data-look=setlist] .p-top { background: linear-gradient(rgba(11, 11, 10, .95), rgba(11, 11, 10, 0)); }
+html[data-look=setlist] .wordmark { font-family: var(--marker); font-weight: 400; font-size: 26px; color: var(--text); letter-spacing: 0; }
+html[data-look=setlist] .wordmark b { color: var(--glow); font-weight: 400; }
+html[data-look=setlist] .chip { font-family: var(--ui); font-weight: 600; font-size: 17px; background: var(--tape); border: 0; border-radius: 0; }
+html[data-look=setlist] #ov-big { font-family: var(--marker); font-weight: 400; letter-spacing: .04em; color: var(--text); text-shadow: 0 4px 0 rgba(0, 0, 0, .6); }
+html[data-look=setlist] #overlay.paused #ov-big { display: inline-block; padding: 0 36px; background: var(--tape); transform: rotate(-2deg);
+  box-shadow: inset 0 -10px 0 var(--glow); }
+html[data-look=setlist] #overlay.live #ov-big { color: var(--glow); text-shadow: none; }
+html[data-look=setlist] #ov-small { font-family: var(--ui); font-weight: 600; letter-spacing: .1em; font-size: 22px; }
+html[data-look=setlist] #ov-small kbd { color: var(--glow); border-color: var(--glow); }
+html[data-look=setlist] .ov-keys { font-size: 18px; letter-spacing: .04em; }
+html[data-look=setlist] .p-bottom { background: linear-gradient(rgba(11, 11, 10, 0), rgba(11, 11, 10, .96) 35%); }
+html[data-look=setlist] #progress { background: var(--tape); border: 0; border-radius: 0; height: 26px; }
+html[data-look=setlist] #playhead { background: var(--glow); box-shadow: none; width: 3px; }
+html[data-look=setlist] #loop-region { background: rgba(214, 255, 61, .14); border-color: var(--glow); }
+html[data-look=setlist] #time { font-family: var(--ui); font-size: 20px; font-weight: 600; }
+html[data-look=setlist] #section-name { font-family: var(--marker); font-size: 18px; color: var(--glow); }
+html[data-look=setlist] .controls label { font-size: 16px; }
+html[data-look=setlist] input[type=range] { accent-color: var(--glow); background: none; border: 0; }
+html[data-look=setlist] #notation { background: linear-gradient(rgba(11, 11, 10, .55), rgba(11, 11, 10, 0)); }
+html[data-look=setlist] #nt-head { background: var(--glow); box-shadow: none; }
+html[data-look=setlist] #caption b { font-family: var(--marker); font-weight: 400; font-size: 40px; }
+
+/* ---- sheets and the end screen: a strip of white tape for the heading ---- */
+html[data-look=setlist] .gk-sheet { background: rgba(6, 6, 5, .9); }
+html[data-look=setlist] .gk-sheet .gk-box { background: #121210; border: 0; border-radius: 0; box-shadow: 0 30px 80px rgba(0, 0, 0, .7); }
+html[data-look=setlist] .gk-sheet .gk-head h2 { flex: none; font-family: var(--marker); font-weight: 400; font-size: 24px; letter-spacing: .02em; color: #111;
+  background: #ecebe3; padding: 2px 16px; transform: rotate(-1.5deg); }
+html[data-look=setlist] .gk-sheet .gk-head { justify-content: space-between; }
+html[data-look=setlist] .gk-sheet .gk-body { font-size: 17px; }
+html[data-look=setlist] .gk-sheet .gk-body h3 { font-family: var(--marker); font-weight: 400; font-size: 20px; letter-spacing: .02em; text-transform: none; color: var(--glow); }
+html[data-look=setlist] .gk-sheet .gk-note { font-size: 15px; }
+html[data-look=setlist] .end-sheet { background: rgba(6, 6, 5, .6); }
+html[data-look=setlist] .end-sheet .gk-box.end { background: rgba(14, 14, 12, .96); width: min(680px, 100%); }
+html[data-look=setlist] .end-kicker { font-family: var(--marker); letter-spacing: .04em; text-transform: none; font-size: 20px; color: var(--dim); }
+html[data-look=setlist] .cheer .end-kicker { color: var(--glow); }
+html[data-look=setlist] .end-title { font-family: var(--marker); font-weight: 400; font-size: 44px; letter-spacing: 0; }
+html[data-look=setlist] .end-sub, html[data-look=setlist] .end-facts, html[data-look=setlist] .end-more, html[data-look=setlist] .end-invite { font-size: 17px; }
+html[data-look=setlist] .end-verdict { font-size: 21px; }
+html[data-look=setlist] .end-score-value { font-family: var(--marker); font-weight: 400; color: var(--glow); text-shadow: none; font-size: 84px; }
+html[data-look=setlist] .end-strip-note { font-size: 14px; }
+html[data-look=setlist] .end-score, html[data-look=setlist] .end-head { border-color: var(--line); }
+html[data-look=setlist] #notation .vf-stave path { stroke: #57534a; }
+html[data-look=setlist] #notation .vf-stavebarline rect { fill: #57534a; }
+html[data-look=setlist] #notation svg [stroke="black"] { stroke: var(--steel); }
+html[data-look=setlist] #notation .vf-tabnote text, html[data-look=setlist] #notation .vf-ntnames text { font-family: var(--ui); }

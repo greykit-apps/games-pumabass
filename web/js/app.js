@@ -37,6 +37,15 @@ document.addEventListener('keydown', e => {
 
 window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, highway, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
+/* ---- looks being tried out: ?look=setlist or ?look=arena puts one over the page
+ * (web/looks/<name>.css); with no ?look, the page is as it always was. */
+const LOOKS = ['setlist', 'arena'];
+const look = new URLSearchParams(location.search).get('look');
+if (LOOKS.includes(look)) {
+  document.documentElement.dataset.look = look;
+  document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="web/looks/${look}.css">`);
+}
+
 /* ---- start: the boot plays while the song index loads, then the title ---- */
 applyScreen();
 keepScreenOn();
