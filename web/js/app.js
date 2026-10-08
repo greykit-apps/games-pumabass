@@ -1094,6 +1094,8 @@ async function openSong(s, startAt = 0, { resumed = false } = {}) {
   saveResume();
   await maybeAutoTune();
   startScoring();
+  // A lesson's part or etude starts right away: each has its own count-in.
+  if (s.lessonCtx && song === s) audio.play().catch(() => {});
 }
 
 function saveResume() {
