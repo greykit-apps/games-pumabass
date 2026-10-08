@@ -474,13 +474,28 @@ $('back').addEventListener('click', closeSong);
 $('no-score').addEventListener('click', async () => { if (await ensureInput()) startScoring(); });
 $('play').addEventListener('click', togglePlay);
 
-export function setSpeed(v) {
-  v = Math.max(25, Math.min(120, v));
-  $('speed').value = v;
+/* Speed sticks at 100%: three slider positions (100, 105, 110) all mean full
+ * speed, so a drag or a nudge holds there a moment before it crosses. The
+ * slider keeps the position; currentSpeed() is what it means. */
+const HOLD = 10; // the slider travel past 100 that still reads 100%
+const posToSpeed = p => (p <= 100 ? p : Math.max(100, p - HOLD));
+const speedToPos = v => (v < 100 ? v : v === 100 ? 100 + HOLD / 2 : v + HOLD); // full speed rests mid-hold
+export const currentSpeed = () => posToSpeed(Number($('speed').value));
+function showSpeed() {
+  const v = currentSpeed();
   $('speed-val').textContent = `${v}%`;
   audio.playbackRate = v / 100;
 }
-$('speed').addEventListener('input', () => setSpeed(Number($('speed').value)));
+export function setSpeed(v) {
+  $('speed').value = speedToPos(Math.max(25, Math.min(120, v)));
+  showSpeed();
+}
+/* Up / Down: one slider position, so the keys feel the hold too. */
+function nudgeSpeed(dir) {
+  $('speed').value = Number($('speed').value) + dir * 5; // the range keeps it in bounds
+  showSpeed();
+}
+$('speed').addEventListener('input', showSpeed);
 
 $('difficulty').addEventListener('input', () => {
   prefs.difficulty = Number($('difficulty').value);
@@ -567,8 +582,8 @@ export function playerKey(e) {
   if (k === ' ') { e.preventDefault(); togglePlay(); }
   else if (k === 'ArrowLeft') { e.preventDefault(); seek(audio.currentTime - 5); }
   else if (k === 'ArrowRight') { e.preventDefault(); seek(audio.currentTime + 5); }
-  else if (k === 'ArrowUp') { e.preventDefault(); setSpeed(Number($('speed').value) + 5); }
-  else if (k === 'ArrowDown') { e.preventDefault(); setSpeed(Number($('speed').value) - 5); }
+  else if (k === 'ArrowUp') { e.preventDefault(); nudgeSpeed(1); }
+  else if (k === 'ArrowDown') { e.preventDefault(); nudgeSpeed(-1); }
   else if (k === 'l' || k === 'L') toggleSectionLoop();
   else if (k === 'r' || k === 'R') toggleRepeater();
   else if (k === '[') setLoopPoint(songTime(), 'a');
