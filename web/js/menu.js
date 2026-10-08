@@ -95,11 +95,9 @@ ${pick('invert', [['true', 'Low string on top'], ['false', 'Low string at the bo
 ${pick('labels', [['fret', 'Fret numbers'], ['name', 'Note names'], ['off', 'Plain notes']], prefs.noteLabels)}
 <p class='gk-note'>How far ahead the notes appear, which way up the strings go, and what the notes carry: fret numbers, note names, or nothing.</p>
 <h3>Notation</h3>
-${pick('notation', [['true', 'On'], ['false', 'Off']], prefs.notation)}
-${pick('notationStaff', [['true', 'Standard notation'], ['false', 'No standard notation']], prefs.notationStaff)}
-${pick('notationTab', [['true', 'Tab'], ['false', 'No tab']], prefs.notationTab)}
-${pick('staffNames', [['true', 'Note names under the notes'], ['false', 'No names']], prefs.staffNames)}
-<p class='gk-note'>The part scrolling over the top of the highway: standard notation, tab, or both, each on or off. <kbd>N</kbd> steps through standard notation, tab, both and off while you play.</p>
+<div class='gk-row'>${[['notationStaff', 'Standard notation', prefs.notation && prefs.notationStaff], ['notationTab', 'Tab', prefs.notation && prefs.notationTab],
+    ['staffNames', 'Names under the notes', prefs.staffNames]].map(([set, l, on]) => `<button data-set='${set}' aria-pressed='${on}'>${l}</button>`).join('')}</div>
+<p class='gk-note'>The part scrolling over the top of the highway: each turns on and off; with neither standard notation nor tab, there's none. <kbd>N</kbd> steps through standard notation, tab, both and off while you play.</p>
 <h3>Speed</h3>
 ${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
 <p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
@@ -114,10 +112,15 @@ export async function settingsClick(b, sheet) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;
     case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
-    case 'notation': prefs.notation = v === 'true'; break;
-    case 'staffNames': prefs.staffNames = v === 'true'; break;
-    case 'notationStaff': prefs.notationStaff = v === 'true'; break;
-    case 'notationTab': prefs.notationTab = v === 'true'; break;
+    case 'staffNames': prefs.staffNames = !prefs.staffNames; break;
+    case 'notationStaff': case 'notationTab': {
+      // One toggle each; the band shows while either is on (N may have turned the band off with both set).
+      const k = b.dataset.set;
+      if (!prefs.notation) { prefs.notationStaff = prefs.notationTab = false; prefs[k] = true; }
+      else prefs[k] = !prefs[k];
+      prefs.notation = prefs.notationStaff || prefs.notationTab;
+      break;
+    }
     case 'speed': prefs.startSpeed = Number(v); break;
     case 'screen': prefs.screen = v; applyScreen(); break;
     case 'rescan':

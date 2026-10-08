@@ -286,6 +286,13 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; background: n
 .panel .row button { min-height: 30px; padding: 2px 10px; font-size: 14px; }
 .panel .note { color: var(--dim); font-size: 14px; margin: 4px 0 0; }
 .panel .acts { margin-top: 14px; }
+.panel h2 + label { margin-top: 4px; }
+/* what's rarely needed folds away */
+.panel .more { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.panel .more summary { cursor: pointer; font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+.panel .more summary:focus-visible { outline: 3px solid var(--bar-edge); outline-offset: 2px; border-radius: 4px; }
+.panel .more[open] summary { margin-bottom: 8px; }
+.panel:not(.own-audio) .far { display: none; }
 /* the mix */
 .panel .mixrow { display: flex; align-items: center; gap: 8px; }
 .panel .mixrow input[type=range] { flex: 1; }
@@ -404,3 +411,5 @@ html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: r
 .end-strip { display: flex; width: 100%; height: 14px; margin-top: 10px; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
 .end-strip i { display: block; height: 100%; border-right: 1px solid var(--bg); }
 .end-strip-note { margin: 4px 0 0; font-size: 14px; color: var(--dim); }
+/* a key named in a sentence sits in it like a word */
+p kbd, .note kbd, .gk-note kbd, td kbd { margin: 0 2px; }

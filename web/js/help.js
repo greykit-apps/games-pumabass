@@ -19,7 +19,7 @@ ${keys([
     ['R', 'riff repeater: the loop, a little faster each time round'],
     ['[ and ]', 'set the loop start / end where you are'],
     ['Home', 'back to the loop start, or the top of the song'],
-    [',', "the mix (song, recorded bass, your bass) and this song's settings"],
+    [',', "the mix: the song, your bass, the recorded bass, and this song's timing"],
     ['B', 'recorded bass: full, reduced, cut'],
     ['F', 'make the song a favorite (again to undo)'],
     ['T', 'the tuner'],
@@ -84,8 +84,8 @@ move it with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigge
 right on the tick, then press <kbd>Enter</kbd>. It starts from the timing you have now, so a small fix is a few
 presses. With the Real Tone Cable open, you then pluck the open E string along with the tick for half a minute,
 which sets scoring's timing for the cable. Run it again after changing speakers, headphones or screen.</p>
-<p>For one song only (say, your own recording of it), open the song's settings with <kbd>,</kbd> and nudge its
-<b>audio offset</b>; it adds to the calibrated one.</p>`],
+<p>For one song only (say, your own recording of it), open the Mix with <kbd>,</kbd> and nudge its
+<b>audio offset</b> under <b>This song's timing</b>; it adds to the calibrated one.</p>`],
   ['Tuner', `
 <p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd> (or <b>Tuner</b> on the menu or in the
 player). The tuner knows the tuning the song wants, including the few cents some Rocksmith songs are off A440
@@ -123,7 +123,7 @@ input, so playing through an amp is never marked wrong. Tune first: the pitch ha
 <p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
 PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
 panel (<kbd>,</kbd>) and play; then <b>Save take</b> (there, or <kbd>S</kbd> on the end screen) keeps what the cable
-heard in the PumaBass folder, to find out why.</p>`],
+heard in the PumaBass folder, to find out why. Both are under <b>Takes</b>, at the foot of the Mix.</p>`],
   ['Reading the highway', `
 <p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
 <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
@@ -131,7 +131,7 @@ heard in the PumaBass folder, to find out why.</p>`],
 fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
 <p>Over the top, the same part scrolls by as standard notation over tab (<kbd>N</kbd> steps through standard, tab, both and off). Each
 note crosses the blue line as you play it; what's to the right is coming. The names under the notes are there
-to learn the clef by. The notation, the tab and the names each turn on and off in Settings.</p>
+to learn the clef by. Standard notation, tab and the names under the notes each turn on and off in Settings.</p>
 <p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
 as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
 floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>

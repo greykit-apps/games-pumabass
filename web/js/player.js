@@ -72,6 +72,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   const range = s.audio === 'user' ? 15000 : 500;
   $('offset').min = -range; $('offset').max = range; $('offset').step = s.audio === 'user' ? 10 : 5;
   $('offset').value = offsetMs; showOffset();
+  $('settings').classList.toggle('own-audio', s.audio === 'user'); // whole seconds only make sense for your own recordings
   loop = null;
   renderLoop();
   applyDifficulty();
@@ -520,8 +521,6 @@ $('hear').addEventListener('change', async () => {
 });
 $('score-toggle').addEventListener('change', () => { prefs.scoring = $('score-toggle').checked; savePrefs(); if (screen === 'player') startScoring(); });
 $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
-$('lookahead').addEventListener('input', () => { prefs.lookahead = Number($('lookahead').value); highway.lookahead = prefs.lookahead; savePrefs(); syncPlayerPrefs(); });
-$('invert').addEventListener('change', () => { prefs.invert = $('invert').checked; highway.invert = prefs.invert; savePrefs(); });
 
 /* The player's controls follow the saved preferences, wherever they were changed. */
 export function syncPlayerPrefs() {
@@ -529,9 +528,6 @@ export function syncPlayerPrefs() {
   highway.invert = prefs.invert;
   highway.labels = prefs.noteLabels;
   audio.volume = 1; // the song's volume is the mixer's
-  $('lookahead').value = prefs.lookahead;
-  $('lookahead-val').textContent = `${prefs.lookahead}s`;
-  $('invert').checked = prefs.invert;
   $('volume').value = prefs.volume;
   $('hear').checked = prefs.hear;
   $('score-toggle').checked = prefs.scoring;
@@ -544,8 +540,8 @@ export function syncPlayerPrefs() {
 syncPlayerPrefs();
 
 export function showOffset() {
-  $('offset-val').textContent = `${offsetMs > 0 ? '+' : ''}${offsetMs} ms (positive = notes arrive later)`
-    + (prefs.avOffset ? `, on top of ${fmtMs(prefs.avOffset)} for every song` : '');
+  $('offset-val').textContent = `${offsetMs ? fmtMs(offsetMs) : 'none'}${offsetMs > 0 ? ', notes later' : offsetMs < 0 ? ', notes sooner' : ''}`
+    + (prefs.avOffset ? ` (on top of ${fmtMs(prefs.avOffset)} for every song)` : '');
 }
 export function setOffset(ms) {
   offsetMs = Math.max(Number($('offset').min), Math.min(Number($('offset').max), ms));
