@@ -51,7 +51,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   showLoading(`Loading ${s.title}`);
-  $('back').innerHTML = '<kbd>Esc</kbd>Songs';
+  $('back').title = 'Back to the song list (Esc)'; $('back').ariaLabel = 'Songs';
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
   try {
@@ -100,7 +100,6 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   pausedAt = startAt > 0.5 ? startAt : null; // Resume game counts back in, too
   const last = highway.notes.slice(-40).reduce((m, n) => Math.max(m, n.t + (n.sus || 0)), 0);
   session = { id: s.id, start: startAt, counted: resumed, finished: false, heard: 0, lastT: null, end: last || audio.duration || chart.songLength };
-  showFav();
   liveAt = null;
   setSpeed(prefs.startSpeed); // loading a new source resets the rate
   updatePlayButton();
@@ -177,7 +176,7 @@ export async function openTestSong(test, sub) {
   $('library').classList.add('hidden');
   $('player').classList.remove('hidden');
   showLoading('Loading the sync test');
-  $('back').innerHTML = '<kbd>Esc</kbd>Back';
+  $('back').title = 'Back (Esc)'; $('back').ariaLabel = 'Back';
   $('p-tuning').textContent = 'Open E string';
   $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
   offsetMs = 0;
@@ -193,7 +192,6 @@ export async function openTestSong(test, sub) {
   pausedAt = null;
   liveAt = null;
   session = null;
-  showFav();
   setSpeed(100);
   startScoring();
   showCaption('Sync', sub, '');
@@ -331,7 +329,7 @@ export function togglePlay() {
 }
 
 /* While paused, the keys worth knowing, so none has to be remembered. */
-const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['\u2191 \u2193', 'speed'], ['N', 'notation'], [',', 'mix'], ['?', 'all keys'], ['Esc', 'song list']]
+const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['N', 'notation'], ['T', 'tuner'], ['M', 'mix'], ['?', 'help'], ['Esc', 'song list']]
   .map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</span>`;
 
 /* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
@@ -384,13 +382,6 @@ export function checkFinished(t) {
   toast('Finished');
 }
 
-export function showFav() {
-  $('fav-btn').classList.toggle('hidden', !!(song && song.calib));
-  const on = !!song && isFav(song.id);
-  $('fav-btn').setAttribute('aria-pressed', String(on));
-  $('fav-btn').setAttribute('aria-label', song ? `Favorite: ${song.title}` : 'Favorite');
-}
-$('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
 audio.addEventListener('ended', () => {
   if (calib) { updatePlayButton(); playAlongDone(); return; }
@@ -471,9 +462,6 @@ export const loopFrom = () => Math.max(0, loop.a - 1.0);
 
 export function renderLoop() {
   highway.loop = loop ? { from: loopFrom(), to: loop.b } : null;
-  $('loop').setAttribute('aria-pressed', String(!!loop));
-  $('repeat').setAttribute('aria-pressed', String(!!repeater));
-  $('repeat-label').textContent = repeater ? `Riff repeater \u00b7 ${$('speed').value}%` : 'Riff repeater';
   const el = $('loop-region');
   el.classList.toggle('hidden', !loop);
   if (loop) {
@@ -484,19 +472,30 @@ export function renderLoop() {
 
 $('back').addEventListener('click', closeSong);
 $('no-score').addEventListener('click', async () => { if (await ensureInput()) startScoring(); });
-$('tuner-btn').addEventListener('click', showTuner);
 $('play').addEventListener('click', togglePlay);
-$('loop').addEventListener('click', toggleSectionLoop);
-$('repeat').addEventListener('click', toggleRepeater);
 
-export function setSpeed(v) {
-  v = Math.max(25, Math.min(120, v));
-  $('speed').value = v;
+/* Speed sticks at 100%: three slider positions (100, 105, 110) all mean full
+ * speed, so a drag or a nudge holds there a moment before it crosses. The
+ * slider keeps the position; currentSpeed() is what it means. */
+const HOLD = 10; // the slider travel past 100 that still reads 100%
+const posToSpeed = p => (p <= 100 ? p : Math.max(100, p - HOLD));
+const speedToPos = v => (v < 100 ? v : v === 100 ? 100 + HOLD / 2 : v + HOLD); // full speed rests mid-hold
+export const currentSpeed = () => posToSpeed(Number($('speed').value));
+function showSpeed() {
+  const v = currentSpeed();
   $('speed-val').textContent = `${v}%`;
   audio.playbackRate = v / 100;
-  if (repeater) $('repeat-label').textContent = `Riff repeater \u00b7 ${v}%`;
 }
-$('speed').addEventListener('input', () => setSpeed(Number($('speed').value)));
+export function setSpeed(v) {
+  $('speed').value = speedToPos(Math.max(25, Math.min(120, v)));
+  showSpeed();
+}
+/* Up / Down: one slider position, so the keys feel the hold too. */
+function nudgeSpeed(dir) {
+  $('speed').value = Number($('speed').value) + dir * 5; // the range keeps it in bounds
+  showSpeed();
+}
+$('speed').addEventListener('input', showSpeed);
 
 $('difficulty').addEventListener('input', () => {
   prefs.difficulty = Number($('difficulty').value);
@@ -522,7 +521,6 @@ export function closeMix() {
   else document.activeElement.blur();
   mixBack = null;
 }
-$('settings-btn').addEventListener('click', toggleSettingsPanel);
 $('settings-close').addEventListener('click', closeMix);
 $('settings').addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
@@ -584,17 +582,17 @@ export function playerKey(e) {
   if (k === ' ') { e.preventDefault(); togglePlay(); }
   else if (k === 'ArrowLeft') { e.preventDefault(); seek(audio.currentTime - 5); }
   else if (k === 'ArrowRight') { e.preventDefault(); seek(audio.currentTime + 5); }
-  else if (k === 'ArrowUp') { e.preventDefault(); setSpeed(Number($('speed').value) + 5); }
-  else if (k === 'ArrowDown') { e.preventDefault(); setSpeed(Number($('speed').value) - 5); }
+  else if (k === 'ArrowUp') { e.preventDefault(); nudgeSpeed(1); }
+  else if (k === 'ArrowDown') { e.preventDefault(); nudgeSpeed(-1); }
   else if (k === 'l' || k === 'L') toggleSectionLoop();
   else if (k === 'r' || k === 'R') toggleRepeater();
   else if (k === '[') setLoopPoint(songTime(), 'a');
   else if (k === ']') setLoopPoint(songTime(), 'b');
   else if (k === 'Home') seek(loop ? loop.a : 0);
-  else if (k === ',') toggleSettingsPanel();
+  else if (k === 'm' || k === 'M') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
   else if (k === 'n' || k === 'N') cycleNotation();
-  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? 'Favorite' : 'Not a favorite'); }
+  else if (k === 'f' || k === 'F') { toggleFav(song.id); toast(isFav(song.id) ? 'Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);
