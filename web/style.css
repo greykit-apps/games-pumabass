@@ -56,6 +56,7 @@ input[type=range] { accent-color: var(--accent); min-height: 0; padding: 0; bord
 input[type=range]:focus-visible { background: none; box-shadow: 0 0 0 3px var(--bar-edge); border-radius: 4px; transform: none; }
 input[type=checkbox]:focus-visible { box-shadow: 0 0 0 3px var(--bar-edge); transform: none; }
 kbd { font: 700 14px var(--ui); color: var(--ink); background: rgba(255, 255, 255, .06); border: 1px solid var(--lit); border-radius: 4px; padding: 0 6px; margin-right: 8px; }
+kbd.after { margin: 0 0 0 8px; } /* a badge after its word: "Later →" */
 button.on kbd { color: var(--text); border-color: rgba(var(--hot-rgb), .5); }
 .hidden { display: none !important; }
 .ico { display: inline-block; flex: none; width: 1em; height: 1em; vertical-align: -.14em; background: currentColor;
@@ -217,7 +218,8 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; background: n
   border-radius: 8px; background: rgba(var(--bg-rgb), .82); font-size: .85em; letter-spacing: .02em; text-transform: none; color: var(--ink); }
 .ov-keys kbd { margin-right: 6px; }
 #overlay.paused #ov-big { display: inline-block; padding: 0 40px; font-size: clamp(44px, 8vw, 110px);
-  background: linear-gradient(90deg, rgba(var(--hot-rgb), 0), rgba(var(--hot-rgb), .18) 20%, rgba(var(--hot-rgb), .18) 80%, rgba(var(--hot-rgb), 0)); }
+  background: linear-gradient(90deg, rgba(var(--hot-rgb), 0), rgba(var(--hot-rgb), .18) 20%, rgba(var(--hot-rgb), .18) 80%, rgba(var(--hot-rgb), 0)),
+    linear-gradient(90deg, rgba(var(--bg-rgb), 0), rgba(var(--bg-rgb), .92) 12%, rgba(var(--bg-rgb), .92) 88%, rgba(var(--bg-rgb), 0)); } /* the staff stays behind it */
 #overlay.live #ov-big { color: var(--good); }
 #overlay.tick #ov-big { animation: ov-tick .9s cubic-bezier(.22, 1, .36, 1); }
 @keyframes ov-tick { from { transform: var(--lean) scale(1.35); opacity: .4; } to { transform: var(--lean); opacity: 1; } }
@@ -294,6 +296,9 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; background: n
 #playhead { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; box-shadow: 0 0 10px var(--accent); pointer-events: none; }
 .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .controls button { font-size: 16px; padding: 5px 12px; }
+/* Play and Pause take the same room, so the bar doesn't shift as it flips */
+#play-label { display: inline-grid; }
+#play-label::after { content: 'Pause'; height: 0; overflow: hidden; visibility: hidden; }
 .controls label { display: flex; align-items: center; gap: 6px; font-size: 16px; color: var(--dim); }
 .controls label b { color: var(--text); font-weight: 600; min-width: 44px; font-variant-numeric: tabular-nums; }
 .controls input[type=range] { width: 96px; }
