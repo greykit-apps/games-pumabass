@@ -84,7 +84,7 @@ song's audio offset (`,`), which goes up to ±15 s for these. It is remembered p
 **Settings → Timing → Sync test** lines up the notes, the sound and the cable, in half a minute on
 the highway itself. It plays like a short song in two passes:
 
-- **Watch:** no sound; notes at the 12th fret on the D and G strings (where a pluck is clearest).
+- **Watch:** no sound; open-string notes on the D and G strings.
   Play each one as it lands.
 - **Listen:** no notes; clicks. Close your eyes and play along.
 

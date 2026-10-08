@@ -45,7 +45,7 @@ function run({ watchMs, listenMs, rate = 1, current = { av: 0, input: 0 }, cable
     if (tg.i === 9 || (tg.pass === 'listen' && tg.i === 13)) { skipped++; continue; } // a beat or two missed
     const late = (tg.pass === 'watch' ? watchMs : listenMs) / 1000 + 0.004 * gauss(); // a steady player: this checks the arithmetic
     const at = tg.t / rate + late;
-    if (cable) pluck(buf, at, tg.ev && tg.ev.s === 3 ? 196 : 146.8);
+    if (cable) pluck(buf, at, tg.ev && tg.ev.s === 3 ? 98 : 73.4);
     else meter.tap((at) * rate, rate);
   }
   if (cable) {

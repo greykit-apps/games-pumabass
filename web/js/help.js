@@ -60,7 +60,7 @@ thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does.</p>
 <h3>Notes early or late?</h3>
 <p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
 <b>Settings → Timing → Sync test</b> measures all three, on the highway: first play the notes as they land
-(12th fret, D and G strings), then close your eyes and play along with clicks. With the Real Tone Cable open,
+(open D and G strings), then close your eyes and play along with clicks. With the Real Tone Cable open,
 pluck; it sets the notes' timing for every song and scoring's timing for the cable. Without it, tap any key or
 click, and it sets the notes' timing. Run it again after changing speakers, headphones or screen.</p>
 <p>For one song only (say, your own recording of it), open the song's settings with <kbd>,</kbd> and nudge its

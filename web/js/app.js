@@ -308,7 +308,7 @@ async function runCalibration() {
   $('loading').classList.remove('hidden');
   $('p-title').textContent = 'Sync test';
   $('p-sub').textContent = input.open ? 'Pluck along: it times the highway, the sound and the cable' : 'Tap along: it times the highway and the sound';
-  $('p-tuning').textContent = '12th fret \u00b7 D and G strings';
+  $('p-tuning').textContent = 'Open D and G strings';
   offsetMs = 0;
   $('offset').value = 0; showOffset();
   loop = null;

@@ -119,7 +119,7 @@ button.star[aria-pressed=true] { color: var(--warn); border: 0; }
 @keyframes ov-tick { from { transform: scale(1.35); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #overlay.tick #ov-big { animation: none; } }
 /* the sync test's instructions: what to do now, and how many were heard */
-#calib-cue { position: absolute; left: var(--s4); top: 100px; width: min(300px, 28%); pointer-events: none;
+#calib-cue { position: absolute; right: var(--s4); top: 100px; width: min(300px, 32%); text-align: right; pointer-events: none;
   text-shadow: 0 0 6px rgba(5, 7, 15, .95); }
 #calib-cue b { display: block; font-size: clamp(24px, 3.4vw, 44px); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); line-height: 1.1; }
 #calib-cue span { display: block; margin-top: 6px; font-size: clamp(13px, 1.6vw, 17px); color: var(--text); }

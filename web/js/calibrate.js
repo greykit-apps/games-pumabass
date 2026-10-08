@@ -11,9 +11,9 @@
 //     the offset the highway needs (positive = notes land later);
 //   Watch, played on the cable: how late your plucks reach PumaBass against
 //     the notes you see, the offset scoring needs.
-// The notes sit high on the neck (12th fret, D and G strings), where a
-// pluck's click is clearest. With no cable, any key or a click on the
-// highway is a tap; that sets the highway's offset only.
+// The notes are open strings (D and G): nothing to fret, just the timing.
+// With no cable, any key or a click on the highway is a tap; that sets the
+// highway's offset only.
 //
 // The test runs in the player as a short song: the clicks play through the
 // same media path as a song, and plucks are found through the same clock as
@@ -60,7 +60,7 @@ export function syncTest() {
   for (let i = 0; i < N; i++) {
     const t = LEAD + i * BEAT;
     // A bar on the D string, a bar on the G, and so on.
-    const ev = { t, s: Math.floor(i / 4) % 2 ? 3 : 2, f: 12, pi: 0 };
+    const ev = { t, s: Math.floor(i / 4) % 2 ? 3 : 2, f: 0, pi: 0 };
     notes.push(ev);
     targets.push({ t, pass: 'watch', i, ev });
   }
@@ -76,7 +76,7 @@ export function syncTest() {
     phrases: [{ name: 'sync', maxDifficulty: 0 }],
     phraseIterations: [{ phrase: 0, t: 0, end: END }],
     chordTemplates: [], maxDifficulty: 0,
-    levels: [{ difficulty: 0, notes, anchors: [{ t: 0, end: END, fret: 10, width: 4, pi: 0 }], handShapes: [] }],
+    levels: [{ difficulty: 0, notes, anchors: [{ t: 0, end: END, fret: 1, width: 4, pi: 0 }], handShapes: [] }],
   };
   return { chart, url: track(), targets };
 }
@@ -187,7 +187,7 @@ export function syncCue(t, meter, cable) {
     const beat = Math.floor((t - LEAD) / BEAT + 0.5);
     return {
       big: 'Watch',
-      small: beat < WARMUP ? `Play each note as it lands: ${how} on the 12th fret, D and G strings. The first four warm you up.`
+      small: beat < WARMUP ? cable ? 'Pluck each open string as its note lands. The first four warm you up.' : 'Tap any key as each note lands. The first four warm you up.'
         : `${heard('watch')} of ${per} ${cable ? 'heard' : 'tapped'}`,
     };
   }
