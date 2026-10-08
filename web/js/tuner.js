@@ -51,7 +51,7 @@ export function openTuner({ input, targets, label, centOffset = 0, hear, onInput
       <div class="gk-head"><h2>Tuner</h2><button data-x aria-label="Close">&times;</button></div>
       <div class="gk-body">
         <p class="tn-tuning">${esc(label)}${offsetNote}</p>
-        <div class="tn-strings">${targets.map(t => `<div class="tn-str" data-s="${t.s}" style="--c:${STRING_COLORS[t.s]}"><span>${esc(t.name.replace(/-?\d+$/, ''))}</span><small>${t.freq.toFixed(1)} Hz</small><em aria-hidden="true">&#10003;</em></div>`).join('')}</div>
+        <div class="tn-strings">${targets.map(t => `<div class="tn-str" data-s="${t.s}" style="--c:${STRING_COLORS[t.s]}"><span>${esc(t.name.replace(/-?\d+$/, ''))}</span><small>${t.freq.toFixed(1)} Hz</small><em class="ico check-ico" aria-hidden="true"></em></div>`).join('')}</div>
         <div class="tn-read"><span class="tn-name">&ndash;</span><span class="tn-hz"></span></div>
         <div class="tn-meter" aria-hidden="true"><div class="tn-zone"></div>${ticks}<div class="tn-needle"></div></div>
         <p class="tn-hint" aria-live="polite">Play an open string.</p>

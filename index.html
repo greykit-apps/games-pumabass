@@ -54,7 +54,7 @@
             <button data-type="rhythm">Rhythm</button>
             <button data-type="all">All</button>
           </div>
-          <button id="fav-filter" aria-pressed="false" title="Show only your favorites (Shift+F)"><kbd>&#8679;F</kbd><span class="heart-glyph" aria-hidden="true">&#9829;</span> Favorites</button>
+          <button id="fav-filter" aria-pressed="false" title="Show only your favorites (Shift+F)"><kbd>&#8679;F</kbd><span class="ico heart-ico fill" aria-hidden="true"></span> Favorites</button>
           <label class="sort" title="Sort the list (O)"><kbd>O</kbd>Sort
           <select id="sort" aria-label="Sort (O)">
             <option value="artist">Artist</option>
@@ -65,7 +65,7 @@
             <option value="plays">Most played</option>
           </select></label>
         </div>
-        <div class="songs-head" aria-hidden="true"><span>&#9829;</span><span>Song</span><span>Part</span><span class="c-diff" title="Rocksmith's difficulty rating for the part">Difficulty</span><span class="c-tun">Tuning</span><span class="c-num" title="Times started">Plays</span><span class="c-num" title="Times played to the end">Finished</span><span class="c-len">Length</span></div>
+        <div class="songs-head" aria-hidden="true"><span><span class="ico heart-ico fill"></span></span><span>Song</span><span>Part</span><span class="c-diff" title="Rocksmith's difficulty rating for the part">Difficulty</span><span class="c-tun">Tuning</span><span class="c-num" title="Times started">Plays</span><span class="c-num" title="Times played to the end">Finished</span><span class="c-len">Length</span></div>
         <div id="song-list" role="list"></div>
         <nav class="bar">
           <button data-act="menu"><kbd>Esc</kbd>Menu</button>
@@ -86,7 +86,7 @@
       <span class="wordmark" aria-hidden="true">Puma<b>Bass</b></span>
       <button id="back" title="Back to the song list (Esc)"><kbd>Esc</kbd>Songs</button>
       <span class="grow"></span>
-      <button id="fav-btn" class="heart" aria-label="Favorite" aria-pressed="false" title="Favorite (F)">&#9825;</button>
+      <button id="fav-btn" class="heart" aria-label="Favorite" aria-pressed="false" title="Favorite (F)"><kbd>F</kbd><span class="ico heart-ico" aria-hidden="true"></span></button>
       <div id="p-tuning" class="chip"></div>
       <span id="score-hud" class="chip hidden" aria-live="off" title="Accuracy so far, and your current streak"></span>
       <button id="no-score" class="hidden" title="Scoring is on, but no instrument input is open: choose one">Not scoring: no input</button>
@@ -130,7 +130,7 @@
         <span id="section-name" aria-live="off"></span>
         <button id="loop" title="Loop the current section (L)"><kbd>L</kbd>Loop section</button>
         <button id="repeat" title="Riff repeater: loop, a little faster each time round (R)"><kbd>R</kbd><span id="repeat-label">Riff repeater</span></button>
-        <label title="Playback speed (Up / Down)">Speed
+        <label title="Playback speed (Up / Down)"><kbd>&uarr;&darr;</kbd>Speed
           <input id="speed" type="range" min="25" max="120" step="5" value="100"><b id="speed-val">100%</b>
         </label>
         <label title="How much of the chart: 100% is every note; lower plays Rocksmith's simpler versions of each phrase">Notes

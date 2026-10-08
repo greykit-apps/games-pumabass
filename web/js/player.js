@@ -380,7 +380,7 @@ export function checkFinished(t) {
   if (session.heard < 0.5 * Math.max(1, session.end - session.start)) return;
   session.finished = true;
   bumpStat(session.id, 'finished');
-  toast('Finished \u2713');
+  toast('Finished');
 }
 
 export function showFav() {
@@ -388,7 +388,6 @@ export function showFav() {
   const on = !!song && isFav(song.id);
   $('fav-btn').setAttribute('aria-pressed', String(on));
   $('fav-btn').setAttribute('aria-label', song ? `Favorite: ${song.title}` : 'Favorite');
-  $('fav-btn').textContent = on ? '\u2665' : '\u2661';
 }
 $('fav-btn').addEventListener('click', () => { if (song && !song.calib) { toggleFav(song.id); showFav(); } });
 audio.addEventListener('pause', () => { updatePlayButton(); saveResume(); });
@@ -571,7 +570,7 @@ export function playerKey(e) {
   else if (k === ',') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
   else if (k === 'n' || k === 'N') cycleNotation();
-  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? '\u2665 Favorite' : 'Not a favorite'); }
+  else if (k === 'f' || k === 'F') { toggleFav(song.id); showFav(); toast(isFav(song.id) ? 'Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
     setRecordedBass(modes[(modes.indexOf(prefs.recordedBass) + 1) % modes.length]);

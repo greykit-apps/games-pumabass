@@ -18,7 +18,6 @@ export function showEndScreen() {
   const st = statsOf(song.id);
   const notes = highway.notes.reduce((n, e) => n + (e.notes ? e.notes.length : 1), 0);
   const played = session ? session.heard : 0;
-  const total = session ? session.end - session.start : chart.songLength;
   const finished = !!(session && session.finished);
   const tn = tuningName(chart.tuning, chart.strings);
   const sc = scorer && scorer.judged ? scorer : null;
@@ -38,7 +37,7 @@ export function showEndScreen() {
   // (A finish is counted before the end screen opens, so st.finished includes this one.)
   const verdict = finished
     ? (st.finished === 1 ? 'Played to the end, for the first time.' : `Played to the end: that's ${st.finished} finishes from ${st.plays} plays.`)
-    : `You played ${formatTime(played)} of ${formatTime(total)}. Play at least half of it and it counts as a finish${st.finished ? ` (you've finished it ${times(st.finished)})` : ''}.`;
+    : `You played ${formatTime(played)} of ${formatTime(chart.songLength)}. Play at least half of it and it counts as a finish${st.finished ? ` (you've finished it ${times(st.finished)})` : ''}.`;
   const facts = [prefs.difficulty < 100 ? `${notes} notes (${prefs.difficulty}% of the chart)` : `${notes} notes`, `${$('speed').value}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
   // Each section's accuracy, as a strip along the song.
   const len = chart.songLength;
@@ -78,7 +77,6 @@ export function showEndScreen() {
   el.innerHTML = `<div class="scene end-scene" aria-hidden="true">${sceneSVG('pb-beam-end')}</div>
   <div class="gk-box end">
     <div class="end-head">
-      <p class="end-kicker">${kicker}</p>
       <h2 class="end-title">${esc(song.title)}</h2>
       <p class="end-sub">${esc(song.artist)} &middot; ${esc(arrangementLabel(song))} &middot; ${esc(tn)}</p>
     </div>
@@ -102,7 +100,7 @@ export function showEndScreen() {
     else if (what === 'practise' && weak) { leaveSong(); practiseSection(s, weak.sec); }
     else if (what === 'take') {
       const b = el.querySelector('[data-end="take"]');
-      if (b && !b.disabled) { b.disabled = true; saveTake().then(ok => { if (ok) b.innerHTML = 'Take saved &#10003;'; else b.disabled = false; }); }
+      if (b && !b.disabled) { b.disabled = true; saveTake().then(ok => { if (ok) b.textContent = 'Take saved'; else b.disabled = false; }); }
     }
   };
   el.addEventListener('click', e => { const b = e.target.closest('[data-end]'); if (b) act(b.dataset.end); });

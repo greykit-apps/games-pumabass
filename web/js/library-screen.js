@@ -154,9 +154,9 @@ export function renderLibrary() {
   const keepId = keep && keep.dataset.id, keepShelf = keep && keep.classList.contains('shelved');
   el.innerHTML = list.length ? '' : !songs.length
     ? '<div class="empty"><p>No songs yet. PumaBass plays your own Rocksmith 2014 song files: show it where they are.</p><button class="primary" data-act="choose">Choose your songs folder</button></div>'
-    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Heart a song (&#9825;, or F on a song) to add it.' : 'No songs here.'}</div>`;
+    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.' : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
-  const head = text => { const h = document.createElement('div'); h.className = 'group'; h.textContent = text; frag.appendChild(h); };
+  const head = text => { const h = document.createElement('div'); h.className = 'group'; h.appendChild(document.createElement('span')).textContent = text; frag.appendChild(h); };
   let group = null;
   if (shelf.length) head('Recently played');
   [...shelf.map(s => [s, true]), ...list.map(s => [s, false])].forEach(([s, shelved]) => {
@@ -173,10 +173,10 @@ export function renderLibrary() {
     const st = stats[s.id] || {}, fav = !!favs[s.id];
     const num = v => `<span class="num${v ? '' : ' zero'}">${v || '\u2013'}</span>`;
     const level = difficultyLevel(s.difficulty);
-    row.innerHTML = `<button class="heart" data-fav aria-label="Favorite: ${esc(s.title)}" aria-pressed="${fav}" title="Favorite (F)" tabindex="-1">${fav ? '\u2665' : '\u2661'}</button>
+    row.innerHTML = `<button class="heart" data-fav aria-label="Favorite: ${esc(s.title)}" aria-pressed="${fav}" title="Favorite (F)" tabindex="-1"><span class="ico heart-ico" aria-hidden="true"></span></button>
       <div style="min-width:0"><div class="t"></div><div class="a"></div></div>
       <span class="arr"></span>
-      <span class="diff" ${level ? `title="Difficulty ${level} of 5 (Rocksmith rates it ${s.difficulty.toFixed(2)})" aria-label="Difficulty ${level} of 5"` : 'aria-label="No difficulty rating"'}>${level ? `${'\u25ae'.repeat(level)}<i>${'\u25ae'.repeat(5 - level)}</i>` : '\u2013'}</span>
+      <span class="diff" ${level ? `title="Difficulty ${level} of 5 (Rocksmith rates it ${s.difficulty.toFixed(2)})" aria-label="Difficulty ${level} of 5"` : 'aria-label="No difficulty rating"'}>${level ? `<span class="pips" aria-hidden="true">${[1, 2, 3, 4, 5].map(n => `<i${n <= level ? ' class="on"' : ''}></i>`).join('')}</span>` : '\u2013'}</span>
       <span class="tun${tn === 'E Standard' ? ' std' : ''}"></span>
       ${num(st.plays)}${num(st.finished)}
       <span class="len">${formatTime(s.length)}</span>`;
@@ -205,7 +205,6 @@ export function heartRow(row) {
   const on = toggleFav(row.dataset.id);
   for (const b of $('song-list').querySelectorAll(`.song[data-id="${CSS.escape(row.dataset.id)}"] [data-fav]`)) {
     b.setAttribute('aria-pressed', String(on));
-    b.textContent = on ? '\u2665' : '\u2661';
   }
   if (prefs.favOnly && !on) { const next = row.nextElementSibling || row.previousElementSibling; renderLibrary(); const n = next && $('song-list').querySelector(`.song[data-id="${CSS.escape(next.dataset.id || '')}"]`); if (n) n.focus({ preventScroll: true }); }
 }
