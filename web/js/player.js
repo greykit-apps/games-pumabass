@@ -124,6 +124,7 @@ export async function openTestSong(test, sub) {
   $('back').innerHTML = '<kbd>Esc</kbd>Back';
   $('p-sub').textContent = sub;
   $('p-tuning').textContent = 'Open E string';
+  $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
   offsetMs = 0;
   $('offset').value = 0; showOffset();
   loop = null;
@@ -153,6 +154,7 @@ export function leaveSong() {
   clearTake();
   $('calib-cue').classList.add('hidden');
   $('metro').classList.add('hidden');
+  $('player').classList.remove('syncing');
   updateHud();
   audio.pause();
   audio.removeAttribute('src');

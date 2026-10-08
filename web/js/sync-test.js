@@ -25,6 +25,7 @@ export async function runCalibration() {
   await openTestSong(test, input.open ? 'Line up the picture with the sound, then play along on the cable' : 'Line up the picture with the sound');
   $('metro').classList.remove('hidden', 'playing');
   $('metro-done').innerHTML = `<kbd>Enter</kbd>${input.open ? 'They match: play along' : 'They match'}`;
+  $('metro-step').textContent = input.open ? 'Step 1 of 2 \u00b7 then play along' : ''; // one step without the cable: the corner says it
   togglePlay();
   updatePlayButton();
 }

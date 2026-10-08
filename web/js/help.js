@@ -26,7 +26,8 @@ ${keys([
     ['Esc', 'back to the song list'],
   ])}
 <h3>At the end of a song</h3>
-<p>The end screen shows what you played, with room for your score once scoring arrives. <kbd>Space</kbd> goes to the
+<p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
+your score when scoring was on. <kbd>Space</kbd> goes to the
 main menu (a finished song leaves nothing to resume), <kbd>R</kbd> plays it again, <kbd>Esc</kbd> goes to the song list.</p>
 <p>Click the bar along the bottom to jump; it is split into the song's sections. Shift+click moves the nearest
 loop edge. With the song paused, the mouse wheel scrubs.</p>
@@ -78,8 +79,8 @@ once it holds in tune.</p>
 <p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Already in
 tune? Close it and play.</p>
 <h3>Hearing your bass</h3>
-<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner, the Mix, or
-Settings) plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
+<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner or the Mix)
+plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
 has none.</p>
 <h3>The mix</h3>
 <p>Open it with <kbd>,</kbd> while a song is up. <b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and
@@ -101,7 +102,7 @@ where to practise.</p>
 Hammer-ons and pull-offs need the new pitch, with no pluck. Muted notes and harmonics need the pluck. Chords count
 on the pluck alone: one cable can't reliably tell which several notes are ringing, so a wrong chord shape isn't
 caught.</p>
-<p>Turn scoring off in Settings or the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
+<p>Turn scoring off in the Mix panel (<kbd>,</kbd>) to practise without the marks. It never runs without an
 input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
 <h3>Many misses?</h3>
 <p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach

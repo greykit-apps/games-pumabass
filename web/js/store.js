@@ -51,12 +51,16 @@ export const prefs = Object.assign({
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
   scoring: true,    // score the playing (only ever while an instrument input is open)
   inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
+  screen: 'couch',  // 'couch': drawn bigger on a TV, to read from across the room; 'desk': as is
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 // Settings that are gone: the tuner always offers itself, the riff repeater has
 // fixed steps, sound is always on.
 for (const k of ['hearLast', 'autoTune', 'repeatFrom', 'repeatStep']) delete prefs[k];
 export const savePrefs = () => save(KEY_PREFS, prefs);
+
+/* The couch scale (style.css): a class on the page, the sizes in the stylesheet. */
+export const applyScreen = () => document.documentElement.classList.toggle('couch', prefs.screen !== 'desk');
 
 /* ---- favorites and play counts ---- */
 export const isFav = id => !!load(KEY_FAVS, {})[id];

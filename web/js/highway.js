@@ -87,7 +87,8 @@ export class Highway {
   }
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
+    // On the couch the page is zoomed (style.css): draw at the zoomed size, not blurred up.
+    const dpr = (window.devicePixelRatio || 1) * (this.canvas.currentCSSZoom || 1);
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (this.canvas.width !== Math.round(w * dpr) || this.canvas.height !== Math.round(h * dpr)) {
       this.canvas.width = Math.round(w * dpr);

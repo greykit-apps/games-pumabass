@@ -30,6 +30,18 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 .screen { position: fixed; inset: 0; }
 .grow { flex: 1; }
 
+/* ---- the couch: on a TV every screen is drawn bigger, all of it together, so it
+ * reads from across the room (Settings → Screen). Any big screen lays out like a
+ * 1280 x 720 window: a 1080p TV at 1.5x. Zoom rather than bigger type, so the
+ * canon title and sheets scale with the rest without their copies being touched. */
+@media (min-width: 1500px) and (min-height: 840px) { html.couch { zoom: 1.25; --z: 1.25; } }
+@media (min-width: 1880px) and (min-height: 1040px) { html.couch { zoom: 1.5; --z: 1.5; } }
+@media (min-width: 2500px) and (min-height: 1400px) { html.couch { zoom: 2; --z: 2; } }
+@media (min-width: 3800px) and (min-height: 2100px) { html.couch { zoom: 3; --z: 3; } }
+/* Viewport units grow with the zoom too, so whatever fills the screen divides by it. */
+html.couch body, html.couch .gk-title, html.couch #library .stage { min-height: calc(100dvh / var(--z, 1)); }
+html.couch .gk-sheet .gk-box { max-height: calc(100dvh / var(--z, 1) - 32px); }
+
 /* ---- the backdrop: a stage, a highway running into it, amps either side ---- */
 .scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
   background: linear-gradient(#05070f 0%, #070b17 40%, #0c1020 68%, #181622 88%, #231a17 100%); }
@@ -43,7 +55,6 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 .scene .sx { fill: #111a30; }
 .scene .sa { fill: none; stroke: #54f2ff; stroke-width: 2; opacity: .42; }
 .scene .sled { fill: #ffb000; opacity: .55; }
-.scene .sbeam { fill: url(#pb-beam); }
 .scene .sstr { fill: none; stroke-width: 2; opacity: .3; }
 .scene .sgem { opacity: .34; }
 
@@ -61,11 +72,11 @@ button.primary kbd, button.on kbd { color: var(--accent); border-color: rgba(84,
 .tools #search { flex: 1; min-width: 220px; }
 .seg { display: flex; gap: var(--s1); }
 .check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
-#count { padding: 0 var(--s5) var(--s2); font-size: 12px; color: var(--dim); }
-.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 120px 78px 120px 48px 64px 52px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
+#count { padding: 0 var(--s5) var(--s2); font-size: 13px; color: var(--dim); }
+.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 110px 100px 130px 52px 72px 60px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
 .songs-head .c-num { text-align: right; }
-.song .num { text-align: right; font-size: 12px; color: var(--ink); font-variant-numeric: tabular-nums; }
-.song .num.zero { color: var(--line); }
+.song .num { text-align: right; font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.song .num.zero { color: var(--lit); }
 /* the favorite heart: hollow, then red when it's a favorite */
 button.heart { background: none; border: 0; min-height: 0; padding: 2px; font-size: 18px; line-height: 1; color: var(--lit); }
 button.heart:hover:not(:disabled) { color: var(--danger); }
@@ -75,17 +86,17 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 /* difficulty: a bar of 5 steps */
 .song .diff { font-size: 13px; letter-spacing: 0; color: var(--warn); white-space: nowrap; }
 .song .diff i { font-style: normal; color: var(--line); }
-.songs-head { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; padding-top: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
+.songs-head { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; padding-top: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
 .song { min-height: 50px; border-bottom: 1px solid var(--line); border-left: 2px solid transparent; cursor: pointer; }
 .song:hover, .song:focus { background: var(--row); outline: none; border-left-color: var(--accent); }
-.song .n { color: var(--dim); font-size: 12px; }
+.song .n { color: var(--dim); font-size: 13px; }
 .song .t { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .song:hover .t, .song:focus .t { color: var(--accent); }
-.song .a { color: var(--dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.song .arr, .song .tun { font-size: 12px; }
+.song .a { color: var(--dim); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song .arr, .song .tun { font-size: 13px; }
 .song .tun { color: var(--warn); }
 .song .tun.std { color: var(--ink); }
-.song .len { text-align: right; color: var(--dim); font-size: 12px; }
+.song .len { text-align: right; color: var(--dim); font-size: 13px; }
 .song .mine { color: var(--violet); }
 .song.noaudio { cursor: default; }
 .song.noaudio .t, .song.noaudio .arr { color: var(--dim); }
@@ -102,8 +113,8 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
   background: linear-gradient(rgba(5, 7, 15, .92), rgba(5, 7, 15, 0)); }
 .song-info { flex: 1; min-width: 0; }
 #p-title { font-weight: 600; font-size: 18px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#p-sub { font-size: 12px; color: var(--dim); }
-.chip { color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 4px 10px; font-size: 12px; white-space: nowrap; }
+#p-sub { font-size: 13px; color: var(--dim); }
+.chip { color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 4px 10px; font-size: 13px; white-space: nowrap; }
 /* the wordmark, as on the share card: Puma plain, Bass in the accent */
 .wordmark { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--text); white-space: nowrap; }
 .wordmark b { color: var(--accent); font-weight: 700; }
@@ -120,7 +131,7 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 @keyframes ov-tick { from { transform: scale(1.35); opacity: .4; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #overlay.tick #ov-big { animation: none; } }
 /* the sync test's bar: big and central in the line-up, a strip up top in the play-along */
-#metro { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); width: min(720px, calc(100% - 32px));
+#metro { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); width: min(720px, calc(100% - 32px));
   padding: var(--s4); background: rgba(5, 7, 15, .88); border: 1px solid var(--line); border-radius: 4px; text-align: center; }
 .metro-say { margin: 0 0 var(--s3); color: var(--text); }
 .metro-track { position: relative; height: 34px; border-left: 3px solid var(--lit); border-right: 3px solid var(--lit); background: var(--panel); }
@@ -131,38 +142,46 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 #metro.playing { top: 64px; padding: 6px; background: transparent; border: 0; width: min(420px, calc(100% - 32px)); pointer-events: none; }
 #metro.playing .metro-say, #metro.playing .metro-acts { display: none; }
 #metro.playing .metro-track { height: 14px; }
+/* The sync test wears only what it uses: play/pause, the time, and Back. */
+#player.syncing #loop, #player.syncing #repeat, #player.syncing .controls label, #player.syncing #settings-btn { display: none; }
+.metro-step:empty { display: none; }
+/* paused, PAUSED has the middle of the screen to itself */
+#player:has(#overlay.paused:not(.hidden)) #metro { visibility: hidden; }
+.metro-step { margin: 0 0 var(--s2); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
 /* the sync test's instructions: what to do now, and how many were heard */
 #calib-cue { position: absolute; right: var(--s4); top: 100px; width: min(300px, 32%); text-align: right; pointer-events: none;
   text-shadow: 0 0 6px rgba(5, 7, 15, .95); }
 #calib-cue b { display: block; font-size: clamp(24px, 3.4vw, 44px); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); line-height: 1.1; }
 #calib-cue span { display: block; margin-top: 6px; font-size: clamp(13px, 1.6vw, 17px); color: var(--text); }
-#section-name { position: absolute; top: 74px; left: var(--s4); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+/* the section you're in, where the eye can find it mid-song */
+#section-name { position: absolute; top: 70px; left: var(--s4); font-size: 16px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+  text-shadow: 0 0 6px rgba(5, 7, 15, .95); }
 #loading { position: absolute; top: 45%; width: 100%; text-align: center; font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
 
 .p-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s2) var(--s4) var(--s3);
   background: linear-gradient(rgba(5, 7, 15, 0), rgba(5, 7, 15, .95) 35%); }
 #progress { position: relative; height: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 2px; cursor: pointer; overflow: hidden; margin-bottom: var(--s2); }
 #sections { position: absolute; inset: 0; }
-#sections div { position: absolute; top: 0; bottom: 0; border-right: 1px solid var(--bg); font-size: 10px; letter-spacing: .06em; padding: 3px 4px; color: var(--dim); overflow: hidden; white-space: nowrap; text-transform: uppercase; }
+#sections div { position: absolute; top: 0; bottom: 0; border-right: 1px solid var(--bg); font-size: 11px; letter-spacing: .06em; padding: 3px 4px; color: var(--dim); overflow: hidden; white-space: nowrap; text-transform: uppercase; }
 #sections div:nth-child(odd) { background: var(--panel); }
 #sections div:nth-child(even) { background: var(--panel2); }
 #loop-region { position: absolute; top: 0; bottom: 0; background: rgba(84, 242, 255, .16); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); pointer-events: none; }
 #playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); box-shadow: 0 0 8px var(--accent); pointer-events: none; }
 .controls { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
-.controls label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+.controls label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); }
 .controls label b { color: var(--text); font-weight: 400; min-width: 40px; }
 .controls input[type=range] { width: 110px; }
-#time { min-width: 100px; color: var(--dim); font-variant-numeric: tabular-nums; }
+#time { min-width: 110px; color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; }
 
-.panel { position: absolute; right: var(--s4); bottom: 100px; width: 360px; max-height: calc(100dvh - 180px); overflow-y: auto;
+.panel { position: absolute; right: var(--s4); bottom: 100px; width: 360px; max-height: calc(100dvh / var(--z, 1) - 180px); overflow-y: auto;
   background: var(--panel); border: 1px solid var(--lit); border-radius: 2px; padding: 14px 18px 18px; }
 .panel h2 { margin: 0 0 12px; font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
-.panel h3 { margin: 14px 0 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
-.panel label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 12px; }
+.panel h3 { margin: 14px 0 6px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+.panel label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 13px; }
 .panel label.check { flex-direction: row; }
 .panel .row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
-.panel .row button { min-height: 28px; padding: 2px 8px; font-size: 12px; }
-.panel .note { color: var(--dim); font-size: 12px; margin: 4px 0 0; }
+.panel .row button { min-height: 28px; padding: 2px 8px; font-size: 13px; }
+.panel .note { color: var(--dim); font-size: 13px; margin: 4px 0 0; }
 .panel .acts { margin-top: 14px; }
 
 /* settings sheet extras */
@@ -179,7 +198,7 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 /* the songs-folder picker */
 .gk-sheet .folder-path { display: flex; gap: 6px; margin: 4px 0 8px; }
 .gk-sheet .folder-path input { flex: 1; min-width: 0; }
-.gk-sheet .folders { display: flex; flex-direction: column; gap: 2px; max-height: min(42vh, 360px); overflow-y: auto; margin: 0 0 12px;
+.gk-sheet .folders { display: flex; flex-direction: column; gap: 2px; max-height: min(calc(42vh / var(--z, 1)), 360px); overflow-y: auto; margin: 0 0 12px;
   border: 1px solid var(--line); border-radius: 2px; padding: 4px; background: var(--bg); }
 .gk-sheet .folders button { text-align: left; min-height: 30px; border-color: transparent; background: none; }
 .gk-sheet .folders button:hover, .gk-sheet .folders button:focus-visible { background: var(--row); border-color: var(--lit); }
@@ -223,7 +242,7 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 .panel .meter { width: 90px; height: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; flex: none; }
 .panel .meter i { display: block; height: 100%; width: 0; background: var(--good); }
 .panel .meter.hot i { background: var(--warn); }
-.panel .rowlabel { font-size: 12px; align-self: center; margin-right: 4px; }
+.panel .rowlabel { font-size: 13px; align-self: center; margin-right: 4px; }
 .panel label b { color: var(--text); font-weight: 400; }
 #toast { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); padding: 6px 14px; background: var(--panel); border: 1px solid var(--lit);
   border-radius: 2px; color: var(--text); font-size: 13px; letter-spacing: .06em; pointer-events: none; transition: opacity .3s; }
@@ -235,24 +254,39 @@ button.heart[aria-pressed=true] { color: var(--danger); border: 0; }
 .calib-table td:nth-child(2) { color: var(--text); text-align: right; padding-right: 16px; }
 .calib-table td:nth-child(3) { color: var(--dim); font-size: 12px; }
 
-/* ---- the end screen ---- */
-.end-sheet { position: absolute; background: rgba(3, 5, 10, .82); }
-.end-sheet .gk-box.end { width: min(640px, 100%); padding: 22px 26px 20px; }
+/* ---- the end screen: the stage behind it, the verdict in words, the score when there is one ---- */
+.end-sheet { position: absolute; background: rgba(3, 5, 10, .55); }
+.end-scene { position: absolute; z-index: 0; }
+.end-scene svg { opacity: .55; }
+.end-sheet .gk-box.end { position: relative; z-index: 1; width: min(600px, 100%); padding: 24px 28px 20px; background: rgba(5, 7, 15, .94); }
 .end-head { text-align: center; margin-bottom: 18px; }
-.end-kicker { margin: 0 0 6px; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); }
-.end-title { margin: 0; font-size: 26px; font-weight: 600; color: var(--text); letter-spacing: .02em; }
-.end-sub { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
-.end-score { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px; margin-bottom: 14px;
-  border: 1px solid var(--line); border-top: 2px solid var(--accent); border-radius: 2px; background: var(--bg); }
-.end-score small, .end-tile small { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
-.end-score-value { font-size: 56px; line-height: 1.1; font-weight: 700; color: var(--accent); text-shadow: 0 0 20px rgba(84, 242, 255, .35); }
-.end-score em { font-style: normal; font-size: 12px; color: var(--dim); text-align: center; max-width: 420px; }
-.end-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); margin-bottom: 16px; }
-.end-tile { padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
-.end-tile span { display: block; font-size: 18px; color: var(--text); margin-top: 2px; }
-.end-tile em { display: block; font-style: normal; font-size: 11px; color: var(--dim); }
+.end-kicker { margin: 0 0 6px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); }
+.cheer .end-kicker { color: var(--good); }
+.end-title { margin: 0; font-size: 28px; font-weight: 600; color: var(--text); letter-spacing: .02em; }
+.end-sub { margin: 6px 0 0; font-size: 13px; color: var(--dim); }
+.end-score { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 16px; margin-bottom: 16px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.end-score-value { font-size: 64px; line-height: 1.05; font-weight: 700; color: var(--accent); text-shadow: 0 0 20px rgba(84, 242, 255, .35); }
+.end-score-note { font-size: 14px; color: var(--text); }
+.end-score-note b { color: var(--good); font-weight: 600; }
+.end-more { margin: 8px 0 0; font-size: 13px; color: var(--dim); text-align: center; }
+.end-verdict { margin: 0 0 6px; font-size: 16px; line-height: 1.45; color: var(--text); text-align: center; }
+.end-facts { margin: 0 0 18px; font-size: 13px; color: var(--dim); text-align: center; }
+.end-invite { margin: -8px 0 18px; font-size: 13px; color: var(--dim); text-align: center; }
 .end-acts { justify-content: center; }
-@media (max-width: 560px) { .end-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Played through: the lights come up, the amps' LEDs go green. */
+.cheer .end-scene svg { opacity: 1; }
+.cheer .end-scene stop:first-child { stop-opacity: .34; }
+.cheer .end-scene .sled { fill: var(--good); opacity: 1; }
+.cheer .end-scene .sgem, .cheer .end-scene .sstr { opacity: .6; }
+.cheer .end-scene .sbeam { animation: end-lights 1.4s cubic-bezier(.22, 1, .36, 1) both; }
+.cheer .end-scene .sled { animation: end-led 1.4s ease-out both; }
+.cheer .end-kicker, .cheer .end-title { animation: end-rise .7s cubic-bezier(.22, 1, .36, 1) both; }
+.cheer .end-title { animation-delay: .08s; }
+@keyframes end-lights { from { opacity: 0; } to { opacity: 1; } }
+@keyframes end-led { 0%, 30% { opacity: .3; } 45% { opacity: 1; } 60% { opacity: .5; } to { opacity: 1; } }
+@keyframes end-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .cheer .end-scene .sbeam, .cheer .end-scene .sled, .cheer .end-kicker, .cheer .end-title { animation: none; } }
 
 /* ---- scoring ---- */
 #score-hud { color: var(--accent); border-color: var(--lit); font-variant-numeric: tabular-nums; }

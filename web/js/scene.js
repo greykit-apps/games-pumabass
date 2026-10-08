@@ -31,7 +31,8 @@ function amp(x, flip) {
     `<rect class="sf" x="${x}" y="${CAB_Y}" width="${CAB_W}" height="${CAB_H}" rx="4"/>${speakers}`;
 }
 
-export function sceneSVG() {
+// beam: the light's gradient id, unique per copy (a gradient in a hidden copy doesn't paint).
+export function sceneSVG(beam = 'pb-beam') {
   const lanes = STRING_COLORS.map((c, i) => {
     const u = (i + 0.5) / STRING_COLORS.length;
     const [x0, y0] = floor(u, 0), [x1, y1] = floor(u, 1);
@@ -50,12 +51,12 @@ export function sceneSVG() {
   }).join('');
   const hw = [floor(0, 0), floor(1, 0), floor(1, 1), floor(0, 1)].map(p => p.join(',')).join(' ');
   return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-  <defs><linearGradient id="pb-beam" x1="0" y1="0" x2="0" y2="1">
+  <defs><linearGradient id="${beam}" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#54f2ff" stop-opacity=".16"/><stop offset="1" stop-color="#54f2ff" stop-opacity="0"/>
   </linearGradient></defs>
   <path class="sd" d="M0 70 H1600 M0 96 H1600 ${Array.from({ length: 33 }, (_, i) => `M${i * 50} 70 L${i * 50 + 25} 96 L${i * 50 + 50} 70`).join(' ')}"/>
-  <polygon class="sbeam" points="470,96 500,96 760,700 380,700"/>
-  <polygon class="sbeam" points="1100,96 1130,96 1220,700 840,700"/>
+  <polygon class="sbeam" fill="url(#${beam})" points="470,96 500,96 760,700 380,700"/>
+  <polygon class="sbeam" fill="url(#${beam})" points="1100,96 1130,96 1220,700 840,700"/>
   <rect class="sx" x="455" y="88" width="60" height="20" rx="3"/><rect class="sx" x="1085" y="88" width="60" height="20" rx="3"/>
   <rect class="sground" x="0" y="700" width="1600" height="200"/>
   <line class="sl" x1="0" y1="700" x2="1600" y2="700"/>
@@ -66,4 +67,4 @@ export function sceneSVG() {
 </svg>`;
 }
 
-export function mountScene(el) { el.innerHTML = sceneSVG(); }
+export function mountScene(el, beam) { el.innerHTML = sceneSVG(beam); }

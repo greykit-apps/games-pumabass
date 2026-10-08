@@ -54,10 +54,10 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Mouse wheel (paused) | Scrub |
 | Esc | Back to the song list, then the menu |
 
-At the end of a song an end screen shows what you played (notes, difficulty, speed, how much you
-played, whether it counted as finished, and the song's totals), with the score panel reserved for
-scoring. `Space` goes to the main menu with nothing left to resume, `R` plays it again, `Esc` goes
-to the song list.
+At the end of a song the end screen says, in a sentence, how far you got and whether it counted as
+finished, with the notes, difficulty and speed under it, and the score when scoring was on. Played
+through, the stage comes back behind it with its lights up. `Space` goes to the main menu with nothing
+left to resume, `R` plays it again, `Esc` goes to the song list.
 
 In the song list: `/` searches, Up / Down move, Enter plays, `F` hearts a favorite.
 
@@ -72,9 +72,11 @@ what was ahead actually played. Sort by **Most played**. These are kept in the b
 of your settings (and cleared by Forget everything).
 
 - **Difficulty**: 100% is the full chart; lower values use Rocksmith's simpler levels.
-- **Settings** (title menu): how far ahead notes appear, string order, the speed songs start at, and
-  Forget everything. Charts without audio are hidden from the song list; the button at its foot shows
-  them. There is no mute: PumaBass is nothing without its sound.
+- **Settings** (title menu) is for setting up: the songs folder, the instrument input, the screen (TV
+  or computer), how far ahead notes appear and which way up the strings go, the speed songs start at,
+  and Forget everything. What changes from song to song (the mix, recorded bass, scoring) is in the
+  player's Mix panel (`,`). Charts without audio are hidden from the song list; the button at its
+  foot shows them. There is no mute: PumaBass is nothing without its sound.
 
 **Riff repeater** (`R`, or the button by Loop): loops the section and speeds it up each time round,
 from 60% to full speed in 5% steps. With scoring on, a time round only speeds it
@@ -141,7 +143,7 @@ found by name; any other audio input (an audio interface, a microphone) can be c
 
 ## Scoring
 
-With the Real Tone Cable (or any input) open and **Scoring** on (Settings, or the Mix panel `,`),
+With the Real Tone Cable (or any input) open and **Scoring** on (the Mix panel, `,`),
 each note is judged as it lands: a ring in the string's colour for a hit, a red cross for a miss, and
 accuracy and streak in the top bar. The end screen gives the score, best streak, typical timing (early
 or late), a strip of the song coloured by section, and your best accuracy over full plays.
@@ -195,6 +197,10 @@ For one run: `./start.sh --port 8015 --library /path/to/songs --no-open` (start.
 
 `tools/pumabass.service` runs PumaBass as a systemd user service; the steps are in the file. Point
 a full-screen browser at it, e.g. `chromium --kiosk http://localhost:8014/`.
+
+On a big screen PumaBass draws every screen larger, laid out as a 1280 × 720 window would be (1.5×
+on a 1080p TV), so it reads from the couch. At a desk, **Settings → Screen → Computer, up close**
+turns that off.
 
 ### Notes
 
