@@ -51,7 +51,8 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Home | Back to loop start (or song start) |
 | , | This song's settings: audio offset, highway, volume |
 | T | The tuner |
-| N | The notation over the highway: standard notation, tab, both, off |
+| V | The view: the highway, or tab in its place |
+| N | The notation over the highway: standard notation, tab, both, off (in tab view: standard notation on / off) |
 | B | Recorded bass: full, reduced, cut |
 | F | Make the song a favorite |
 | Mouse wheel (paused) | Scrub |
@@ -96,6 +97,14 @@ is what's coming. The standard notation, the tab and the note names under the no
 Notation; with both staff and tab up, the gap between them is set for each song from its lowest and
 highest notes, so nothing runs into the tab. Settings → Highway can also put note names on the highway's
 notes instead of frets.
+
+The tab's notes are chips in their strings' colours, as on the highway, each with its fret on it, and the strings
+are named at the left. With scoring on, a note you hit lights up and stays lit as it scrolls away; a miss fades
+back (without scoring, every note fades as it goes by).
+
+Or play from the tab: **tab view** (`V`, or Settings → View) puts the tab, large, in the highway's place, and
+you play each note as it crosses the cyan line. The standard notation runs over it, at the same pace, each note
+right above its chip; there `N` turns it on and off (Settings → Notation's standard notation and names apply).
 
 - It's written from the chart: each note is fitted to the chart's own beats (16ths, or triplets where they
   fit a beat better), its pitch is worked out from the string, fret and tuning, and the key signature is

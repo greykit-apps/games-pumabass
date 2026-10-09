@@ -1,20 +1,21 @@
-// The notation band: standard notation over tab, scrolling smoothly over the top of
-// the highway, so you can learn to read music while you play. The chart's notes are
-// fitted to its own beats, bar by bar (16ths, or triplets where they fit a beat
-// better). A fixed playhead sits a little in from the left: notes cross it as you
-// play them, and most of the band is what's coming. The clef and key stay put at
-// the left while the bars slide past. The staff, the tab and the note names each
-// turn on and off. Drawn by VexFlow (web/vendor/vexflow/, MIT), loaded the first
-// time the band is wanted.
+// The scrolling score, in two places. The notation band: standard notation over tab,
+// scrolling smoothly over the top of the highway, so you can learn to read music while
+// you play. And the tab view (V): the tab, large, in place of the highway, with the
+// band over it showing just the standard notation, each note over its own chip. In
+// both the tab's notes are chips in their strings' colours, lit by a hit and faded by
+// a miss, and the strings are named at the left. The chart's notes are fitted to its own beats,
+// bar by bar (16ths, or triplets where they fit a beat better). A fixed playhead sits
+// a little in from the left: notes cross it as you play them, and most of the score is
+// what's coming. The clef and key stay put at the left while the bars slide past. In
+// the band, the staff, the tab and the note names each turn on and off. Drawn by
+// VexFlow (web/vendor/vexflow/, MIT), loaded the first time a score is wanted.
 
 import { $, highway } from './core.js';
-import { pitchOf, keyOf, noteName, isDownbeat } from './chart.js';
+import { pitchOf, keyOf, noteName, isDownbeat, tuningNotes } from './chart.js';
+import { STRING_COLORS } from './highway.js';
 import { prefs } from './store.js';
 
 const TPB = 12;          // ticks per beat: a 16th is 3, a triplet 8th 4
-const BEAT_W = 86;       // width of a beat in the score, before SCALE
-const SCALE = 1.1;       // the score's size in the band
-const HEAD = 0.18;       // where the playhead sits, across the scrolling part
 const STRIP = 12;        // bars drawn at a time...
 const AHEAD = 7;         // ...drawn afresh once the playhead is this many bars in
 const TAB_NUDGE = 5.6;    // VexFlow sets a fret number this far left of its notehead
@@ -35,41 +36,80 @@ function loadVexFlow() {
   });
 }
 
-const state = { chart: null, kind: 'bass', notes: null, bars: [], key: null, strip: null, choice: '', L: null };
+// The song, as both scores write it.
+const song = { chart: null, kind: 'bass', notes: null, bars: [], key: null };
 
-/* A new song (or the sync test, which gets no band). */
+// A score: where it's drawn, how big, and what it shows (staff, tab, names under the notes).
+const score = (el, o) => Object.defineProperties({ el, part: c => el.querySelector(`.nt-${c}`), strip: null, choice: '', L: null },
+  Object.getOwnPropertyDescriptors(o));
+const SCORES = {
+  // The band's tab lines are further apart than VexFlow's 13, so its chips can be read over the highway.
+  // Over the tab view (`over`) it's the standard notation alone, a size up to sit with the
+  // large tab, keeping the tab view's pace and its playhead's place, so each note is right
+  // over its chip.
+  band: score($('notation'), { head: 0.18, gap: 17, over: false,
+    get scale() { return this.over ? 1.5 : 1.1; },
+    get beatW() { return this.over ? (SCORES.tab.beatW * SCORES.tab.scale) / this.scale : 86; },
+    shows() {
+      return this.over ? { staff: true, tab: false, names: prefs.staffNames }
+        : { staff: prefs.notationStaff, tab: prefs.notationTab, names: prefs.notationStaff && prefs.staffNames };
+    },
+    headAt(view) {
+      if (!this.over) return null;
+      const tv = SCORES.tab.part('view'); // both scores start at the same left edge (style.css)
+      return tv.offsetLeft + tv.clientWidth * SCORES.tab.head - view.offsetLeft;
+    } }),
+  // Tab view: the tab alone, a beat narrower (before scale) so the next three seconds or
+  // so are in view, as on the highway; the strings named at the left.
+  tab: score($('tabview'), { scale: 3, beatW: 50, head: 0.2, gap: 13,
+    shows: () => ({ staff: false, tab: true, names: false }), headAt: () => null }),
+};
+
+/* The tab view (V) is on: the player shows it in place of the highway. */
+export const tabView = () => prefs.view === 'tab';
+
+/* A new song (or the sync test, which gets no score). */
 export function setNotationSong(chart, type) {
-  state.chart = chart;
-  state.kind = type === 'bass' ? 'bass' : 'guitar';
-  state.notes = null; // rebuilt from the highway's notes on the next frame
-  state.strip = null;
+  song.chart = chart;
+  song.kind = type === 'bass' ? 'bass' : 'guitar';
+  song.notes = null; // rebuilt from the highway's notes on the next frame
+  for (const S of Object.values(SCORES)) S.strip = null;
 }
 
-/* Each frame: show or hide the band, draw the next stretch of bars when the
- * playhead nears the end of what's drawn, and slide it under the playhead. */
+/* Each frame: show or hide the band and the tab view, draw the next stretch of bars
+ * when the playhead nears the end of what's drawn, and slide them under the playhead. */
 export function updateNotation(t, on) {
-  const band = $('notation');
-  const want = on && prefs.notation && state.chart && (prefs.notationStaff || prefs.notationTab);
-  band.classList.toggle('hidden', !want);
-  if (!want) return;
-  if (!VF) { loadVexFlow().catch(() => { prefs.notation = false; }); return; }
-  const choice = `${prefs.notationStaff}${prefs.notationTab}${prefs.staffNames}`;
-  if (highway.notes !== state.notes || choice !== state.choice) {
-    if (highway.notes !== state.notes) {
-      state.notes = highway.notes;
-      state.bars = buildBars(state.chart, state.notes);
-      state.key = keyOf(state.chart, state.notes);
-    }
-    state.choice = choice;
-    state.L = layoutFor();
-    state.strip = null;
-    drawClef();
+  const tab = on && !!song.chart && tabView();
+  const band = on && !!song.chart && prefs.notation && (tab ? prefs.notationStaff : prefs.notationStaff || prefs.notationTab);
+  SCORES.band.over = tab;
+  SCORES.band.el.classList.toggle('hidden', !band);
+  SCORES.tab.el.classList.toggle('hidden', !tab);
+  if (!band && !tab) return;
+  if (!VF) { loadVexFlow().catch(() => { prefs.notation = false; prefs.view = 'highway'; }); return; }
+  if (highway.notes !== song.notes) {
+    song.notes = highway.notes;
+    song.bars = buildBars(song.chart, song.notes);
+    song.key = keyOf(song.chart, song.notes);
+    for (const S of Object.values(SCORES)) S.choice = '';
   }
-  if (!state.bars.length) return;
-  const k = barAt(state.bars, t);
-  const st = state.strip;
-  if (!st || k < st.first + 1 || k >= st.first + AHEAD) drawStrip(Math.max(0, k - 2));
-  slide(t);
+  if (tab) update(SCORES.tab, t); // first, so the band can line up with its playhead
+  if (band) update(SCORES.band, t);
+}
+
+function update(S, t) {
+  const shows = S.shows(), choice = `${shows.staff}${shows.tab}${shows.names}${S.scale}`;
+  if (choice !== S.choice) {
+    S.choice = choice;
+    S.L = layoutFor(shows, S.gap);
+    S.strip = null;
+    drawClef(S);
+  }
+  if (!song.bars.length) return;
+  const k = barAt(song.bars, t);
+  const st = S.strip;
+  if (!st || k < st.first + 1 || k >= st.first + AHEAD) drawStrip(S, Math.max(0, k - 2));
+  slide(S, t);
+  if (S.L.tab) markChips(S, t);
 }
 
 /* ---- from the chart to bars of notatable pieces ---- */
@@ -115,7 +155,7 @@ function buildBars(chart, notes) {
         let target = bar;
         if (tick >= bar.n * TPB) { target = bars[k + 1]; tick = 0; if (!target) continue; }
         const at = target.onsets.get(tick) || target.onsets.set(tick, { parts: [], sus: 0 }).get(tick);
-        for (const p of r.e.notes || [r.e]) if (!at.parts.some(q => q.s === p.s)) at.parts.push({ s: p.s, f: p.f, mute: (r.e.tech || p.tech || []).includes('mute') });
+        for (const p of r.e.notes || [r.e]) if (!at.parts.some(q => q.s === p.s)) at.parts.push({ s: p.s, f: p.f, mute: (r.e.tech || p.tech || []).includes('mute'), ev: r.e });
         at.sus = Math.max(at.sus, ((r.e.sus || 0) / r.beatLen) * TPB);
       }
     }
@@ -164,19 +204,18 @@ const TRIPLETS = { 4: ['8', 0], 8: ['q', 0] };
 
 /* ---- drawing ---- */
 
-const clefName = () => (state.kind === 'bass' ? 'bass' : 'treble');
-const writtenPitch = p => pitchOf(state.chart, p.s, p.f) + 12; // written an octave above where it sounds
-const steps = m => Math.floor(m / 12) * 7 + 'CDEFGAB'.indexOf(noteName(m, state.key.flats)[0]); // diatonic steps from C-1
+const clefName = () => (song.kind === 'bass' ? 'bass' : 'treble');
+const writtenPitch = p => pitchOf(song.chart, p.s, p.f) + 12; // written an octave above where it sounds
+const steps = m => Math.floor(m / 12) * 7 + 'CDEFGAB'.indexOf(noteName(m, song.key.flats)[0]); // diatonic steps from C-1
 
 // Where things sit, set per song (and per choice of staff, tab and names) from the
 // part's highest and lowest written notes: a low note never runs into the tab, a
 // high one has room, and the band doesn't shift about as it scrolls. In score units
-// (a staff space is 10, a tab line 13).
-function layoutFor() {
-  const staff = prefs.notationStaff, tab = prefs.notationTab, names = staff && prefs.staffNames;
+// (a staff space is 10, a tab line `gap`).
+function layoutFor({ staff, tab, names }, gap) {
   const [bottomLine, topLine] = clefName() === 'bass' ? [steps(43), steps(57)] : [steps(64), steps(77)]; // G2, A3; E4, F5
   let lo = Infinity, hi = -Infinity;
-  for (const bar of state.bars) for (const pc of bar.pieces) for (const p of pc.parts || []) {
+  for (const bar of song.bars) for (const pc of bar.pieces) for (const p of pc.parts || []) {
     const d = steps(writtenPitch(p)); lo = Math.min(lo, d); hi = Math.max(hi, d);
   }
   if (lo === Infinity) lo = hi = bottomLine + 4;
@@ -186,63 +225,70 @@ function layoutFor() {
   const clear = staff ? Math.min(70, Math.max(26, (bottomLine - lo) * 5 + 12)) : 0;
   const below = clear + (names ? 18 : 0);
   const staffTop = 4 + above, staffBottom = staffTop + 40, namesMax = staffBottom + below - 3;
-  const tabTop = staff ? staffBottom + below + 8 : 12, tabBottom = tabTop + 13 * (state.chart.strings - 1);
-  return { staff, tab, names, namesMax, staffTop, tabTop, height: (tab ? tabBottom + 12 : staffBottom + below + 8) + 2,
+  const tabTop = staff ? staffBottom + below + 8 : 12, tabBottom = tabTop + gap * (song.chart.strings - 1);
+  return { gap, staff, tab, names, namesMax, staffTop, tabTop, height: (tab ? tabBottom + 12 : staffBottom + below + 8) + 2,
     headTop: (staff ? staffTop : tabTop) - 6, headBottom: (tab ? tabBottom : staffBottom) + 6 };
 }
 
-function svgIn(el, width) {
+function svgIn(S, el, width) {
   el.innerHTML = '';
   const renderer = new VF.Renderer(el, VF.Renderer.Backends.SVG);
-  renderer.resize(width * SCALE, state.L.height * SCALE);
+  renderer.resize(width * S.scale, S.L.height * S.scale);
   const ctx = renderer.getContext();
-  ctx.scale(SCALE, SCALE);
+  ctx.scale(S.scale, S.scale);
   ctx.setFillStyle('#dbe4fb');
   ctx.setStrokeStyle('#dbe4fb');
   return ctx;
 }
-const staveAt = (x, w) => new VF.Stave(x, state.L.staffTop, w, { spaceAboveStaffLn: 0 });
-const tabAt = (x, w) => new VF.TabStave(x, state.L.tabTop, w, { numLines: state.chart.strings, spaceAboveStaffLn: 0 });
+const staveAt = (L, x, w) => new VF.Stave(x, L.staffTop, w, { spaceAboveStaffLn: 0 });
+const tabAt = (L, x, w) => new VF.TabStave(x, L.tabTop, w, { numLines: song.chart.strings, spaceAboveStaffLn: 0, spacingBetweenLinesPx: L.gap });
 
-// The clef and key, fixed at the left of the band; the band sized to what it holds.
-function drawClef() {
-  const L = state.L;
-  const w = L.staff ? staveAt(0, 400).addClef(clefName()).addKeySignature(state.key.name).getNoteStartX() + 6 : 8;
-  const ctx = svgIn($('nt-clef'), w);
-  if (L.staff) staveAt(0, w).addClef(clefName()).addKeySignature(state.key.name).setContext(ctx).draw();
+// The clef and key, fixed at the left of the score; the score sized to what it holds.
+function drawClef(S) {
+  const L = S.L;
+  const w = L.staff ? staveAt(L, 0, 400).addClef(clefName()).addKeySignature(song.key.name).getNoteStartX() + 6 : 14;
+  const ctx = svgIn(S, S.part('clef'), w);
+  if (L.staff) staveAt(L, 0, w).addClef(clefName()).addKeySignature(song.key.name).setContext(ctx).draw();
   if (L.tab) {
-    // VexFlow's TAB mark is drawn for six strings: on fewer it hangs below the lines.
-    const tab = tabAt(0, w);
-    if (state.chart.strings >= 6) tab.addClef('tab');
-    tab.setContext(ctx).draw();
+    // The strings named, each in its colour, top line the highest string (under the
+    // clef, with the staff up).
+    const nStr = song.chart.strings, names = tuningNotes(song.chart.tuning, nStr);
+    ctx.openGroup('ntstrings');
+    ctx.setFont('Saira', L.gap * 0.58, 'bold'); // in points
+    for (let line = 0; line < nStr; line++) {
+      const s = nStr - 1 - line;
+      ctx.setFillStyle(STRING_COLORS[s] || '#999');
+      ctx.fillText(names[s], w / 2, L.tabTop + line * L.gap);
+    }
+    ctx.closeGroup();
   }
-  $('notation').style.height = `${L.height * SCALE}px`;
-  $('nt-view').style.left = `${w * SCALE}px`;
-  $('nt-head').style.top = `${L.headTop * SCALE}px`;
-  $('nt-head').style.height = `${(L.headBottom - L.headTop) * SCALE}px`;
+  S.el.style.height = `${L.height * S.scale}px`;
+  S.part('view').style.left = `${w * S.scale}px`;
+  S.part('head').style.top = `${L.headTop * S.scale}px`;
+  S.part('head').style.height = `${(L.headBottom - L.headTop) * S.scale}px`;
 }
 
 // STRIP bars from bar `first`, side by side at a steady width per beat. Records,
 // for each note and rest, its song time and where it sits, for slide().
-function drawStrip(first) {
+function drawStrip(S, first) {
   const { StaveNote, TabNote, GhostNote, Voice, Formatter, Beam, Tuplet, StaveTie, Accidental, Dot, Fraction } = VF;
-  const L = state.L;
-  const bars = state.bars.slice(first, first + STRIP);
-  const sig = bi => bi === 0 || state.bars[bi - 1].n !== state.bars[bi].n;
-  const widths = bars.map((b, i) => b.n * BEAT_W + (sig(first + i) ? 26 : 0));
-  const el = $('nt-strip');
-  const ctx = svgIn(el, widths.reduce((a, b) => a + b, 0) + 2);
-  const clef = clefName(), nStr = state.chart.strings, flats = state.key.flats;
-  const points = [];
+  const L = S.L;
+  const bars = song.bars.slice(first, first + STRIP);
+  const sig = bi => bi === 0 || song.bars[bi - 1].n !== song.bars[bi].n;
+  const widths = bars.map((b, i) => b.n * S.beatW + (sig(first + i) ? 26 : 0));
+  const el = S.part('strip');
+  const ctx = svgIn(S, el, widths.reduce((a, b) => a + b, 0) + 2);
+  const clef = clefName(), nStr = song.chart.strings, flats = song.key.flats;
+  const points = [], fretted = [];
   // The staves first, to know where each bar's first beat sits: a bar's beats are
   // spread evenly from its first beat to the next bar's, notes placed by their time
   // in that span, so the score scrolls at a steady pace (VexFlow's own spacing,
   // made for reading on paper, would make it surge and slow).
   let x = 0;
   const staves = bars.map((bar, i) => {
-    const stave = staveAt(x, widths[i]);
+    const stave = staveAt(L, x, widths[i]);
     if (sig(first + i)) stave.addTimeSignature(`${bar.n}/4`);
-    const tab = tabAt(x, widths[i]);
+    const tab = tabAt(L, x, widths[i]);
     x += widths[i];
     return { stave, tab };
   });
@@ -267,14 +313,14 @@ function drawStrip(first) {
         tn = new GhostNote({ duration: dur, dots });
         open = null;
       } else {
-        const ps = [...pc.parts].sort((a, b) => pitchOf(state.chart, a.s, a.f) - pitchOf(state.chart, b.s, b.f));
+        const ps = [...pc.parts].sort((a, b) => pitchOf(song.chart, a.s, a.f) - pitchOf(song.chart, b.s, b.f));
         const keys = ps.map(p => {
           const m = writtenPitch(p);
           return `${noteName(m, flats).toLowerCase()}/${Math.floor(m / 12) - 1}${p.mute ? '/x2' : ''}`;
         });
         sn = new StaveNote({ keys, duration: dur, clef, dots, autoStem: true });
         tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: p.mute ? 'X' : p.f })), duration: dur, dots });
-        if (!pc.tied) named.push({ sn, pc, ps });
+        if (!pc.tied) { named.push({ sn, pc, ps }); fretted.push({ tn, ps }); }
         if (pc.tied && open) ties.push(new StaveTie({ firstNote: open, lastNote: sn, firstIndexes: keys.map((_, n) => n), lastIndexes: keys.map((_, n) => n) }));
         open = sn;
       }
@@ -288,7 +334,7 @@ function drawStrip(first) {
     const sv = L.staff && new Voice({ numBeats: bar.n, beatValue: 4 }).setStrict(false).addTickables(notes);
     const tv = L.tab && new Voice({ numBeats: bar.n, beatValue: 4 }).setStrict(false).addTickables(tabs);
     const voices = [sv, tv].filter(Boolean);
-    if (sv) Accidental.applyAccidentals([sv], state.key.name);
+    if (sv) Accidental.applyAccidentals([sv], song.key.name);
     const beams = sv ? Beam.generateBeams(notes, { groups: [new Fraction(1, 4)] }) : [];
     const fmt = new Formatter();
     voices.forEach(v => fmt.joinVoices([v]));
@@ -320,7 +366,7 @@ function drawStrip(first) {
       for (const { sn, pc, ps } of named) {
         let low = Math.max(floor, Math.max(...sn.getYs()) + 5);
         if (sn.getStemDirection() < 0) low = Math.max(low, sn.getStemExtents().topY + 3);
-        const name = ps.map(p => noteName(pitchOf(state.chart, p.s, p.f), flats)).join(' ');
+        const name = ps.map(p => noteName(pitchOf(song.chart, p.s, p.f), flats)).join(' ');
         ctx.fillText(name, starts[i] + (pc.start / (bar.n * TPB)) * spans[i], Math.min(low + 11, L.namesMax));
       }
       ctx.closeGroup();
@@ -332,31 +378,76 @@ function drawStrip(first) {
   // Each fret number centred under its note, where the playhead crosses it, and on
   // its line: drawn bold and larger (style.css), it's anchored by its middle so it
   // grows about the same point.
+  const partsOf = new Map(fretted.map(({ tn, ps }) => [tn.getSVGElement(), ps]));
+  const chips = [];
   for (const g of el.querySelectorAll('.vf-tabnote')) {
     g.setAttribute('transform', `translate(${TAB_NUDGE} 0)`);
     for (const text of g.querySelectorAll('text')) {
       const b = text.getBBox();
-      const line = Math.round((b.y + b.height / 2 - L.tabTop) / 13);
+      const line = Math.round((b.y + b.height / 2 - L.tabTop) / L.gap);
       text.setAttribute('x', (b.x + b.width / 2).toFixed(2));
-      text.setAttribute('y', (L.tabTop + line * 13).toFixed(2));
+      text.setAttribute('y', (L.tabTop + line * L.gap).toFixed(2));
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('dominant-baseline', 'central');
+      const str = nStr - 1 - line, p = (partsOf.get(g) || []).find(q => q.s === str);
+      chips.push({ g: chip(text, str, L.gap), ev: p && p.ev, state: '' });
     }
   }
-  state.strip = { first, points };
+  S.strip = { first, points, chips };
 }
 
+// Each fret number sits on a chip in its string's colour, as the highway's notes
+// are: a darker edge, dark ink. A muted note's X is on grey.
+// Chip and number together in a group, which shows how the note went (markChips).
+function chip(text, s, gap) {
+  text.style.fontSize = `${gap * 0.7}px`; // sized to the chip, which is sized to the lines
+  const b = text.getBBox(), muted = text.textContent === 'X', color = muted ? '#777' : STRING_COLORS[s] || '#999';
+  const h = gap * 0.85, w = Math.max(h, b.width + gap * 0.38);
+  const NS = 'http://www.w3.org/2000/svg', g = document.createElementNS(NS, 'g'), r = document.createElementNS(NS, 'rect');
+  for (const [k, v] of Object.entries({ x: b.x + b.width / 2 - w / 2, y: Number(text.getAttribute('y')) - h / 2, width: w, height: h, rx: gap * 0.19 }))
+    r.setAttribute(k, typeof v === 'number' ? v.toFixed(2) : v);
+  r.setAttribute('class', 'nt-chip');
+  r.style.fill = color;
+  r.style.stroke = shade(color, 0.55);
+  g.setAttribute('class', 'nt-note');
+  g.style.setProperty('--c', color);
+  text.before(g);
+  g.append(r, text);
+  if (muted) text.classList.add('muted');
+  return g;
+}
+
+// How each chip's note went, from scoring's verdicts (the highway's): a hit pulses
+// and stays bright as it scrolls away; a miss fades back. A note scoring is still
+// listening for keeps its colour until its verdict, as long as the highway would wait
+// for it; with nothing scored, a note fades as it crosses the line.
+const WAIT = 0.6;
+function markChips(S, t) {
+  for (const c of S.strip.chips) {
+    if (!c.ev || c.ev.t > t + 0.05 || c.ev.t < t - 4) continue;
+    const v = highway.verdicts.get(c.ev);
+    const state = v ? (v.hit ? 'hit' : 'missed') : t > c.ev.t + (highway.judging ? WAIT : 0) ? 'missed' : '';
+    if (state === c.state) continue;
+    c.g.classList.toggle('hit', state === 'hit');
+    c.g.classList.toggle('missed', state === 'missed');
+    // a strip drawn afresh doesn't pulse its hits again
+    if (state === 'hit' && performance.now() - v.wall > 450) c.g.classList.add('settled');
+    c.state = state;
+  }
+}
+const shade = (hex, k) => `#${[1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('')}`;
+
 // Slide the strip so song time t sits under the playhead.
-function slide(t) {
-  const st = state.strip;
+function slide(S, t) {
+  const st = S.strip;
   if (!st) return;
   const pts = st.points;
   let lo = 0, hi = pts.length - 1;
   while (lo < hi - 1) { const mid = (lo + hi) >> 1; if (pts[mid][0] <= t) lo = mid; else hi = mid; }
   const [ta, xa] = pts[lo], [tb, xb] = pts[hi];
   const x = xa + (xb - xa) * Math.min(1, Math.max(0, (t - ta) / Math.max(1e-6, tb - ta)));
-  const view = $('nt-view');
-  const head = view.clientWidth * HEAD;
-  $('nt-strip').style.transform = `translateX(${(head - x * SCALE).toFixed(1)}px)`;
-  $('nt-head').style.left = `${view.offsetLeft + head}px`;
+  const view = S.part('view');
+  const head = S.headAt(view) ?? view.clientWidth * S.head;
+  S.part('strip').style.transform = `translateX(${(head - x * S.scale).toFixed(1)}px)`;
+  S.part('head').style.left = `${view.offsetLeft + head}px`;
 }
