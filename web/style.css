@@ -381,6 +381,18 @@ html .gk-sheet .gk-body p, html .gk-sheet .gk-note { max-width: 70ch; }
 html .gk-sheet kbd { font: 700 14px var(--ui); color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
 html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: rgba(var(--bar-ink-rgb), .4); background: none; }
 .gk-sheet code { color: var(--text); word-break: break-all; }
+/* Settings: two columns in a wider box, so it fits the screen without scrolling */
+html .gk-sheet .gk-box:has(.set-cols) { width: min(1180px, 100%); }
+.gk-sheet .set-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
+.gk-sheet .set-col section + section { margin-top: 18px; }
+.gk-sheet .set-col .gk-note { margin-bottom: 6px; }
+.gk-sheet .gk-row button.pic { padding: 4px 8px; line-height: 0; } /* a picture, its name in the tooltip */
+.gk-sheet .gk-row button.pic svg { display: block; }
+/* standard notation and the names under its notes: one pair, the names only with the staff */
+.gk-sheet .gk-row .join { display: inline-flex; margin-right: 6px; }
+.gk-sheet .gk-row .join > button:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.gk-sheet .gk-row .join > button + button { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+@media (max-width: 760px) { .gk-sheet .set-cols { grid-template-columns: 1fr; } .gk-sheet .set-cols .set-col + .set-col { margin-top: 18px; } }
 .gk-sheet .keys td:first-child { white-space: nowrap; color: var(--text); }
 /* the songs-folder picker */
 .gk-sheet .folder-path { display: flex; gap: 6px; margin: 4px 0 8px; }
