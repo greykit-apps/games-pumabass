@@ -63,8 +63,10 @@ copied over by hand.
 - [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).
 - [ ] **Recorded bass: removed.** Truly taking the bass out needs stem separation (an AI model such as Demucs),
       run once per song on the PC and cached: a large install, and slow without a graphics card.
-- [ ] **Left-handed mode.** A setting that mirrors the highway and fretboard for left-handed players, as
+- [x] **Left-handed mode.** A setting that mirrors the highway and fretboard for left-handed players, as
       Rocksmith's lefty option does. Do it before guitar parts, so guitar is built with it in mind.
+      Settings → Highway: the highway only, the nut on the right, its text still readable; tab and
+      notation aren't handed.
 - [ ] **Guitar parts.** Lead and rhythm already load and render on six strings; polish them as first-class parts.
 
 ## Far future

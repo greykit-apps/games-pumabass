@@ -558,6 +558,7 @@ $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('
 export function syncPlayerPrefs() {
   highway.lookahead = prefs.lookahead;
   highway.invert = prefs.invert;
+  highway.lefty = prefs.lefty;
   highway.labels = prefs.noteLabels;
   audio.volume = 1; // the song's volume is the mixer's
   $('volume').value = prefs.volume;
