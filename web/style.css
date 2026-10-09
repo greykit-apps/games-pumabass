@@ -130,6 +130,8 @@ html .gk-menu button.gk-primary kbd { color: var(--accent); border-color: rgba(v
 html .gk-menu button.gk-primary .gk-meta { color: var(--ink); }
 html .gk-menu button:focus-visible { color: var(--bar-ink); border-color: var(--bar-top); background: linear-gradient(var(--bar-top), var(--bar-bot));
   box-shadow: var(--bar-lift); transform: scale(1.05); }
+/* hovering the focused button keeps its bar: a hover tile under its dark ink read as unavailable */
+html .gk-menu button:focus-visible:hover:not(:disabled) { border-color: var(--bar-top); background: linear-gradient(var(--bar-top), var(--bar-bot)); }
 html .gk-menu button:focus-visible .gk-meta, html .gk-menu button:focus-visible kbd { color: var(--bar-ink2); border-color: rgba(var(--bar-ink-rgb), .35); }
 html .gk-menu .gk-meta { font-family: var(--ui); font-weight: 500; font-size: 16px; letter-spacing: 0; color: var(--dim); }
 html .gk-menu kbd { font: 700 14px var(--ui); color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
