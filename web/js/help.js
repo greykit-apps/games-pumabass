@@ -2,165 +2,150 @@
 
 const keys = rows => `<table class="keys">${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`;
 
+// Each tab fits the TV without scrolling: two columns in a wide box (style.css: .help-cols).
+const cols = (left, right) => `<div class="help-cols"><div>${left}</div><div>${right}</div></div>`;
+
 export const HELP = [
-  ['Playing', `
+  ['Playing', cols(`
 <h3>Getting going</h3>
-<p><b>Learn a song</b> opens your song list. A song starts playing as it opens, with ten seconds or so before the first note; <kbd>Space</kbd> pauses. The notes come
-towards you down the highway and land on the strings at the bottom, on time with the record.</p>
-<p>Play after a pause starts six seconds back and counts you in, so you can find the groove again before you
-reach the spot you stopped at. <b>Resume game</b> does the same. Jump somewhere yourself (click the bar, the arrow
-keys) and it plays from right there.</p>
+<p><b>Learn a song</b> opens your song list; a song starts as it opens. Its notes come down the highway and land
+on their strings in time with the record: play each one as it lands.</p>
+<p>After a pause, play starts six seconds back and counts you in. <b>Resume game</b> picks up where you left
+off.</p>
+<h3>The bar along the bottom</h3>
+<p>The song's sections, coloured by kind. Click to jump; Shift+click moves the nearest loop edge; paused, the
+mouse wheel scrubs.</p>
+<h3>At the end</h3>
+<p>How far you got, and your score with scoring on. <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes to the
+song list, <kbd>M</kbd> to the menu, and <kbd>P</kbd> practises the section that went worst.</p>`, `
 <h3>Keys while a song is up</h3>
 ${keys([
     ['Space', 'play / pause'],
     ['Left / Right', 'back / forward 5 seconds'],
-    ['Up / Down', 'faster / slower (the pitch stays put)'],
-    ['L', 'loop the section you are in; again to stop'],
-    ['R', 'riff repeater: the loop, a little faster each time round'],
-    ['[ and ]', 'set the loop start / end where you are'],
-    ['Home', 'back to the loop start, or the top of the song'],
-    ['M', "the mix: the song, your bass, the recorded bass, and this song's timing"],
+    ['Up / Down', 'faster / slower, same pitch'],
+    ['L', 'loop this section; again to stop'],
+    ['R', 'riff repeater'],
+    ['[ and ]', 'loop start / end here'],
+    ['Home', 'the loop start, or the top'],
+    ['M', 'the mix'],
     ['B', 'recorded bass: full, reduced, cut'],
-    ['F', 'make the song a favorite (again to undo)'],
-    ['T', 'the tuner'],
-    ['N', 'the notation over the highway: standard, tab, both, off'],
-    ['S', 'Settings (pauses the song)'],
+    ['F', 'favorite'],
+    ['T', 'tuner'],
+    ['N', 'notation: standard, tab, both, off'],
+    ['S', 'Settings'],
     ['?', 'this help'],
-    ['Esc', 'pause; again, back to the song list'],
-  ])}
-<h3>At the end of a song</h3>
-<p>The end screen says how far you got and whether the song counted as finished (play at least half of it), with
-your score when scoring was on. <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes back to it in the song list,
-<kbd>M</kbd> to the main menu. When you stopped before the end, it leads with how far you got. When a section went badly, <kbd>P</kbd> practises it: the song from there,
-looped, with the riff repeater bringing it up to speed.</p>
-<p>Click the bar along the bottom to jump; it is split into the song's sections, coloured by kind (every verse
-the same colour, every chorus another), and the section you're in is named beside the time. Shift+click moves the nearest
-loop edge. With the song paused, the mouse wheel scrubs.</p>
+    ['Esc', 'pause; again, the song list'],
+  ])}`)],
+  ['Song list', cols(`
+<h3>The list</h3>
+<p>The songs you played last wait at the top, under <b>Recently played</b>. Below, every song, grouped by what
+the list is sorted on. Click a column heading to sort by it; again to reverse.</p>
+<h3>Favorites</h3>
+<p>Heart a song (its heart, or <kbd>F</kbd> in the list or in the song). <b>Favorites</b> shows only those: your
+own library.</p>
+<h3>Plays and Finished</h3>
+<p><b>Plays</b> counts each start; a pause or Resume game is the same play. <b>Finished</b> counts playing to the
+last note, having played at least half of what was left: jumping to the end doesn't count.</p>`, `
 <h3>Keys in the song list</h3>
-<p>The songs you played last wait at the top, under <b>Recently played</b>; the list opens there. Below them,
-every song, in groups by what the list is sorted on: initials, tunings or difficulty.</p>
 ${keys([
     ['/', 'search'],
-    ['Up / Down', 'move through the list'],
+    ['Up / Down', 'through the list'],
     ['Page Up / Down', 'a screenful at a time'],
-    ['Left / Right', 'the previous / next group (initial, tuning, difficulty)'],
-    ['Home / End', 'the top / bottom of the list'],
+    ['Left / Right', 'the previous / next group'],
+    ['Home / End', 'top / bottom'],
     ['Enter', 'play the song'],
-    ['F', 'heart the song: a favorite'],
+    ['F', 'heart it'],
     ['Shift+F', 'favorites only, or every song'],
-    ['O', 'sort: artist, title, difficulty, tuning, recently played, most played (or click a column\'s heading; again to reverse)'],
-    ['P', 'parts: bass, lead, rhythm, every part'],
-    ['T', 'the tuner'],
+    ['O', 'the next sort'],
+    ['P', 'parts: bass, lead, rhythm, all'],
+    ['T', 'tuner'],
     ['S', 'Settings'],
-    ['Esc', 'back to the menu'],
-  ])}`],
-  ['Your library', `
-<h3>Favorites</h3>
-<p>Heart a song with the heart at the start of its row (or <kbd>F</kbd>), or in the player. <b>Favorites</b>
-above the list shows only your favorites: your own library.</p>
-<h3>Plays and Finished</h3>
-<p><b>Plays</b> counts each time you start a song. Pausing and carrying on is the same play, and so is picking it up
-again with Resume game. <b>Finished</b> counts the times you played it through to its last note, having played at
-least half of what was left when you began: jumping to the end doesn't count. Click the <b>Plays</b> heading to see your
-regulars first.</p>`],
-  ['Practice', `
+    ['Esc', 'the menu'],
+  ])}`)],
+  ['Practice', cols(`
 <h3>Slow it down</h3>
-<p><b>Speed</b> plays the song from 25% to 120% without changing its pitch. Settings can start every song at a
-slower speed.</p>
+<p><b>Speed</b> (<kbd>Up</kbd> / <kbd>Down</kbd>) goes from 25% to 120% without changing the pitch, holding at
+100% a moment as you pass it. Settings sets the speed songs start at.</p>
 <h3>Loop the hard part</h3>
-<p><kbd>L</kbd> loops the section you are in, with a second's run-up each time round. For a tighter loop, set
-your own start and end with <kbd>[</kbd> and <kbd>]</kbd>.</p>
+<p><kbd>L</kbd> loops the section you're in, with a second's run-up. <kbd>[</kbd> and <kbd>]</kbd> set your own
+start and end.</p>
 <h3>Riff repeater</h3>
-<p><kbd>R</kbd> loops the section and plays it a little faster each time round, from 60% up to full speed, 5% at a
-time. With scoring on, a time round only speeds it up when 70% of its
-notes were hit. <kbd>R</kbd> again, or <kbd>L</kbd>, stops it.</p>
+<p><kbd>R</kbd> loops the section from 60% speed, 5% faster each time round, up to full speed. With scoring on, a
+round only speeds it up when 70% of its notes were hit.</p>
 <h3>Fewer notes</h3>
-<p><b>Notes</b> uses Rocksmith's own simpler versions of each phrase. 100% is the full chart; 80%, 60%, 40%
-and 20% thin it out phrase by phrase, the way Rocksmith's dynamic difficulty does. 80% keeps about three notes
-in four, 20% the bare bones.</p>
+<p><b>Notes</b> plays Rocksmith's simpler versions of each phrase: 100% is the full chart, 80% keeps about three
+notes in four, 20% the bare bones.</p>`, `
 <h3>Notes early or late?</h3>
-<p>Speakers, TVs and Bluetooth all delay the sound a little, screens the picture, and the cable your playing.
-<b>Sync</b>, on the menu, lines them up. First a tick sounds and a bar swings from side to side:
-move it with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigger steps) until it reaches each side
-right on the tick, then press <kbd>Enter</kbd>. It starts from the timing you have now, so a small fix is a few
-presses. With the Real Tone Cable open, you then pluck the open E string along with the tick for half a minute,
-which sets scoring's timing for the cable. Run it again after changing speakers, headphones or screen.</p>
-<p>For one song only (say, your own recording of it), open the Mix with <kbd>M</kbd> and nudge its
-<b>audio offset</b> under <b>This song's timing</b>; it adds to the calibrated one.</p>`],
-  ['Tuner', `
-<p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd> (or <b>Tuner</b> on the menu or in the
-player). The tuner knows the tuning the song wants, including the few cents some Rocksmith songs are off A440
-because their recording was. Play each open string: the needle shows how far off it is, and a string is ticked
-once it holds in tune.</p>
-<p>It opens by itself on your first song of the day, and when the next song needs a different tuning. Already in
-tune? Close it and play.</p>
+<p>Speakers, TVs and the cable each add a little delay. <b>Sync</b> (on the menu, or in Settings) lines them up:
+move the swinging bar with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigger steps) until it
+reaches each side right on the tick, then press <kbd>Enter</kbd>.</p>
+<p>With the cable open, you then pluck the open E string along with the tick for half a minute: that sets
+scoring's timing. Run it again after changing speakers, headphones or screen.</p>
+<p>For one song only (your own recording of it, say), nudge its <b>audio offset</b> in the Mix (<kbd>M</kbd>),
+under <b>This song's timing</b>.</p>`)],
+  ['Tuner and mix', cols(`
+<h3>The tuner</h3>
+<p>Plug your bass into the <b>Real Tone Cable</b> and press <kbd>T</kbd>. It knows the tuning the song wants, down
+to the cents, and opens by itself when a song needs a different one. Play each open string: it's ticked once it
+holds in tune.</p>
 <h3>Hearing your bass</h3>
-<p>Plugged into the cable, the bass makes no sound of its own. <b>Hear your bass</b> (in the tuner or the Mix)
-plays it through PumaBass. There is a short delay on the way; if you have an amp, a splitter to the amp
-has none.</p>
-<h3>The mix</h3>
-<p>Open it with <kbd>M</kbd> while a song is up. <b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and
-<b>Song</b> sets the record; play along and set the two meters about level. A limiter keeps the two together from
-ever distorting.</p>
-<p><b>Recorded bass</b> (<kbd>B</kbd>): the song's own bass can't be lifted out of a finished record, but
-<b>Reduced</b> and <b>Cut</b> pull it well down, by cutting the low end of the middle of the stereo mix, where a
-bass always sits. Its upper overtones stay, and the kick drum loses some thump; guitars and vocals are left alone.</p>
+<p>Through the cable the bass makes no sound; <b>Hear your bass</b> (in the tuner or the Mix) plays it, with a
+short delay. A splitter to an amp has none.</p>
 <h3>Another input</h3>
-<p>Any audio input works, e.g. an audio interface or a microphone near an acoustic bass: choose it in Settings.
-The first time, the browser asks to let PumaBass use it.</p>`],
-  ['Scoring', `
-<p>With the Real Tone Cable (or another input) open, PumaBass listens to each note as it lands: a ring in the
-string's colour is a hit, a red cross a miss, and the top bar keeps your accuracy and streak. A song's end screen
-gives your score, your best streak, whether you tend to play early or late, and a strip of the song by section, red
-where to practise.</p>
+<p>Any audio input works, an audio interface or a microphone by an acoustic bass: choose it in Settings.</p>`, `
+<h3>The mix (<kbd>M</kbd>)</h3>
+<p><b>Your bass</b> boosts the cable's quiet signal (up to +30 dB) and <b>Song</b> sets the record: play along and
+set the two meters about level. A limiter keeps them from distorting.</p>
+<p><b>Recorded bass</b> (<kbd>B</kbd>): a record's own bass can't be lifted out, but <b>Reduced</b> and
+<b>Cut</b> pull it well down by cutting the low middle of the mix. Its overtones stay, and the kick drum loses some
+thump.</p>`)],
+  ['Scoring', cols(`
+<p>With the cable open, PumaBass listens to each note as it lands: a hit fills in bright; a miss is crossed out
+and drops away. The top bar keeps your accuracy and streak, and the end screen gives your score, your best streak,
+whether you play early or late, and where to practise.</p>
 <h3>What counts</h3>
-<p>The right note, plucked within about an eighth of a second of when it lands (slowed down, the same real time).
-Hammer-ons and pull-offs need the new pitch, with no pluck. Muted notes and harmonics need the pluck. Chords count
-on the pluck alone: one cable can't reliably tell which several notes are ringing, so a wrong chord shape isn't
-caught.</p>
-<p>Turn scoring off in the Mix panel (<kbd>M</kbd>) to practise without the marks. It never runs without an
-input, so playing through an amp is never marked wrong. Tune first: the pitch has to be within half a semitone.</p>
-<h3>Many misses?</h3>
-<p>Run <b>Sync</b> (on the menu) with the cable open: it measures how late your plucks reach
-PumaBass, and scoring allows for it. If right notes are still marked missed, tick <b>Record a take</b> in the Mix
-panel (<kbd>M</kbd>) and play; then <b>Save take</b> (there, or on the end screen) keeps what the cable
-heard in the PumaBass folder, to find out why. Both are under <b>Takes</b>, at the foot of the Mix.</p>`],
-  ['Reading the highway', `
-<p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b> yellow,
-<b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b> green and
-<b style="color:#b351e8">e</b> purple), with the low string on top (Settings can turn it over). The number on a note is the
-fret; Settings can leave it off. A long bar across the lit lane is an open string.</p>
-<p>Over the top, the same part scrolls by as standard notation over tab (<kbd>N</kbd> steps through standard, tab, both and off). Each
-note crosses the blue line as you play it; what's to the right is coming. The names under the notes are there
-to learn the clef by. Standard notation, tab and the names under the notes each turn on and off in Settings.</p>
-<p>Play each note as it reaches its string. Two things tell you when: a note comes in standing on end and turns
-as it nears, lying flat along its string just as it gets there; and a line drops from every note to a mark on the
-floor at its time, so a note on the beat sits over its beat line, and notes played together share a mark.</p>
-<p>The lit lane on the floor is where your hand should be; the fret numbers at the bottom light up to match.
-On a big jump the view pulls back until you can see both ends, then settles on the new spot.
-A tail behind a note means hold it; a tail that bends sideways is a slide to the fret shown.</p>
+<p>The right note, within about an eighth of a second. Hammer-ons and pull-offs need the new pitch, no pluck;
+muted notes and harmonics just the pluck; chords count on the pluck alone, as one cable can't tell a chord's
+shape. Tune first: within half a semitone.</p>`, `
+<h3>Off, or many misses?</h3>
+<p>Turn scoring off in the Mix (<kbd>M</kbd>) to practise unmarked. It never runs without an input, so playing
+through an amp is never marked wrong.</p>
+<p>Right notes marked missed? Run <b>Sync</b> with the cable open: scoring then allows for its delay. Still
+wrong? Tick <b>Record a take</b> under <b>Takes</b> in the Mix and play; <b>Save take</b> keeps what the cable
+heard, to find out why.</p>`)],
+  ['The highway', cols(`
+<p>Each string has its colour, as in Rocksmith: <b style="color:#e8413c">E</b> red, <b style="color:#f2c623">A</b>
+yellow, <b style="color:#2e8ff0">D</b> blue, <b style="color:#f5892a">G</b> orange (guitar adds <b style="color:#3fc75e">B</b>
+green, <b style="color:#b351e8">e</b> purple), the low string on top. A note shows its fret, its name or nothing
+(Settings). A long bar across the lit lane is an open string.</p>
+<p>When to play: a note comes in on end and lies flat just as it reaches its string, and a line drops from it to
+its time on the floor, over the beat lines.</p>
+<p>The lit lane is where your hand goes; the fret numbers under it light up to match. On a big jump the view pulls
+back to show both ends. A tail means hold the note; a tail that bends is a slide.</p>
+<p>Over the top, standard notation and tab scroll by, each note crossing the blue line as you play it
+(<kbd>N</kbd>).</p>`, `
+<h3>Marks on the notes</h3>
 ${keys([
     ['H / P', 'hammer-on / pull-off'],
-    ['SLAP / POP', 'slap with the thumb / pop with a finger'],
-    ['grey with an X', 'muted (dead) note'],
+    ['SLAP / POP', 'slap with the thumb / pop a finger'],
+    ['grey, with an X', 'muted (dead) note'],
     ['diamond', 'harmonic'],
     ['PM', 'palm mute'],
     ['~', 'vibrato'],
-    ['a box round notes', 'play them together (a chord or double stop)'],
-  ])}`],
-  ['Your songs', `
-<p>PumaBass plays your own Rocksmith 2014 song files (<code>.psarc</code>). Choose the folder that holds them in
-<b>Settings → Song library</b>; the folders inside it are searched too, so a whole Rocksmith folder, a copied
-<code>dlc</code> folder or a USB stick all work. Nothing in it is copied or changed. Press <b>Rescan</b> after
-adding songs.</p>
-<p>The songs from the Rocksmith disc need both <code>songs.psarc</code> and <code>audio.psarc</code>: the first has
-their charts, the second their audio.</p>
+    ['a box round notes', 'play them together'],
+  ])}`)],
+  ['Your songs', cols(`
+<h3>Your song files</h3>
+<p>PumaBass plays your own Rocksmith 2014 song files (<code>.psarc</code>). Choose their folder in <b>Settings</b>;
+the folders inside it are searched too, and nothing is copied or changed. Press <b>Rescan</b> after adding
+songs.</p>
+<p>The songs from the Rocksmith disc need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code>
+(their audio).</p>`, `
 <h3>Charts without audio</h3>
-<p>Some charts arrive without their audio (the Rocksmith 1 DLC pack, for one). Drop your own recording into the
-PumaBass <code>music</code> folder, named like <code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press
-<b>Rescan</b>. The song list hides the charts still waiting for one; the button at its foot shows them.</p>
-<p>A recording of your own rarely lines up with the chart exactly: use the song's audio offset (<kbd>M</kbd>), which
-goes up to 15 seconds either way for these.</p>`],
+<p>Some charts arrive without audio (the Rocksmith 1 DLC pack, for one). Put your own recording in the PumaBass
+<code>music</code> folder, named like <code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press
+<b>Rescan</b>. Line it up with the song's audio offset in the Mix (<kbd>M</kbd>), up to 15 seconds either way.</p>
+<p>The song list hides the charts still waiting for audio; the button at its foot shows them.</p>`)],
 ];
 
 export const ABOUT = `
