@@ -6,7 +6,7 @@ import { api } from './api.js';
 import { $, esc, toast, screen, songs, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
-import { openSong } from './player.js';
+import { openSong, scoreMode } from './player.js';
 import { KEY_RECENT, KEY_FAVS, KEY_STATS, load, prefs, savePrefs, toggleFav } from './store.js';
 
 /* The songs folder, picked from this computer's folders through the server,
@@ -105,6 +105,8 @@ export async function loadLibrary() {
 
 export function showLibrary() {
   setScreen('library');
+  // Score a song (beta) says so over the list; Learn a song is plain Songs.
+  $('library').querySelector('.top h1').innerHTML = scoreMode ? 'Score a song <span class="beta">beta</span>' : 'Songs';
   $('player').classList.add('hidden');
   $('library').classList.remove('hidden');
   renderLibrary();
