@@ -198,20 +198,13 @@ export async function settingsClick(b, sheet) {
 }
 
 
-/* Keys inside any sheet: Up/Down, Page Up/Down (and Space when no button has it)
- * scroll its body; Left/Right on a tab switch tabs. true when the key was one of these. */
+/* Keys inside any sheet: Page Up/Down (and Space when no button has it) scroll its body.
+ * (The arrows move the focus and scroll, in app.js.) true when the key was one of these. */
 export function sheetKeys(e, el) {
   const t = e.target, body = el.querySelector('.gk-body');
-  if (t.closest && t.closest('input, select, textarea')) return false;
-  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && t.getAttribute && t.getAttribute('role') === 'tab') {
-    const tabs = [...el.querySelectorAll('[role=tab]')], i = tabs.indexOf(t);
-    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
-    e.preventDefault(); next.click();
-    const now = el.querySelector(`[data-tab="${next.dataset.tab}"]`); if (now) now.focus();
-    return true;
-  }
+  if (e.defaultPrevented || (t.closest && t.closest('input, select, textarea'))) return false;
   if (!body) return false;
-  const step = { ArrowDown: 60, ArrowUp: -60, PageDown: body.clientHeight * 0.85, PageUp: -body.clientHeight * 0.85 }[e.key]
+  const step = { PageDown: body.clientHeight * 0.85, PageUp: -body.clientHeight * 0.85 }[e.key]
     ?? (e.key === ' ' && !(t.closest && t.closest('button')) ? body.clientHeight * 0.85 : null);
   if (step === null) return false;
   e.preventDefault();

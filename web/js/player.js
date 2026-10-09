@@ -620,7 +620,10 @@ export function playerKey(e) {
   else if (k === '?' || k === 'h') openHelp();
   else if (k === 's' || k === 'S') { if (!audio.paused) togglePlay(); openSettings(); }
   else if (k === 'Escape') {
+    const c = document.activeElement;
     if (!$('settings').classList.contains('hidden')) closeMix();
+    // On one of the player's controls, Esc lets go of it: the arrows seek and change speed again.
+    else if (c && c.closest && c.closest('.p-top, .p-bottom')) c.blur();
     else if (!audio.paused || liveAt !== null) togglePlay(); // a stray Esc only pauses: the paused screen says Esc again leaves
     else closeSong();
   }
