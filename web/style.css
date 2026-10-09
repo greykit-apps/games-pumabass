@@ -381,6 +381,12 @@ html .gk-sheet .gk-body p, html .gk-sheet .gk-note { max-width: 70ch; }
 html .gk-sheet kbd { font: 700 14px var(--ui); color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
 html .gk-sheet button:focus-visible kbd { color: var(--bar-ink); border-color: rgba(var(--bar-ink-rgb), .4); background: none; }
 .gk-sheet code { color: var(--text); word-break: break-all; }
+/* Help: two columns in a wide box, so no tab scrolls on the TV (its tabs mark it out) */
+html .gk-sheet .gk-box:has(.gk-tabs) { width: min(1180px, 100%); }
+.gk-sheet .help-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
+.gk-sheet .help-cols > div > :first-child { margin-top: 0; }
+.gk-sheet .help-cols .keys td { padding-top: 1px; padding-bottom: 1px; }
+@media (max-width: 760px) { .gk-sheet .help-cols { grid-template-columns: 1fr; } }
 /* Settings: two columns in a wider box, so it fits the screen without scrolling */
 html .gk-sheet .gk-box:has(.set-cols) { width: min(1180px, 100%); }
 .gk-sheet .set-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
