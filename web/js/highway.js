@@ -279,6 +279,15 @@ export class Highway {
     for (let f = 0; f <= MAX_FRET; f++) {
       this.line([f, 0.1, 0], [f, yTop, 0], f === 0 ? '#ddd' : 'rgba(200,200,210,0.55)', f === 0 ? 4 : 2);
     }
+    // A capo: a bar across the strings just behind its fret, the frets below it dimmed,
+    // out of play (an open string sounds at the capo).
+    const capo = this.chart.capo || 0;
+    if (capo) {
+      const x = capo - 0.28, s = this.P(x, yTop / 2, 0)[2];
+      this.quad([[0, 0, 0], [x, 0, 0], [x, yTop, 0], [0, yTop, 0]], 'rgba(5,7,10,0.55)');
+      this.line([x, -0.02, 0], [x, yTop + 0.04, 0], '#3a3f4a', Math.max(6, s * 0.26));
+      this.line([x, -0.02, 0], [x, yTop + 0.04, 0], '#b9c0cc', Math.max(3, s * 0.16));
+    }
     // Inlays.
     for (const f of INLAYS) {
       const [x, y, s] = this.P(f - 0.5, yTop / 2, 0);

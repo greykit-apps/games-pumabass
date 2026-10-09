@@ -100,7 +100,9 @@ highest notes, so nothing runs into the tab. Settings → Highway can also put n
 notes instead of frets.
 
 The tab's notes are chips in their strings' colours, as on the highway, each with its fret on it, and the strings
-are named at the left. With scoring on, a note you hit lights up and stays lit as it scrolls away; a miss fades
+are named at the left (a guitar's top string as a small e). A chord's name sits over the tab where the chord
+changes. With a capo, the tab counts frets from the capo, as tab with a capo is written, and says so at the
+left; the highway shows the capo on the board, with its real fret numbers. With scoring on, a note you hit lights up and stays lit as it scrolls away; a miss fades
 back (without scoring, every note fades as it goes by).
 
 Or play from the tab: **tab view** (`V`, or Settings → View) puts the tab, large, in the highway's place, laid

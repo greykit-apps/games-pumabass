@@ -1,6 +1,6 @@
 // The song list, and choosing the songs folder.
 
-import { tuningName, formatTime, arrangementLabel, difficultyLevel } from './chart.js';
+import { tuningName, formatTime, arrangementLabel, difficultyLevel, numberAlternates } from './chart.js';
 import { alertSheet } from './title.js';
 import { api } from './api.js';
 import { $, esc, toast, screen, songs, setScreen, setLibrary } from './core.js';
@@ -98,6 +98,7 @@ export function chooseFolder() {
 /* ---- the song list ---- */
 export async function loadLibrary() {
   const [list, about] = await Promise.all([api('/api/songs'), api('/api/info')]);
+  numberAlternates(list);
   setLibrary(list, about);
   if (screen === 'library') renderLibrary();
 }

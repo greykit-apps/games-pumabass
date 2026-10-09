@@ -37,7 +37,7 @@ function loadVexFlow() {
 }
 
 // The song, as both scores write it.
-const song = { chart: null, kind: 'bass', notes: null, bars: [], key: null };
+const song = { chart: null, kind: 'bass', notes: null, bars: [], key: null, chords: false };
 
 // The band: where it's drawn, how big, and what it shows (staff, tab, names under the
 // notes). Its tab lines are further apart than VexFlow's 13, so its chips can be read
@@ -79,6 +79,7 @@ export function updateNotation(t, on) {
     song.notes = highway.notes;
     song.bars = buildBars(song.chart, song.notes);
     song.key = keyOf(song.chart, song.notes);
+    song.chords = song.bars.some(b => b.pieces.some(pc => pc.chord));
     BAND.choice = TAB.choice = '';
   }
   if (tab) updateTab(t);
@@ -222,8 +223,10 @@ function buildBars(chart, notes) {
         let tick = j * TPB + Math.round(r.frac * slots) * (TPB / slots);
         let target = bar;
         if (tick >= bar.n * TPB) { target = bars[k + 1]; tick = 0; if (!target) continue; }
-        const at = target.onsets.get(tick) || target.onsets.set(tick, { parts: [], sus: 0 }).get(tick);
+        const at = target.onsets.get(tick) || target.onsets.set(tick, { parts: [], sus: 0, chord: '' }).get(tick);
         for (const p of r.e.notes || [r.e]) if (!at.parts.some(q => q.s === p.s)) at.parts.push({ s: p.s, f: p.f, mute: (r.e.tech || p.tech || []).includes('mute'), ev: r.e });
+        const name = r.e.notes && chart.chordTemplates?.[r.e.chord]?.name?.trim();
+        if (name) at.chord = name;
         at.sus = Math.max(at.sus, ((r.e.sus || 0) / r.beatLen) * TPB);
       }
     }
@@ -245,7 +248,7 @@ function piecesOf(bar) {
     // A short gap: the note lasts until the next. A long one: as long as it rings
     // (at least a beat), then a rest.
     const len = gap <= TPB ? gap : Math.min(gap, Math.max(TPB, Math.round(at.sus / TPB) * TPB));
-    segs.push({ start: tick, len, parts: at.parts });
+    segs.push({ start: tick, len, parts: at.parts, chord: at.chord });
     cur = tick + len;
   });
   if (cur < ticks) segs.push({ start: cur, len: ticks - cur });
@@ -259,7 +262,7 @@ function piecesOf(bar) {
         const whole = Math.floor((e - s) / TPB);
         len = [4, 3, 2, 1].find(k => k <= whole) * TPB;
       } else len = Math.min(e, (Math.floor(s / TPB) + 1) * TPB) - s;
-      out.push({ start: s, len, parts: seg.parts, tied: !first, triplet: len < TPB && bar.triplets.has(Math.floor(s / TPB)) });
+      out.push({ start: s, len, parts: seg.parts, chord: seg.chord, tied: !first, triplet: len < TPB && bar.triplets.has(Math.floor(s / TPB)) });
       s += len; first = false;
     }
   }
@@ -293,8 +296,10 @@ function layoutFor({ staff, tab, names }, gap) {
   const clear = staff ? Math.min(70, Math.max(26, (bottomLine - lo) * 5 + 12)) : 0;
   const below = clear + (names ? 18 : 0);
   const staffTop = 4 + above, staffBottom = staffTop + 40, namesMax = staffBottom + below - 3;
-  const tabTop = staff ? staffBottom + below + 8 : 12, tabBottom = tabTop + gap * (song.chart.strings - 1);
-  return { gap, staff, tab, names, namesMax, staffTop, tabTop, height: (tab ? tabBottom + 12 : staffBottom + below + 8) + 2,
+  // A row over the tab for chord names, when the part has named chords.
+  const chords = tab && song.chords;
+  const tabTop = (staff ? staffBottom + below + 8 : 12) + (chords ? 14 : 0), tabBottom = tabTop + gap * (song.chart.strings - 1);
+  return { gap, staff, tab, names, chords, namesMax, staffTop, tabTop, height: (tab ? tabBottom + 12 : staffBottom + below + 8) + 2,
     headTop: (staff ? staffTop : tabTop) - 6, headBottom: (tab ? tabBottom : staffBottom) + 6 };
 }
 
@@ -324,9 +329,19 @@ function drawClef(S) {
   S.part('head').style.height = `${(L.headBottom - L.headTop) * S.scale}px`;
 }
 
-// The strings named, each in its colour, centred on x, top line the highest string.
+// Tab frets count from the capo, as tab with a capo is written (the chart's count
+// from the nut, as the highway's board does).
+const tabFret = f => (song.chart.capo && f > song.chart.capo ? f - song.chart.capo : f > 0 && song.chart.capo ? 0 : f);
+
+// The strings named, each in its colour, centred on x, top line the highest string;
+// over them, the capo when there is one.
 function drawStringNames(ctx, L, x) {
   const nStr = song.chart.strings, names = tuningNotes(song.chart.tuning, nStr);
+  if (song.chart.capo) {
+    ctx.openGroup('ntcapo');
+    ctx.fillText(`Capo ${song.chart.capo}`, 0, L.tabTop - L.gap * 0.62);
+    ctx.closeGroup();
+  }
   ctx.openGroup('ntstrings');
   ctx.setFont('Saira', L.gap * 0.58, 'bold'); // in points
   for (let line = 0; line < nStr; line++) {
@@ -359,6 +374,7 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
   const sig = bi => sigW(bi) > 0;
   const clef = clefName(), nStr = song.chart.strings, flats = song.key.flats;
   const points = [], fretted = [];
+  let lastChord = '';
   // The staves first, to know where each bar's first beat sits: a bar's beats are
   // spread evenly from its first beat to the next bar's, notes placed by their time
   // in that span, so the score scrolls at a steady pace (VexFlow's own spacing,
@@ -398,7 +414,7 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
           return `${noteName(m, flats).toLowerCase()}/${Math.floor(m / 12) - 1}${p.mute ? '/x2' : ''}`;
         });
         sn = new StaveNote({ keys, duration: dur, clef, dots, autoStem: true });
-        tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: p.mute ? 'X' : p.f })), duration: dur, dots });
+        tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: p.mute ? 'X' : tabFret(p.f) })), duration: dur, dots });
         if (!pc.tied) { named.push({ sn, pc, ps }); fretted.push({ tn, ps }); }
         if (pc.tied && open) ties.push(new StaveTie({ firstNote: open, lastNote: sn, firstIndexes: keys.map((_, n) => n), lastIndexes: keys.map((_, n) => n) }));
         open = sn;
@@ -436,6 +452,17 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
       ties.forEach(ti => ti.setContext(ctx).draw());
     }
     if (tv) tv.draw(ctx, tab);
+    // Each chord's name over the tab where the chord changes (and at the start of a
+    // strip or line, so every line says what it starts on).
+    if (tv && L.chords) {
+      ctx.openGroup('ntchords');
+      for (const pc of bar.pieces) {
+        if (!pc.chord || pc.tied || pc.chord === lastChord) continue;
+        ctx.fillText(pc.chord, starts[i] + (pc.start / (bar.n * TPB)) * spans[i], L.tabTop - 8);
+        lastChord = pc.chord;
+      }
+      ctx.closeGroup();
+    }
     // Each name centred under its own note, once the beams have set the stems'
     // lengths: just below the staff, or lower when the note (its notehead, or its stem's
     // tip when that points down) reaches lower, so never on a beam; but never into the tab.
@@ -445,7 +472,7 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
       for (const { sn, pc, ps } of named) {
         let low = Math.max(floor, Math.max(...sn.getYs()) + 5);
         if (sn.getStemDirection() < 0) low = Math.max(low, sn.getStemExtents().topY + 3);
-        const name = ps.map(p => noteName(pitchOf(song.chart, p.s, p.f), flats)).join(' ');
+        const name = pc.chord || ps.map(p => noteName(pitchOf(song.chart, p.s, p.f), flats)).join(' ');
         ctx.fillText(name, starts[i] + (pc.start / (bar.n * TPB)) * spans[i], Math.min(low + 11, L.namesMax));
       }
       ctx.closeGroup();

@@ -25,8 +25,12 @@ export function buildPlayable(chart, percent) {
 const NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const STANDARD = { 4: [28, 33, 38, 43], 6: [40, 45, 50, 55, 59, 64] };
 
+// The open strings' names, low to high. A top string with the bottom one's name is
+// written small, as guitarists write it: E A D G B e.
 export function tuningNotes(tuning, strings) {
-  return STANDARD[strings].map((m, i) => NOTE_NAMES[(m + (tuning[i] || 0) + 120) % 12]);
+  const names = STANDARD[strings].map((m, i) => NOTE_NAMES[(m + (tuning[i] || 0) + 120) % 12]);
+  if (strings > 4 && names[strings - 1] === names[0]) names[strings - 1] = names[0].toLowerCase();
+  return names;
 }
 
 export function tuningName(tuning, strings) {
@@ -69,17 +73,36 @@ export function sectionName(name) {
   return SECTION_WORDS[k] || (n ? n[0].toUpperCase() + n.slice(1).toLowerCase() : 'Section');
 }
 
+/* A part's name: its type, or the chart's own name with the type it's played as
+ * ("Combo (lead)": Rocksmith's combo parts follow the lead or the rhythm path).
+ * Alternates say so ("Alt. lead", "Bonus lead"), numbered where a song has two alike. */
 export function arrangementLabel(s) {
+  const label = partLabel(s);
+  return s.altNo > 1 ? `${label} ${s.altNo}` : label;
+}
+function partLabel(s) {
   const base = s.type === 'bass' ? 'Bass' : s.type === 'lead' ? 'Lead' : 'Rhythm';
-  const name = s.arrangement && s.arrangement !== base ? s.arrangement : base;
-  return s.represent === false || s.bonus ? `${name} (alt)` : name;
+  const name = s.arrangement && s.arrangement !== base ? `${s.arrangement} (${s.type})` : base;
+  const alt = s.bonus ? 'Bonus' : s.represent === false ? 'Alt.' : '';
+  return alt ? `${alt} ${name[0].toLowerCase()}${name.slice(1)}` : name;
+}
+/* Number a song's alternates that would otherwise read alike ("Alt. combo (lead) 2"). */
+export function numberAlternates(songs) {
+  const groups = new Map();
+  for (const s of songs) {
+    if (s.represent !== false && !s.bonus) continue;
+    const k = `${s.songKey}|${s.platform}|${partLabel(s)}`;
+    (groups.get(k) || groups.set(k, []).get(k)).push(s);
+  }
+  for (const g of groups.values()) if (g.length > 1) g.sort((a, b) => a.id.localeCompare(b.id)).forEach((s, i) => { s.altNo = i + 1; });
 }
 
 /* ---- pitch, for the notation band and note names ---- */
 // The open strings' MIDI pitches in standard tuning, by how many strings: 4 and 5
 // are bass (5 adds a low B), 6 and 7 guitar (7 adds a low B).
 const OPEN = { 4: [28, 33, 38, 43], 5: [23, 28, 33, 38, 43], 6: [40, 45, 50, 55, 59, 64], 7: [35, 40, 45, 50, 55, 59, 64] };
-export const pitchOf = (chart, s, f) => (OPEN[chart.strings] || OPEN[4])[s] + (chart.tuning[s] || 0) + f;
+// Frets are counted from the nut, capo or not: an open string sounds at the capo.
+export const pitchOf = (chart, s, f) => (OPEN[chart.strings] || OPEN[4])[s] + (chart.tuning[s] || 0) + (f || chart.capo || 0);
 
 // Major keys by tonic pitch class, with their sharps (+) or flats (-).
 const KEYS = [['C', 0, 0], ['G', 7, 1], ['D', 2, 2], ['A', 9, 3], ['E', 4, 4], ['B', 11, 5], ['F#', 6, 6],
