@@ -14,8 +14,9 @@
 // reliably pick out several pitches at once).
 // Plain functions and one class, no browser APIs, so Node can test them.
 
-export const EARLY = 0.15;   // s, real time, a pluck may come before the note
-export const LATE = 0.18;    // s, real time, a pluck may come after it (learners drag a little)
+// Rocksmith 2014's windows (its games.transient.json: NoteBackwardDelay -0.2, NoteForwardDelay 0.3).
+export const EARLY = 0.2;    // s, real time, a pluck may come before the note
+export const LATE = 0.3;     // s, real time, a pluck may come after it (learners drag a little)
 const PITCH_CENTS = 50;      // how far off the expected pitch still counts
 const PERIODIC = 0.5;        // normalised correlation at the expected period that counts as "sounding"
 const OCTAVE_MARGIN = 0.06;  // the octave above must correlate this much less, or it was the octave above
@@ -39,7 +40,7 @@ export function noteFreq(part, chart) {
  * pluck. Each window is long enough to hold a good part of a period, too.
  */
 const BEFORE = 0.044;
-export function onsets(x, sr) {
+export function onsets(x, sr, { noise = null } = {}) {
   const hop = Math.round(0.004 * sr), win = Math.round(0.012 * sr);
   const env = [];
   for (let i = 1; i + win < x.length; i += hop) {
@@ -47,8 +48,8 @@ export function onsets(x, sr) {
     for (let k = 0; k < win; k++) { const d = x[i + k] - x[i + k - 1]; e += d * d; }
     env.push(e / win);
   }
-  const sorted = [...env].sort((a, b) => a - b);
-  const floor = Math.max(1e-7, sorted[Math.floor(sorted.length * 0.2)] * 4);
+  // Nothing within a few times the cable's own noise (from the soundcheck, when there is one) is a pluck.
+  const floor = Math.max(1e-7, pct(env, 0.2) * 4, noise ? noise.diff * 4 : 0);
   const gap = Math.ceil(win / hop), span = Math.round(BEFORE * sr / hop); // windows clear of this one; how many to average
   const out = [];
   let last = -1;
@@ -67,6 +68,26 @@ export function onsets(x, sr) {
   return out;
 }
 const LEAD_IN = 0.8; // where in the first loud window the pluck is taken to be: about where the click is
+
+const pct = (xs, p) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length * p)] : 0; };
+
+/**
+ * The cable's noise, from a stretch with the strings held quiet (the
+ * soundcheck): { energy, diff, db }, in the units the pluck detectors use.
+ * Its typical level counts, so a stray touch doesn't spoil it.
+ */
+export function noiseOf(x, sr) {
+  const n = Math.round(0.05 * sr), energy = [], diff = [];
+  for (let i = 1; i + n <= x.length; i += n) {
+    let e = 0, d = 0;
+    for (let k = 0; k < n; k++) { const v = x[i + k], dv = v - x[i + k - 1]; e += v * v; d += dv * dv; }
+    energy.push(e / n); diff.push(d / n);
+  }
+  if (energy.length < 6) return null;
+  // Rocksmith sets its noise floor 2 dB over what it hears with the strings muted.
+  const e = pct(energy, 0.5) * 10 ** 0.2, d = pct(diff, 0.5) * 10 ** 0.2;
+  return { energy: e, diff: d, db: 10 * Math.log10(Math.max(e, 1e-12)) };
+}
 
 /** Normalised correlation (-1..1) of x with itself shifted by lag samples, over n samples. */
 function nsdf(x, lag, n) {
@@ -141,6 +162,9 @@ export function pitchCheck(x, sr, freq) {
   return { verdict: 'unclear', ...p, other };
 }
 
+const QUIET = 10 ** (10 / 10); // within 10 dB of the noise floor counts as silence
+const meanSquare = x => { let e = 0; for (let i = 0; i < x.length; i++) e += x[i] * x[i]; return x.length ? e / x.length : 0; };
+
 const TECH_PITCH_ONLY = ['hammer', 'pull', 'tap'];
 const TECH_PLUCK_ONLY = ['mute', 'harmonic', 'pinch'];
 
@@ -154,9 +178,10 @@ const TECH_PLUCK_ONLY = ['mute', 'harmonic', 'pinch'];
  *   chart      for the tuning
  *   taken      plucks already given to earlier notes: not reused
  *   prev, next where the neighbouring notes fall
+ *   noise      the cable's noise, from the soundcheck (noiseOf), if there is one
  * Returns { hit, offset (s, + = late; null when no pluck was needed), pluck }.
  */
-export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next = Infinity } = {}) {
+export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next = Infinity, noise = null } = {}) {
   const parts = ev.notes || [ev];
   const tech = ev.tech || parts[0].tech || [];
   const chord = parts.length > 1;
@@ -167,12 +192,16 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
   const early = Math.min(EARLY, (at - prev) / 2), late = Math.min(LATE, (next - at) / 2);
 
   let pluck = null;
-  const heard = onsets(x, sr);
+  const heard = onsets(x, sr, { noise });
   if (needsPluck) {
     const cands = heard.filter(o => o >= at - early && o <= at + late && !taken.some(t => Math.abs(t - o) < 0.02));
     // No click heard: a soft fingerstyle pluck can make none. For a single note, its pitch
     // starting right then is proof enough (as for a hammer-on, below); otherwise a miss.
     if (!cands.length && !needsPitch) return { hit: false, offset: null, pluck: null, why: 'no pluck' };
+    // A pluck heard just before the window, nearer this note than the last: plucked too early,
+    // and the pitch it started mustn't pass for a soft pluck on time.
+    const free = o => !taken.some(t => Math.abs(t - o) < 0.02);
+    if (!cands.length && heard.some(o => o < at - early && o > Math.max((prev + at) / 2, at - early - 0.15) && free(o))) return { hit: false, offset: null, pluck: null, why: 'too early' };
     if (cands.length) pluck = cands.reduce((a, b) => (Math.abs(b - at) < Math.abs(a - at) ? b : a));
   }
   if (!needsPitch) return { hit: true, offset: pluck === null ? null : pluck - at, pluck };
@@ -205,7 +234,10 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     if (look < 1.5 / freq) continue;
     const i = Math.max(0, Math.round(s * sr)), need = Math.ceil((look + lagRoom) * sr) + 4;
     if (i + need > x.length) continue;
-    const p = pitchCheck(x.subarray(i, i + need), sr, freq);
+    const seg = x.subarray(i, i + need);
+    // Down in the cable's noise nothing is sounding, whatever its hum repeats at.
+    if (noise && meanSquare(seg) < noise.energy * QUIET) continue;
+    const p = pitchCheck(seg, sr, freq);
     last = p;
     if (p.verdict === 'right') return { hit: true, offset: pluck === null ? null : pluck - at, pluck };
     if (p.verdict === 'unclear') unclear = true;
@@ -219,10 +251,12 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
  * Follows a song as it plays, judging each note once its window has passed.
  *   chart, notes   the chart and the notes being played (the player's, at its difficulty)
  *   sectionOf(t)   index of the section a time falls in
+ *   noise          the cable's noise, from the soundcheck (noiseOf), or null
  */
 export class Scorer {
-  constructor(chart, notes, sectionOf) {
+  constructor(chart, notes, sectionOf, noise = null) {
     this.chart = chart;
+    this.noise = noise;
     this.notes = notes;
     this.sectionOf = sectionOf;
     this.next = 0;           // the next note to judge
@@ -257,7 +291,7 @@ export class Scorer {
       const ev = this.notes[this.next];
       const close = ev.t + (LATE + 0.12) * rate; // room after the window for the pitch check
       if (now < close) break;
-      const from = ev.t - (EARLY + 0.08) * rate;
+      const from = ev.t - (EARLY + 0.2) * rate; // room before the window, to hear a pluck that came too early
       const seg = input(from, close);
       if (seg === 'later') break; // the input for it is still on its way: next frame
       this.next++;
@@ -266,7 +300,7 @@ export class Scorer {
       const taken = this.taken.filter(t => t > from).map(real);
       const prev = this.next >= 2 ? real(this.notes[this.next - 2].t) : -Infinity;
       const nextT = this.next < this.notes.length ? real(this.notes[this.next].t) : Infinity;
-      const r = judge(seg.x, seg.sr, real(ev.t), ev, this.chart, taken, { prev, next: nextT });
+      const r = judge(seg.x, seg.sr, real(ev.t), ev, this.chart, taken, { prev, next: nextT, noise: this.noise });
       if (r.pluck !== null) this.taken.push(seg.t0 + r.pluck * rate);
       if (this.taken.length > 64) this.taken.splice(0, 32);
       this.record(ev, r);

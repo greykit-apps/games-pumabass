@@ -59,6 +59,12 @@ copied over by hand.
 - [x] **Low notes in scoring.** The pluck detector took a low string's once-a-period spike for new plucks, so low
       notes went missed; it now compares against more than a period. Takes (`Save take`) and
       `tools/replay-take.mjs` show why any miss was a miss, to tune against a real cable.
+- [x] **Detection, Rocksmith's way.** Timing windows widened to Rocksmith 2014's own (-200 / +300 ms), and
+      a soundcheck in Sync's count-in (the cable's noise floor, and your level: too loud, quiet or noisy),
+      which scoring uses to ignore hum. What Rocksmith's files showed is in DETECTION.md.
+      Still to try with a real cable.
+- [ ] **Soft re-plucks.** A soft finger pluck on a note still ringing makes no click and hardly any jump
+      in level; tune against real takes (DETECTION.md, "Tried and dropped").
 - [x] **Balance.** A mix with your bass boosted (up to +30 dB) against the song, meters on both, and a limiter.
 - [x] **Recorded bass: Reduced / Cut.** The low end of the mix's centre, cut (about 20 to 25 dB on the bass range).
 - [ ] **Recorded bass: removed.** Truly taking the bass out needs stem separation (an AI model such as Demucs),
