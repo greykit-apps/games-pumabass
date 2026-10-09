@@ -119,8 +119,10 @@ up to bring in the one after. The notation (`N`) is the highway view's.
   the one that leaves the fewest accidentals. Bass is written an octave above where it sounds, in bass
   clef, as bass parts are; guitar likewise in treble clef.
 - Rocksmith's timings aren't perfectly on the grid, so now and then a rhythm is written a little
-  differently from how you'd write it by hand. Slides, hammer-ons and the like are shown on the highway,
-  not yet marked in the notation or the tab.
+  differently from how you'd write it by hand. Techniques are shown as Rocksmith shows them, an icon
+  on the note (▼ hammer-on, ▲ pull-off, ✕ fret-hand mute, a ring for a harmonic...) and a tail that curves for a
+  slide, lifts for a bend, waves for vibrato; the tab's chips carry the same icons and marks. They're not yet
+  marked in the standard notation.
 - Drawn by [VexFlow](https://www.vexflow.com/) 5.0.0 (MIT), kept in `web/vendor/vexflow/` so it works
   without the internet.
 
