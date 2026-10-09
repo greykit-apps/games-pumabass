@@ -25,16 +25,26 @@ address yourself). On first run, **Learn a song** asks for your songs folder.
 
 ## Your songs
 
-PumaBass reads Rocksmith 2014 song files (`.psarc`) from one folder, and the folders inside it:
-a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose or change it in
-**Settings → Song library**, and press **Rescan** after adding songs.
+PumaBass reads Rocksmith 2014 song files (`.psarc`) from three folders beside it, each a library
+with its own tab on the song list (after **All**, which lists every song once; **L** steps through
+them):
+
+- `bundles/`: Rocksmith's own song sets, such as the on-disc songs (`songs.psarc`) and the
+  Rocksmith 1 import packs.
+- `cdlc/`: custom songs you download, such as from CustomsForge.
+- `music/`: songs you made, and recordings for charts that have no audio.
+
+You can also point PumaBass at a Rocksmith folder of your own (a whole Rocksmith install, a copied
+`dlc` folder, a USB stick) in **Settings → Songs**; its songs get a **Rocksmith folder** tab. A song
+in more than one place is listed once. Folders inside these folders are read too. Press **Rescan**
+after adding songs. git ignores all three folders.
 
 - PC (`_p.psarc`) and Mac (`_m.psarc`) files both work; when both are there, the PC one is used.
 - The songs on the Rocksmith disc keep their charts in `songs.psarc` and their audio in
   `audio.psarc`. Copy both, anywhere in the folder.
 - The Rocksmith 1 DLC import pack (`rs1compatibilitydlc_p.psarc`) keeps its audio in `songs.psarc`:
   copy that too, or its songs have no audio.
-- Nothing is copied or changed in your songs folder. Decoded audio is cached in `cache/audio`
+- Nothing is copied or changed in your Rocksmith folder. Decoded audio is cached in `cache/audio`
   (kept under ~3 GB).
 
 ## Playing
@@ -80,7 +90,7 @@ what was ahead actually played. Sort by **Most played**. These are kept in the b
 of your settings (and cleared by Forget everything).
 
 - **Difficulty**: 100% is the full chart; lower values use Rocksmith's simpler levels.
-- **Settings** (title menu) is for setting up: the songs folder, the instrument input, the screen (TV
+- **Settings** (title menu) is for setting up: your songs, the instrument input, the screen (TV
   or computer), how far ahead notes appear, which way up the strings go (low string on top, as in
   Rocksmith, unless you turn it over), left-handed (the highway mirrored, the nut on the right; tab and
   notation read the same either way), whether notes carry their fret numbers, the speed songs start at,
@@ -238,7 +248,7 @@ files tell, is in [DETECTION.md](DETECTION.md).
 
 ## Settings file and options
 
-The songs folder you choose is saved in `config.json` beside the app. You can also edit it by hand:
+The Rocksmith folder you choose is saved in `config.json` beside the app. You can also edit it by hand:
 
 ```json
 { "libraryDir": "/media/me/songs", "port": 8014, "host": "127.0.0.1", "musicDir": "/home/me/bass-recordings" }
@@ -246,11 +256,12 @@ The songs folder you choose is saved in `config.json` beside the app. You can al
 
 | Key | What | Default |
 | --- | --- | --- |
-| `libraryDir` | your songs folder | none: chosen in Settings |
+| `libraryDir` | a Rocksmith folder of your own, on its own tab | none: chosen in Settings |
 | `port` | the address's port | 8014 |
 | `host` | who may connect: `127.0.0.1` is this computer only; `0.0.0.0` lets other devices on your network in (they can then see your folder names in the picker) | `127.0.0.1` |
-| `cdlcDir` | custom songs you download (.psarc), read alongside your songs folder | `cdlc/` |
-| `musicDir` | recordings for charts without audio | `music/` |
+| `bundlesDir` | the Bundles library: Rocksmith's song sets | `bundles/` |
+| `cdlcDir` | the CDLC library: custom songs you download | `cdlc/` |
+| `musicDir` | the Music library: songs you made, and recordings for charts without audio | `music/` |
 | `cacheDir` | decoded audio and the song index | `cache/` |
 | `openBrowser` | open a browser on start | `true` |
 

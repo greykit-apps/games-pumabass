@@ -3,7 +3,7 @@
 import { tuningName, formatTime, arrangementLabel, difficultyLevel, numberAlternates } from './chart.js';
 import { alertSheet } from './title.js';
 import { api } from './api.js';
-import { $, esc, toast, screen, songs, setScreen, setLibrary } from './core.js';
+import { $, esc, toast, screen, songs, info, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
 import { openSong, scoreMode } from './player.js';
@@ -22,11 +22,12 @@ export async function pickLibrary() {
     await alertSheet(e.message, "Can't choose the songs folder");
     return;
   }
-  const playable = songs.filter(s => s.audio !== false);
+  const playable = songs.filter(s => s.audio !== false && (s.sources || []).includes('folder'));
   const bass = playable.filter(s => s.type === 'bass').length;
-  await alertSheet(chosen.songs
-    ? `Found ${new Set(playable.map(s => s.songKey)).size} songs with ${bass} bass parts in ${chosen.archives} song ${chosen.archives === 1 ? 'file' : 'files'}.`
-    : `No Rocksmith 2014 songs were found in ${chosen.libraryDir} or the folders inside it. Choose the folder that holds your .psarc song files.`, 'Songs folder');
+  const files = ((info.libraries || []).find(l => l.key === 'folder') || {}).files || 0;
+  await alertSheet(files
+    ? `Found ${new Set(playable.map(s => s.songKey)).size} songs with ${bass} bass parts in ${files} song ${files === 1 ? 'file' : 'files'}. They're on the Rocksmith folder tab of the song list.`
+    : `No Rocksmith 2014 songs were found in ${chosen.libraryDir} or the folders inside it. Choose the folder that holds your .psarc song files.`, 'Rocksmith folder');
   if (screen === 'title') { leaveTitle(); showTitle().reveal(); }
   else if (screen === 'library') renderLibrary();
 }
@@ -122,12 +123,35 @@ export function showSongInList(id) {
   if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'center' }); }
 }
 
+/* The libraries, each a tab on the song list and a folder the server reads
+ * (server/library.js: SOURCES). Your own Rocksmith folder has a tab only once
+ * you've chosen one. */
+export const LIBRARIES = [
+  ['all', 'All'],
+  ['bundles', 'Bundles', 'Rocksmith song sets'],
+  ['cdlc', 'CDLC', 'custom songs you download'],
+  ['music', 'Music', 'songs you made, and your recordings'],
+  ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
+];
+const shownLibraries = () => LIBRARIES.filter(([k]) => k !== 'folder' || info.libraryDir);
+const inLibrary = (s, key) => key === 'all' || (s.sources || ['folder']).includes(key);
+const libraryDir = key => ((info.libraries || []).find(l => l.key === key) || {}).dir;
+
 export const stringsOf = s => (s.type === 'bass' ? 4 : 6);
 export function renderLibrary() {
   const q = $('search').value.trim().toLowerCase();
   const recent = load(KEY_RECENT, {});
-  const ofType = songs.filter(s => prefs.type === 'all' || s.type === prefs.type);
+  const libs = shownLibraries();
+  if (!libs.some(([k]) => k === prefs.library)) prefs.library = 'all'; // its folder was taken out of Settings
+  const ofPart = songs.filter(s => prefs.type === 'all' || s.type === prefs.type);
+  const ofType = ofPart.filter(s => inLibrary(s, prefs.library));
   const favs = load(KEY_FAVS, {}), stats = load(KEY_STATS, {});
+  // Each tab counts the songs it would list, with these parts.
+  const tabs = $('lib-tabs');
+  tabs.innerHTML = libs.map(([k, name, about]) => {
+    const n = new Set(ofPart.filter(s => inLibrary(s, k) && (prefs.showMissing || s.audio !== false)).map(s => s.songKey)).size;
+    return `<button data-lib="${k}" aria-pressed="${k === prefs.library}" title="${esc(about ? `${name}: ${about}` : 'Every library')}"><span>${esc(name)}</span><small>${n}</small></button>`;
+  }).join('');
   let list = ofType.filter(s => (prefs.showMissing || s.audio !== false) && (!prefs.favOnly || favs[s.id]));
   if (q) list = list.filter(s => `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q));
   const cmp = {
@@ -164,9 +188,13 @@ export function renderLibrary() {
   const el = $('song-list');
   const keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#song-list .song');
   const keepId = keep && keep.dataset.id, keepShelf = keep && keep.classList.contains('shelved');
+  const lib = LIBRARIES.find(([k]) => k === prefs.library);
   el.innerHTML = list.length ? '' : !songs.length
-    ? '<div class="empty"><p>No songs yet. PumaBass plays your own Rocksmith 2014 song files: show it where they are.</p><button class="primary" data-act="choose">Choose your songs folder</button></div>'
-    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.' : 'No songs here.'}</div>`;
+    ? `<div class="empty"><p>No songs yet. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>). Put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button></div>`
+    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.'
+      : prefs.library !== 'all' && !ofType.length && libraryDir(prefs.library)
+        ? `No songs in ${esc(lib[1])} yet. Put song files (<code>.psarc</code>) in <code>${esc(libraryDir(prefs.library))}</code>, then Rescan.`
+        : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
   const head = text => { const h = document.createElement('div'); h.className = 'group'; h.appendChild(document.createElement('span')).textContent = text; frag.appendChild(h); };
   let group = null;
@@ -238,6 +266,13 @@ $('library').querySelector('.songs-head').addEventListener('click', e => {
   savePrefs(); renderLibrary();
 });
 $('fav-filter').addEventListener('click', () => { prefs.favOnly = !prefs.favOnly; savePrefs(); renderLibrary(); });
+$('lib-tabs').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  prefs.library = b.dataset.lib;
+  savePrefs();
+  renderLibrary();
+});
 $('type-filter').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
@@ -315,6 +350,12 @@ export function libraryKey(e, typing) {
     e.preventDefault();
     const n = PARTS[(PARTS.findIndex(([v]) => v === prefs.type) + 1) % PARTS.length];
     prefs.type = n[0]; savePrefs(); renderLibrary(); toast(n[1]);
+  }
+  else if ((k === 'l' || k === 'L') && !typing) {
+    e.preventDefault();
+    const libs = shownLibraries();
+    const n = libs[(libs.findIndex(([v]) => v === prefs.library) + 1) % libs.length];
+    prefs.library = n[0]; savePrefs(); renderLibrary(); toast(n[0] === 'all' ? 'All libraries' : n[1]);
   }
   else if (k === 'F' && e.shiftKey && !typing) {
     e.preventDefault();

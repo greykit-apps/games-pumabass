@@ -24,7 +24,7 @@ const codeStamp = () => fs.readdirSync(__dirname).filter(f => f.endsWith('.js'))
 const STARTED_WITH = codeStamp();
 // What the page and this server agree on. Raise it, here and in web/js/app.js,
 // when the page starts needing something an older server doesn't have.
-const API_VERSION = 4;
+const API_VERSION = 5;
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
@@ -68,16 +68,15 @@ const lib = new Library({
   cacheDir: config.cacheDir || path.join(APP_DIR, 'cache'),
   musicDir: config.musicDir || path.join(APP_DIR, 'music'),
   cdlcDir: config.cdlcDir || path.join(APP_DIR, 'cdlc'),
+  bundlesDir: config.bundlesDir || path.join(APP_DIR, 'bundles'),
 });
-fs.mkdirSync(lib.musicDir, { recursive: true });
+// The libraries' folders are there from the start, so you can see where songs go.
+for (const dir of [lib.bundlesDir, lib.cdlcDir, lib.musicDir]) fs.mkdirSync(dir, { recursive: true });
 
 function loadLibrary() {
-  const custom = fs.existsSync(lib.cdlcDir);
-  if (!lib.root) {
-    console.log('No song library chosen yet: open PumaBass and pick your songs folder in Settings.');
-    if (!custom) return;
-  } else if (!fs.existsSync(lib.root)) console.log(`The song library folder is missing: ${lib.root}`);
-  console.log(`Reading songs from ${[lib.root, custom && lib.cdlcDir].filter(Boolean).join(' and ')} ...`);
+  if (lib.root && !fs.existsSync(lib.root)) console.log(`Your Rocksmith folder is missing: ${lib.root}`);
+  const from = Object.values(lib.dirs()).filter(d => d && fs.existsSync(d));
+  console.log(`Reading songs from ${from.join(', ')} ...`);
   lib.load();
   const mine = lib.songs.filter(s => !s.wem && s.userAudio).length, none = lib.songs.filter(s => !s.wem && !s.userAudio).length;
   console.log(`Found ${lib.songs.length} arrangements in ${lib.archiveCount} song files (${mine} using your own recordings, ${none} without audio).`);
@@ -86,7 +85,7 @@ loadLibrary();
 if (!findVgmstream()) console.log('vgmstream is missing, so song audio cannot play. Run tools/get-vgmstream.sh (see README.md).');
 
 /** A song as the page sees it: no paths, and where its audio comes from. */
-function songJson({ file, sng, wem, userAudio, ...s }) {
+function songJson({ file, sng, wem, userAudio, source, ...s }) {
   return { ...s, audio: wem ? 'game' : userAudio ? 'user' : false };
 }
 
@@ -213,7 +212,11 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/info') {
       return sendJson(res, {
         libraryDir: lib.root, libraryFound: !!(lib.root && fs.existsSync(lib.root)), archives: lib.archiveCount,
-        cdlcDir: lib.cdlcDir, musicDir: lib.musicDir, platform: process.platform, vgmstream: !!findVgmstream(),
+        // Each library: its folder, whether it's there, and how many song files it holds.
+        libraries: Object.entries(lib.dirs()).filter(([, dir]) => dir).map(([key, dir]) => ({
+          key, dir, found: fs.existsSync(dir), files: [...lib.sourceOf.values()].filter(k => k === key).length,
+        })),
+        musicDir: lib.musicDir, platform: process.platform, vgmstream: !!findVgmstream(),
         stale: codeStamp() !== STARTED_WITH,
         api: API_VERSION,
       });
@@ -240,8 +243,9 @@ const server = http.createServer(async (req, res) => {
       // JSON only: a cross-site form post cannot send it without asking first.
       if (!/^application\/json/.test(req.headers['content-type'] || '')) return sendJson(res, { error: 'JSON only' }, 415);
       const { dir } = await readBody(req);
-      const full = dir && path.resolve(String(dir));
-      if (!full || !fs.existsSync(full) || !fs.statSync(full).isDirectory()) return sendJson(res, { error: 'That folder does not exist.' }, 400);
+      // null: stop reading your own Rocksmith folder (the other libraries stay).
+      const full = dir === null ? null : dir && path.resolve(String(dir));
+      if (full !== null && (!full || !fs.existsSync(full) || !fs.statSync(full).isDirectory())) return sendJson(res, { error: 'That folder does not exist.' }, 400);
       saveConfig({ libraryDir: full });
       lib.setRoot(full);
       loadLibrary();

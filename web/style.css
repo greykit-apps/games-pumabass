@@ -160,6 +160,15 @@ html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
 .top .brand b { color: var(--accent); font-weight: 800; } /* the wordmark: PUMA white, BASS cyan */
 .topline { height: 3px; background: var(--line); }
 .topline i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--accent), rgba(var(--hot-rgb), 0) 60%); }
+/* the libraries, as tabs: the one listed lit and underlined, each with its count of songs */
+.lib-tabs { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); padding: var(--s3) var(--s5) 0; border-bottom: 1px solid var(--line); }
+.lib-tabs button { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .03em; text-transform: uppercase; color: var(--dim);
+  background: none; border: 0; border-bottom: 3px solid transparent; border-radius: 0; box-shadow: none; min-height: 0; padding: 6px 2px 8px; }
+.lib-tabs button span { display: inline-block; transform: var(--lean); }
+.lib-tabs button small { font-family: var(--ui); font-weight: 600; font-size: 14px; letter-spacing: 0; margin-left: 6px; color: var(--dim); }
+.lib-tabs button:hover:not(:disabled) { color: var(--text); }
+.lib-tabs button[aria-pressed=true] { color: var(--text); border-bottom-color: var(--accent); }
+.lib-tabs button[aria-pressed=true] small { color: var(--accent); }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); padding: var(--s4) var(--s5) var(--s2); }
 .tools #search { flex: 1; min-width: 220px; }
 .seg { display: flex; align-items: center; gap: var(--s1); }

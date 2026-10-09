@@ -64,6 +64,7 @@ ${keys([
     ['Shift+F', 'favorites only, or every song'],
     ['O', 'the next sort'],
     ['P', 'parts: bass, lead, rhythm, all'],
+    ['L', 'libraries: all, bundles, cdlc, music'],
     ['T', 'tuner'],
     ['S', 'Settings'],
     ['Esc', 'the menu'],

@@ -1,7 +1,8 @@
 # Generated song index and decoded audio
 cache/
 
-# Custom songs you download (not shared)
+# The song libraries: Rocksmith song sets and downloaded custom songs (not shared)
+bundles/
 cdlc/
 
 # Your own recordings (not shared)

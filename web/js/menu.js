@@ -149,12 +149,14 @@ export function settingsHTML() {
     ? picBtn(`data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'`, l, pic)
     : `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const row = (label, body) => `<span class='set-label'>${label}</span><div class='set-cell'>${body}</div>`;
-  const where = !info.libraryDir ? 'No songs folder chosen yet'
-    : `<code>${esc(info.libraryDir)}</code> · ${info.libraryFound ? libraryLabel() : 'that folder is missing'}`;
+  // The libraries: PumaBass's own folders, and a Rocksmith folder of your choice (optional).
+  const have = songs.length ? libraryLabel() : 'No songs yet';
+  const folder = !info.libraryDir ? 'Rocksmith folder: none chosen'
+    : `Rocksmith folder: <code>${esc(info.libraryDir)}</code>${info.libraryFound ? '' : ' · that folder is missing'}`;
   // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols): what
   // PumaBass is set up with, and how you like to play. Forget everything on its own at the foot.
   return `<div class='set-cols'><section class='set-col'><h3>App</h3><div class='set-grid'>
-${row('Songs', `<p class='set-val'>${where}</p><div class='gk-row' title='Your Rocksmith 2014 song files (.psarc), in this folder or folders inside. Rescan after adding songs.'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>`)}
+${row('Songs', `<p class='set-val'>${have}, from the bundles, cdlc and music folders${info.libraryDir ? ' and your Rocksmith folder' : ''}</p><p class='set-val'>${folder}</p><div class='gk-row' title='Song files (.psarc) go in the bundles, cdlc or music folder beside PumaBass. A Rocksmith 2014 folder of your own is optional: its songs get their own tab. Rescan after adding songs.'><button data-set='rescan'>Rescan</button><button data-set='library'>${info.libraryDir ? 'Change Rocksmith folder' : 'Choose Rocksmith folder'}</button>${info.libraryDir ? "<button data-set='unlibrary'>Remove it</button>" : ''}</div>`)}
 ${row('Input', `<p class='set-val'>${inputStatus()}</p><div class='gk-row'><button data-set='input'>Choose input</button></div>`)}
 ${row('Tuner', `<div class='gk-row'><button data-set='tuner' title='Tune to the song with the Real Tone Cable; it opens by itself when a song needs another tuning'>Open tuner</button></div>`)}
 ${row('Sync', `<div class='gk-row'><button data-set='sync' title='Line up the sound and the picture, and the cable'>Run sync</button><span class='set-val inline'>${
@@ -202,6 +204,14 @@ export async function settingsClick(b, sheet) {
       sheet.close();
       pickLibrary();
       return;
+    case 'unlibrary':
+      // Stop listing your own Rocksmith folder; its files are not touched.
+      b.textContent = 'Removing';
+      try {
+        await api('/api/library', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dir: null }) });
+        await loadLibrary();
+      } catch (e) { sheet.close(); await alertSheet(e.message, "Can't remove the Rocksmith folder"); return; }
+      break;
     case 'input':
       sheet.close();
       chooseInput();
