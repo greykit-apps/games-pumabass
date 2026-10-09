@@ -26,6 +26,9 @@ import { saveTake } from './takes.js';
 import { applyScreen } from './store.js';
 import { keepScreenOn } from './wake.js';
 
+// No browser right-click menu over the game; a text box keeps its own (to paste a search).
+document.addEventListener('contextmenu', e => { if (!e.target.closest('input[type=search], input[type=text], textarea')) e.preventDefault(); });
+
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (document.querySelector('.gk-sheet')) return; // an open sheet has the keys
