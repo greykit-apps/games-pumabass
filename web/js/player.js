@@ -308,6 +308,7 @@ export function seek(t, chosen = true) {
   audio.currentTime = Math.max(0, Math.min(t, (audio.duration || chart.songLength) - 0.05));
   clock.raw = clock.est = audio.currentTime; clock.stamp = clock.at = performance.now();
   if (scorer) scorer.seek(songTime()); // carry on judging from here
+  highway.forget(songTime()); // notes from here on land unjudged again
   if (calib) calib.meter.seek(songTime());
 }
 
@@ -626,6 +627,8 @@ export function frame() {
       loopCameRound();
     }
     updateNotation(t, !calib);
+    // with a verdict coming, notes wait on their string for it
+    highway.judging = !!input.open && (!!scorer || (!!calib && calib.phase === 'play'));
     highway.draw(t);
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
