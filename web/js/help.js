@@ -85,8 +85,9 @@ notes in four, 20% the bare bones.</p>`, `
 <p>Speakers, TVs and the cable each add a little delay. <b>Sync</b> (on the menu, or in Settings) lines them up:
 move the swinging bar with <kbd>&larr;</kbd> and <kbd>&rarr;</kbd> (<kbd>Shift</kbd> for bigger steps) until it
 reaches each side right on the tick, then press <kbd>Enter</kbd>.</p>
-<p>With the cable open, you then pluck the open E string along with the tick for half a minute: that sets
-scoring's timing. Run it again after changing speakers, headphones or screen.</p>
+<p>With the cable open, you then hold the strings quiet through the count-in (PumaBass listens to the cable on
+its own) and pluck the open E string along with the tick for half a minute: that sets scoring's timing and
+checks your level. Run it again after changing speakers, headphones or screen.</p>
 <p>For one song only (your own recording of it, say), nudge its <b>audio offset</b> in the Mix (<kbd>M</kbd>),
 under <b>This song's timing</b>.</p>`)],
   ['Tuner and mix', cols(`

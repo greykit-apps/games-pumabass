@@ -51,7 +51,7 @@ function inputBetween(t0, t1) {
 }
 
 const sectionOf = t => chart.sections.findIndex(s => s.t <= t && t < s.end);
-const scorer = new Scorer(chart, notes, sectionOf);
+const scorer = new Scorer(chart, notes, sectionOf, meta.soundcheck || null); // the noise floor it was scored with
 const verdicts = new Map();
 let last = null;
 for (const [song, ctx, rate] of meta.syncs) {
@@ -106,7 +106,7 @@ if (listNotes) {
   for (const [ev, r] of verdicts) {
     const p = ev.notes ? ev.notes[0] : ev;
     const seg = (() => { const ctxT = T => { const s = meta.syncs.reduce((a, b) => (Math.abs(b[0] - T) < Math.abs(a[0] - T) ? b : a)); return s[1] - (s[0] - T) / s[2] + lat; }; const i = at(ctxT(ev.t - 0.5)), j = at(ctxT(ev.t + 0.5)); return i >= 0 && j <= x.length ? x.subarray(i, j) : null; })();
-    const heard = seg ? onsets(seg, sr).map(o => Math.round((o - 0.5) * 1000)).filter(o => Math.abs(o) <= 400) : [];
+    const heard = seg ? onsets(seg, sr, { noise: meta.soundcheck || null }).map(o => Math.round((o - 0.5) * 1000)).filter(o => Math.abs(o) <= 400) : [];
     let pitch = '';
     if (seg && !ev.notes) {
       const f = noteFreq(p, chart), near = heard.length ? heard.reduce((a, b) => (Math.abs(b) < Math.abs(a) ? b : a)) : 0;

@@ -6,7 +6,9 @@
 //   node tools/check-scoring.mjs [songs folder] [--sloppy]
 // --sloppy plays like a real learner through a real cable: timing that drags
 // behind the beat and wanders more, notes left ringing into the next, an open
-// string ringing under it all, soft fingerstyle plucks, strings a little sharp.
+// string ringing under it all, soft fingerstyle plucks, strings a little sharp,
+// and mains hum on the cable, with a soundcheck's noise floor measured from it
+// (--no-soundcheck: scored without one, to compare).
 // Reports how many right notes are scored as hits and how many mistakes are
 // let through, by kind. Fails if right notes are missed more than 5% of the
 // time, or mistakes let through more than 10%. Needs the songs, so it runs
@@ -20,11 +22,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(pathToFileURL(path.join(root, 'server', 'x.js')));
 const { Library } = require('./library.js');
 const { buildPlayable } = await import(pathToFileURL(path.join(root, 'web/js/chart.js')));
-const { Scorer, noteFreq, onsets, EARLY, LATE } = await import(pathToFileURL(path.join(root, 'web/js/scoring.js')));
+const { Scorer, noteFreq, onsets, noiseOf, EARLY, LATE } = await import(pathToFileURL(path.join(root, 'web/js/scoring.js')));
 
 const cfgFile = path.join(root, 'config.json');
 const cfg = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, 'utf8')) : {};
-const SLOPPY = process.argv.includes('--sloppy');
+const SLOPPY = process.argv.includes('--sloppy'), SOUNDCHECK = !process.argv.includes('--no-soundcheck');
 const libraryDir = process.argv.slice(2).find(a => !a.startsWith('--')) || cfg.libraryDir || cfg.rocksmithDir;
 if (!libraryDir) { console.error('no songs folder: pass one, or choose it in Settings'); process.exit(1); }
 const lib = new Library({ libraryDir, cacheDir: path.join(root, 'cache') });
@@ -55,6 +57,14 @@ function voice(buf, t, dur, freq, { click = true, weak = false, amp = 0.25, clic
     buf[i0 + k] += v;
   }
 }
+/** The cable's own sound with nothing played: hiss, and (sloppy) mains hum, 60 Hz and its harmonics. */
+function hiss(buf) {
+  for (let i = 0; i < buf.length; i++) {
+    buf[i] = 0.002 * (rnd() * 2 - 1);
+    if (SLOPPY) { const w = 2 * Math.PI * 60 * i / SR; buf[i] += 0.004 * Math.sin(w) + 0.002 * Math.sin(2 * w + 1) + 0.001 * Math.sin(3 * w + 2); }
+  }
+  return buf;
+}
 function thud(buf, t) { // a muted note: a click, no pitch
   const i0 = Math.round(t * SR);
   for (let k = 0; k < 0.04 * SR && i0 + k < buf.length; k++) buf[i0 + k] += 0.12 * (rnd() * 2 - 1) * Math.exp(-k / (0.008 * SR));
@@ -69,14 +79,17 @@ for (const title of ['Wires', 'Sweet Emotion', 'Snarling of Beasts', 'The Seeker
   if (!s) { console.log(`(skipping ${title}: not in this library)`); continue; }
   const chart = lib.chart(s.id);
   const notes = buildPlayable(chart, 100).notes.filter(n => n.t < SECONDS - 1);
-  const buf = new Float32Array(SR * SECONDS);
-  for (let i = 0; i < buf.length; i++) buf[i] = 0.002 * (rnd() * 2 - 1); // the cable's hiss
+  const buf = hiss(new Float32Array(SR * SECONDS));
+  // The soundcheck: the strings held quiet for a couple of seconds.
+  // (Its random numbers are put back, so the playing is the same with --no-soundcheck.)
+  const seed0 = seed, noise = SLOPPY && SOUNDCHECK ? noiseOf(hiss(new Float32Array(SR * 2)), SR) : null;
+  seed = seed0;
 
   // Decide what the "player" does with each note, then render it.
-  // A badly timed pluck only where it lands in the clear: 340 ms off in a
+  // A badly timed pluck only where it lands in the clear: 400 ms off in a
   // fast riff would land on the neighbouring note, and a right note with a
   // stray one on top of it is a mess either way (that case is checked below).
-  const roomy = notes.map((ev, i) => (i === 0 || ev.t - notes[i - 1].t > 0.7) && (i === notes.length - 1 || notes[i + 1].t - ev.t > 0.7));
+  const roomy = notes.map((ev, i) => (i === 0 || ev.t - notes[i - 1].t > 0.9) && (i === notes.length - 1 || notes[i + 1].t - ev.t > 0.9));
   const plan = notes.map((ev, idx) => {
     const parts = ev.notes || [ev];
     const tech = ev.tech || parts[0].tech || [];
@@ -92,7 +105,7 @@ for (const title of ['Wires', 'Sweet Emotion', 'Snarling of Beasts', 'The Seeker
     else if (r < 1 && !legato && roomy[idx]) kind = 'too late';
     else kind = 'right';
     const jitter = SLOPPY ? Math.max(-0.12, Math.min(0.17, 0.04 + 0.045 * gauss())) : Math.max(-0.08, Math.min(0.08, 0.012 + 0.022 * gauss()));
-    const shift = kind === 'too early' ? -0.32 : kind === 'too late' ? 0.34 : jitter;
+    const shift = kind === 'too early' ? -0.3 : kind === 'too late' ? 0.4 : jitter;
     const semis = kind === 'wrong fret' ? (rnd() < 0.5 ? -1 : 1) * (1 + Math.floor(rnd() * 4)) : kind === 'octave above' ? 12 : 0;
     const cat = legato ? 'legato' : parts.length > 1 ? 'chord' : tech.includes('mute') ? 'muted' : 'plucked';
     return { ev, parts, tech, legato, kind, at: ev.t + shift, semis, cat };
@@ -114,7 +127,7 @@ for (const title of ['Wires', 'Sweet Emotion', 'Snarling of Beasts', 'The Seeker
 
   // Score it, the way the player does: notes judged as their windows close.
   const sectionOf = t => chart.sections.findIndex(x => x.t <= t && t < x.end);
-  const scorer = new Scorer(chart, notes, sectionOf);
+  const scorer = new Scorer(chart, notes, sectionOf, noise);
   const input = (t0, t1) => ({ x: buf.subarray(Math.max(0, Math.round(t0 * SR)), Math.min(buf.length, Math.round(t1 * SR))), sr: SR, t0: Math.max(0, t0) });
   const byEv = new Map(plan.map(p => [p.ev, p]));
   scorer.update(SECONDS, 1, input, (ev, r) => {
@@ -141,7 +154,7 @@ if (process.env.DIAG || process.env.DIAG2) console.log(diag.join(String.fromChar
 for (const rate of [1, 0.7]) {
   const s = lib.songs.find(x => x.type === 'bass' && x.wem);
   const chart = lib.chart(s.id);
-  const offs = [-0.25, -0.18, -0.145, -0.12, -0.06, 0, 0.06, 0.12, 0.14, 0.165, 0.22];
+  const offs = [-0.26, -0.215, -0.185, -0.12, -0.06, 0, 0.08, 0.16, 0.24, 0.285, 0.32, 0.37];
   const notes = [];
   for (let r = 0; r < 6; r++) offs.forEach((o, i) => notes.push({ t: 1 + (r * offs.length + i) * 0.9, s: r % 4, f: 3 + (i % 5), pi: 0, off: o }));
   // At a slower speed a note at song time t is heard at real time t / rate.
@@ -158,6 +171,18 @@ for (const rate of [1, 0.7]) {
   });
   const t = scorer.timing();
   console.log(`timing at ${rate * 100}%: ${wrong.length ? 'misjudged at ' + wrong.join(', ') : 'every note judged right'}; reported typical offset ${t ? Math.round(t.ms) + ' ms' : '-'}`);
+}
+
+// Rests over mains hum: nothing played, the cable humming at 60 Hz, under notes
+// close to it (B1 on the A string, B2 on the D string). With a soundcheck's
+// noise floor, the hum is heard for what it is.
+{
+  const hum = n => { const b = new Float32Array(n); for (let i = 0; i < n; i++) { const w = 2 * Math.PI * 60 * i / SR; b[i] = 0.002 * (rnd() * 2 - 1) + 0.004 * (Math.sin(w) + 0.5 * Math.sin(2 * w + 1) + 0.25 * Math.sin(3 * w + 2)); } return b; };
+  const chart = { strings: 4, tuning: [0, 0, 0, 0], capo: 0, centOffset: 0 };
+  const notes = Array.from({ length: 40 }, (_, k) => ({ t: 1 + k * 0.8, s: k % 2 ? 1 : 2, f: k % 2 ? 2 : 9, pi: 0 }));
+  const buf = hum(SR * 36), noise = SOUNDCHECK ? noiseOf(hum(SR * 2), SR) : null;
+  const scorer = new Scorer(chart, notes, () => 0, noise);
+  scorer.update(35, 1, (t0, t1) => ({ x: buf.subarray(Math.max(0, Math.round(t0 * SR)), Math.round(t1 * SR)), sr: SR, t0: Math.max(0, t0) }), (ev, r) => tally('mistake: rest over mains hum', 'miss', r.hit));
 }
 
 let rightN = 0, rightHit = 0, wrongN = 0, wrongHit = 0;

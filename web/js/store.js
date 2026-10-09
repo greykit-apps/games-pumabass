@@ -50,6 +50,7 @@ export const prefs = Object.assign({
   favOnly: false,   // the song list shows favorites only
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
   inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
+  soundcheck: null, // the sync test's soundcheck: { device, energy, diff, db, pluckDb }, the input's noise floor for scoring
   screen: 'couch',  // 'couch': drawn bigger on a TV, to read from across the room; 'desk': as is
   noteLabels: 'fret', // on the highway's notes: 'fret' numbers, note 'name's, or 'off'
   notation: true,   // the notation band: standard notation over tab, above the highway

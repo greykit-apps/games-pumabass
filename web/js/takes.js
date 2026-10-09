@@ -31,7 +31,7 @@ export async function saveTake() {
   const meta = {
     title: `${song.title} (${arrangementLabel(song)})`, artist: song.artist, songId: song.id,
     difficulty: prefs.difficulty, sampleRate: input.sampleRate, input: input.label,
-    latency: input.latency, inputOffset: prefs.inputOffset, avOffset: prefs.avOffset, offsetMs, bassBoost: prefs.bassBoost,
+    latency: input.latency, inputOffset: prefs.inputOffset, soundcheck: scorer ? scorer.noise : null, avOffset: prefs.avOffset, offsetMs, bassBoost: prefs.bassBoost,
     chunks: tape.chunks.map(c => c.length), t0s: tape.t0s,
     syncs: take.syncs, verdicts: take.verdicts, chart: songChart, notes: highway.notes,
   };

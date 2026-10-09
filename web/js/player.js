@@ -269,7 +269,9 @@ export const sectionIndex = t => chart.sections.findIndex(x => x.t <= t && t < x
 
 /* Score in score mode while an input is open; otherwise, not at all. */
 export function startScoring() {
-  scorer = scoreMode && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex) : null;
+  // Sync's soundcheck, when it was taken with this input: the cable's noise floor.
+  const sc = prefs.soundcheck, noise = sc && (!sc.device || sc.device === input.deviceId) ? sc : null;
+  scorer = scoreMode && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex, noise) : null;
   if (scorer) scorer.seek(songTime());
   startTake();
   updateHud();

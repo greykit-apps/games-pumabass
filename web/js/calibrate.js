@@ -13,10 +13,13 @@
 //    the notes is the cable's delay (and your own feel), the allowance scoring
 //    needs. Plucks are found the way scoring finds them, through the same
 //    clock, so what is measured is what scoring sees.
+//    The count-in is a soundcheck, as Rocksmith's calibration has one: the
+//    strings held quiet, the cable's own noise is measured (scoring takes
+//    nothing near it for a note), and the plucks after it give your level.
 //
 // The test runs in the player as a short song.
 
-import { onsets } from './scoring.js';
+import { onsets, noiseOf } from './scoring.js';
 
 const BEAT = 0.6;        // seconds between ticks (100 BPM)
 const ALIGN_END = 90;    // the line-up part runs this long (and goes round again if need be)
@@ -29,6 +32,11 @@ const WINDOW = 0.28;     // s either side of a note a pluck belongs to it
 const SR = 22050;        // ample for a tick, and keeps the track small
 
 const END = PLAY + (COUNT + NOTES) * BEAT + TAIL;
+// The soundcheck's quiet: the count-in, from its second tick to just before the first note.
+const QUIET_FROM = PLAY + BEAT, QUIET_TO = PLAY + COUNT * BEAT - 0.25;
+const NOISY = -40;   // dBFS: a "quiet" louder than this had playing in it (Rocksmith's default floor is -65)
+const CLIP = -1;     // dBFS: a pluck peaking over this is clipping
+const HEADROOM = 30; // dB plucks should peak over the noise, for scoring to hear them clearly
 
 /** A WAV (as a blob URL): a tick on every beat, the first of each four higher. */
 function track() {
@@ -107,7 +115,12 @@ export class SyncMeter {
   reset() {
     this.next = 0;
     this.plucks = new Map(); // target -> error (s, + = late)
+    this.peaks = new Map();  // target -> the peak level around it (0..1)
+    this.noise = undefined;  // the soundcheck's (noiseOf), once the count-in has gone by; null if it couldn't be measured
   }
+
+  /** The cable's noise, when the count-in was quiet enough to be it. */
+  get quiet() { return this.noise && this.noise.db < NOISY ? this.noise : null; }
 
   /** After a jump: measure again from the first note at or after t. */
   seek(t) {
@@ -121,6 +134,10 @@ export class SyncMeter {
    * heard) for the highway's marks.
    */
   update(now, rate, input, found) {
+    if (this.noise === undefined && now >= QUIET_TO + 0.05 * rate) {
+      const seg = input(QUIET_FROM, QUIET_TO);
+      if (seg !== 'later') this.noise = seg ? noiseOf(seg.x, seg.sr) : null;
+    }
     while (this.next < this.targets.length) {
       const tg = this.targets[this.next];
       const close = tg.t + (WINDOW + 0.06) * rate;
@@ -130,10 +147,14 @@ export class SyncMeter {
       this.next++;
       if (!seg) continue;
       const at = (tg.t - seg.t0) / rate;
-      const near = onsets(seg.x, seg.sr).filter(o => Math.abs(o - at) <= WINDOW);
+      const near = onsets(seg.x, seg.sr, { noise: this.quiet }).filter(o => Math.abs(o - at) <= WINDOW);
       const o = near.length ? near.reduce((a, b) => (Math.abs(b - at) < Math.abs(a - at) ? b : a)) : null;
       if (o !== null) this.plucks.set(tg, o - at);
       else this.plucks.delete(tg);
+      // The level around the note, heard as a pluck or not: too quiet to hear is worth saying.
+      let peak = 0;
+      for (let i = Math.max(0, Math.round((at - WINDOW) * seg.sr)), j = Math.min(seg.x.length, Math.round((at + WINDOW) * seg.sr)); i < j; i++) peak = Math.max(peak, Math.abs(seg.x[i]));
+      this.peaks.set(tg, peak);
       if (found && tg.i >= WARMUP) found(tg, o !== null);
     }
   }
@@ -145,10 +166,26 @@ export class SyncMeter {
     return n;
   }
 
-  /** The result, given the cable's allowance in use now (ms): { timing, heard, input }. */
+  /**
+   * The soundcheck: { noise (noiseOf, or null), pluckDb (the typical note's peak),
+   * peakDb (the loudest), advice: 'noisy' | 'clipping' | 'quiet' | null }, dB full scale.
+   */
+  level() {
+    const peaks = [...this.peaks].filter(([tg]) => tg.i >= WARMUP).map(([, p]) => p);
+    const db = v => Math.round(20 * Math.log10(Math.max(v, 1e-6)));
+    const noise = this.quiet;
+    const pluckDb = peaks.length ? db(median(peaks)) : null, peakDb = peaks.length ? db(Math.max(...peaks)) : null;
+    let advice = null;
+    if (this.noise && !noise) advice = 'noisy';
+    else if (peakDb !== null && peakDb > CLIP) advice = 'clipping';
+    else if (noise && pluckDb !== null && pluckDb - noise.db < HEADROOM) advice = 'quiet';
+    return { noise, pluckDb, peakDb, advice };
+  }
+
+  /** The result, given the cable's allowance in use now (ms): { timing, heard, input, level }. */
   result(currentInput) {
     const timing = summarise([...this.plucks].filter(([tg]) => tg.i >= WARMUP).map(([, e]) => e));
-    return { timing, heard: this.heard, input: timing ? Math.round(currentInput + timing.ms) : null };
+    return { timing, heard: this.heard, input: timing ? Math.round(currentInput + timing.ms) : null, level: this.level() };
   }
 }
 
@@ -162,6 +199,7 @@ export function syncCue(phase, t, meter, av) {
     };
   }
   const beat = Math.floor((t - PLAY) / BEAT + 0.5);
+  if (beat < COUNT) return { big: 'Quiet', small: 'Hold the strings still through the count-in: PumaBass listens to the cable on its own.' };
   return {
     big: 'Play along',
     small: beat < COUNT + WARMUP ? 'Pluck the open E string on every tick, with the notes. The first few warm you up.'
@@ -186,14 +224,22 @@ export function syncResult(res, current) {
     el.setAttribute('aria-label', 'Sync');
     const per = NOTES - WARMUP;
     const usable = res.input !== null;
+    const lv = res.level || {};
+    const levelRow = lv.pluckDb === null || lv.pluckDb === undefined ? '' : `<tr><td>Level</td><td>${{ clipping: 'Too loud', quiet: 'Quiet', noisy: 'Not measured' }[lv.advice] || 'Good'}</td><td>plucks ${lv.pluckDb} dB${lv.noise ? `, the cable's noise ${Math.round(lv.noise.db)} dB` : ''}</td></tr>`;
+    const advice = {
+      noisy: 'The count-in wasn’t quiet, so the cable’s own noise couldn’t be measured. Next time, hold the strings still until the first note.',
+      clipping: 'Your plucks are too loud for the cable and get clipped. Turn your bass’s volume down a little.',
+      quiet: 'Your bass is quiet next to the cable’s hum and hiss, which makes notes harder to hear. Turn your bass’s volume up, or the cable’s input volume in the computer’s sound settings.',
+    }[lv.advice];
+    const levelNote = advice ? `<p class="gk-note warn">${advice}</p>` : '';
     const body = usable
       ? `<p class="calib-result small">Picture ${fmt(current.av)}</p><p>As you lined it up: the notes land ${Math.abs(current.av) < 10 ? 'right with the sound' : `${Math.round(Math.abs(current.av))} ms ${current.av > 0 ? 'later' : 'sooner'}, to meet the sound`}.</p>
         <p class="calib-result">Cable ${fmt(res.input)}</p>
         <p>Your plucks reach PumaBass ${Math.abs(res.input) < 10 ? 'right with the notes' : `${Math.round(Math.abs(res.input))} ms ${res.input > 0 ? 'after' : 'before'} the notes`}; scoring will allow for it. <span class="muted">Now: ${fmt(current.input)}.</span></p>
-        <table class="calib-table"><tr><td>Plucks</td><td>${res.heard} of ${per} heard</td><td>within &plusmn;${Math.round(res.timing.spread)} ms of each other</td></tr></table>
-        ${res.timing.spread > 35 ? '<p class="gk-note warn">The plucks wandered quite a bit, so this is a rough reading. Another go may give a steadier one.</p>' : ''}`
+        <table class="calib-table"><tr><td>Plucks</td><td>${res.heard} of ${per} heard</td><td>within &plusmn;${Math.round(res.timing.spread)} ms of each other</td></tr>${levelRow}</table>
+        ${res.timing.spread > 35 ? '<p class="gk-note warn">The plucks wandered quite a bit, so this is a rough reading. Another go may give a steadier one.</p>' : ''}${levelNote}`
       : `<p>Too few plucks were heard to measure (${res.heard} of ${per}). Pluck the open E string firmly on every tick after the first few; check the cable's level in the Mix panel (<kbd>M</kbd>).</p>
-        <p class="gk-note">The picture's offset you lined up (${fmt(current.av)}) is kept either way.</p>`;
+        ${levelNote}<p class="gk-note">The picture's offset you lined up (${fmt(current.av)}) is kept either way.</p>`;
     el.innerHTML = `<div class="gk-box calib"><div class="gk-head"><h2>Sync</h2><button data-x aria-label="Close">&times;</button></div><div class="gk-body">${body}
       <div class="gk-row">${usable ? '<button class="primary" data-use><kbd>Enter</kbd>Use these</button>' : ''}<button ${usable ? '' : 'class="primary" '}data-retry>${usable ? '' : '<kbd>Enter</kbd>'}Play along again</button><button data-x>${usable ? 'Keep the picture only' : 'Done'}</button></div></div></div>`;
     const close = v => {

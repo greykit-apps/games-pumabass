@@ -59,7 +59,12 @@ export async function playAlongDone() {
     return;
   }
   // The picture's offset was lined up by eye: it stays whatever is chosen here.
-  if (choice === 'use') prefs.inputOffset = res.input;
+  if (choice === 'use') {
+    prefs.inputOffset = res.input;
+    // The soundcheck's noise floor, for scoring with this input.
+    const n = res.level.noise;
+    if (n) prefs.soundcheck = { device: input.deviceId, energy: n.energy, diff: n.diff, db: n.db, pluckDb: res.level.pluckDb };
+  }
   await finishSync();
 }
 

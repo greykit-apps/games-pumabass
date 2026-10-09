@@ -151,6 +151,12 @@ player like a short song, in two steps:
   lined up, how late your plucks reach PumaBass against the notes is the allowance scoring makes for the
   cable (measured from the allowance in use). Plucks are found the way scoring finds them, through the
   same clock, so what is measured is what scoring sees.
+- **Soundcheck**, inside the play-along, as Rocksmith's calibration has one. Through the count-in you
+  hold the strings quiet, and the cable's own noise is measured (its typical level, plus 2 dB, as
+  Rocksmith does); the notes after it give your playing level. The result says whether your level is
+  good, too loud (clipping), or quiet next to the cable's hum and hiss, and what to turn. Kept with
+  **Use these**, for that input: scoring then takes nothing within 10 dB of the noise for a note, so
+  mains hum can't pass for a low B, and no pluck for anything near it.
 
 `Esc` at any point leaves with the offsets as they were. A song's own offset (`,`) adds to the one set
 here. Run it again when you change speakers, headphones or screen: Bluetooth and TVs add delay.
@@ -195,7 +201,7 @@ input) open, each note is judged as it lands: a ring in the string's colour for 
 accuracy and streak in the top bar. The end screen gives the score, best streak, typical timing (early
 or late), a strip of the song coloured by section, and your best accuracy over full plays.
 
-- A note counts when it's plucked within 150 ms early to 180 ms late, in real time (so slowed-down
+- A note counts when it's plucked within 200 ms early to 300 ms late (Rocksmith 2014's own windows), in real time (so slowed-down
   practice is judged the same), and its pitch is right. Scoring is forgiving about a muddy signal (the
   last note still ringing, an open string nobody muted, a weak fundamental): the pitch counts when it's
   there at all (within half a semitone), and is wrong only on clear evidence of another note, a fret or
@@ -211,7 +217,9 @@ or late), a strip of the song coloured by section, and your best accuracy over f
 - A pluck is a jump in the input's high end against the stretch just before it, averaged over more than
   a period of the lowest string: a low note's waveform spikes once a period, and those spikes must not
   count as plucks (`node tools/check-plucks.mjs` checks this, from a 5-string's low B to the 12th fret).
-- Run **Sync** (on the menu) with the cable first: it sets how late your plucks reach PumaBass.
+- Run **Sync** (on the menu) with the cable first: it sets how late your plucks reach PumaBass, and its
+  soundcheck sets the cable's noise floor. A pluck that lands just before a note's window is a miss
+  ("too early"), not a soft pluck on time.
 
 **Takes, for tuning.** If notes you played are marked missed, tick **Record a take** in the Mix panel
 and play; **Save take** (there, or `S` on the end screen) then writes what the cable heard, with the
@@ -222,9 +230,11 @@ shows, note by note and by string and fret, why each miss was a miss.
 
 `node tools/check-scoring.mjs` plays synthesized performances of six songs from your library (human
 timing, stiff strings, weak fundamentals, plus skipped notes, wrong frets, the octave above, and badly
-timed plucks) and a timing sweep at full and 70% speed. On 2,104 notes: 99.1% of right notes score as
-hits (hammer-ons and pull-offs 94 to 98%, chords 100%); wrong frets and skipped notes get through 0% of
-the time, the octave above 2%; the timing windows are exact. It needs the songs, so it runs locally.
+timed plucks), a timing sweep at full and 70% speed, and rests over mains hum. On 2,079 notes: 98.8% of
+right notes score as hits (hammer-ons and pull-offs 93%, chords 100%); wrong frets get through 0% of the
+time, skipped notes 1%, the octave above 6%, hum under a rest (with a soundcheck) 0%; the timing windows
+are exact. It needs the songs, so it runs locally. How Rocksmith 2014 does all this, as far as its own
+files tell, is in [DETECTION.md](DETECTION.md).
 
 ## Settings file and options
 
