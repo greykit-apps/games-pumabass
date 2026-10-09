@@ -3,7 +3,10 @@
 // charts from your library: mostly right notes, with human timing, stiff
 // strings and weak fundamentals, and some deliberate mistakes (skipped
 // notes, wrong frets, the octave above, badly early or late plucks).
-//   node tools/check-scoring.mjs [songs folder]
+//   node tools/check-scoring.mjs [songs folder] [--sloppy]
+// --sloppy plays like a real learner through a real cable: timing that drags
+// behind the beat and wanders more, notes left ringing into the next, an open
+// string ringing under it all, soft fingerstyle plucks, strings a little sharp.
 // Reports how many right notes are scored as hits and how many mistakes are
 // let through, by kind. Fails if right notes are missed more than 5% of the
 // time, or mistakes let through more than 10%. Needs the songs, so it runs
@@ -21,7 +24,8 @@ const { Scorer, noteFreq, onsets, EARLY, LATE } = await import(pathToFileURL(pat
 
 const cfgFile = path.join(root, 'config.json');
 const cfg = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, 'utf8')) : {};
-const libraryDir = process.argv[2] || cfg.libraryDir || cfg.rocksmithDir;
+const SLOPPY = process.argv.includes('--sloppy');
+const libraryDir = process.argv.slice(2).find(a => !a.startsWith('--')) || cfg.libraryDir || cfg.rocksmithDir;
 if (!libraryDir) { console.error('no songs folder: pass one, or choose it in Settings'); process.exit(1); }
 const lib = new Library({ libraryDir, cacheDir: path.join(root, 'cache') });
 lib.load();
@@ -32,7 +36,8 @@ const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const gauss = () => Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
 
 /** A plucked (or hammered) string, added into buf from time t for dur seconds. */
-function voice(buf, t, dur, freq, { click = true, weak = false, amp = 0.25 } = {}) {
+function voice(buf, t, dur, freq, { click = true, weak = false, amp = 0.25, clickAmp = 1, cents = 0 } = {}) {
+  freq *= 2 ** (cents / 1200);
   const i0 = Math.round(t * SR), n = Math.round((dur + 0.02) * SR);
   const harm = weak ? [0.3, 1, 0.6, 0.4, 0.25, 0.15] : [1, 0.65, 0.4, 0.25, 0.15, 0.1];
   // A plucked string's harmonics start in step: its waveform has a sharp spike
@@ -46,7 +51,7 @@ function voice(buf, t, dur, freq, { click = true, weak = false, amp = 0.25 } = {
     for (let h = 0; h < harm.length; h++) v += harm[h] * Math.sin(2 * Math.PI * freq * (h + 1) * Math.sqrt(1 + B * (h + 1) ** 2) * tt + ph[h]);
     const env = Math.exp(-tt / 1.4) * Math.min(1, (dur + 0.02 - tt) / 0.02); // decay, and a quick release at the end
     v *= env * amp * 0.4;
-    if (click && tt < 0.004) v += amp * 0.5 * (rnd() * 2 - 1) * (1 - tt / 0.004); // the pick's click
+    if (click && tt < 0.004) v += clickAmp * amp * 0.5 * (rnd() * 2 - 1) * (1 - tt / 0.004); // the pick's click
     buf[i0 + k] += v;
   }
 }
@@ -86,7 +91,7 @@ for (const title of ['Wires', 'Sweet Emotion', 'Snarling of Beasts', 'The Seeker
     else if (r < 0.97 && !legato && roomy[idx]) kind = 'too early';
     else if (r < 1 && !legato && roomy[idx]) kind = 'too late';
     else kind = 'right';
-    const jitter = Math.max(-0.08, Math.min(0.08, 0.012 + 0.022 * gauss()));
+    const jitter = SLOPPY ? Math.max(-0.12, Math.min(0.17, 0.04 + 0.045 * gauss())) : Math.max(-0.08, Math.min(0.08, 0.012 + 0.022 * gauss()));
     const shift = kind === 'too early' ? -0.32 : kind === 'too late' ? 0.34 : jitter;
     const semis = kind === 'wrong fret' ? (rnd() < 0.5 ? -1 : 1) * (1 + Math.floor(rnd() * 4)) : kind === 'octave above' ? 12 : 0;
     const cat = legato ? 'legato' : parts.length > 1 ? 'chord' : tech.includes('mute') ? 'muted' : 'plucked';
@@ -97,11 +102,15 @@ for (const title of ['Wires', 'Sweet Emotion', 'Snarling of Beasts', 'The Seeker
   const played = plan.filter(p => p.kind !== 'skipped').sort((a, b) => a.at - b.at);
   played.forEach((p, i) => {
     const next = played[i + 1];
-    const dur = Math.max(0.06, Math.min((next ? next.at : p.at + 1) - p.at, Math.max(p.ev.sus || 0, 0.05) + 0.6));
+    let dur = Math.max(0.06, Math.min((next ? next.at : p.at + 1) - p.at, Math.max(p.ev.sus || 0, 0.05) + 0.6));
+    if (SLOPPY && rnd() < 0.5) dur += 0.25; // not muted in time: it rings on under the next note
     const weak = rnd() < 0.4;
     if (p.tech.includes('mute')) return thud(buf, p.at);
-    for (const part of p.parts) voice(buf, p.at, dur, noteFreq(part, chart) * 2 ** (p.semis / 12), { click: !p.legato, weak, amp: p.legato ? 0.18 : 0.25 });
+    const soft = SLOPPY && rnd() < 0.35 ? 0.3 : 1; // fingerstyle: hardly any click
+    for (const part of p.parts) voice(buf, p.at, dur, noteFreq(part, chart) * 2 ** (p.semis / 12), { click: !p.legato, weak, amp: p.legato ? 0.18 : 0.25, clickAmp: soft, cents: SLOPPY ? 8 + 6 * gauss() : 0 });
   });
+  // An open string nobody muted, ringing quietly under it all, set going again now and then.
+  if (SLOPPY) for (let t = 0.5; t < SECONDS - 4; t += 4 + 3 * rnd()) voice(buf, t, 4, noteFreq({ s: 1, f: 0 }, chart), { click: false, amp: 0.05 });
 
   // Score it, the way the player does: notes judged as their windows close.
   const sectionOf = t => chart.sections.findIndex(x => x.t <= t && t < x.end);
@@ -160,5 +169,8 @@ for (const [kind, k] of Object.entries(kinds).sort()) {
 }
 const missedRight = 1 - rightHit / rightN, letThrough = wrongHit / wrongN;
 console.log(`\nright notes missed: ${(100 * missedRight).toFixed(1)}%   mistakes let through: ${(100 * letThrough).toFixed(1)}%   (windows: ${EARLY * 1000} ms early, ${LATE * 1000} ms late)`);
-if (missedRight > 0.05 || letThrough > 0.10) { console.log('check-scoring: FAILED'); process.exit(1); }
+// A careful player: right notes almost never missed. A learner (--sloppy): most right notes still
+// count, and scoring stays forgiving without waving mistakes through.
+const [maxMissed, maxThrough] = SLOPPY ? [0.25, 0.15] : [0.05, 0.10];
+if (missedRight > maxMissed || letThrough > maxThrough) { console.log('check-scoring: FAILED'); process.exit(1); }
 console.log('check-scoring: ok');

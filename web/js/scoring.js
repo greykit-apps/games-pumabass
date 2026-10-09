@@ -14,10 +14,10 @@
 // reliably pick out several pitches at once).
 // Plain functions and one class, no browser APIs, so Node can test them.
 
-export const EARLY = 0.13;   // s, real time, a pluck may come before the note
-export const LATE = 0.15;    // s, real time, a pluck may come after it
+export const EARLY = 0.15;   // s, real time, a pluck may come before the note
+export const LATE = 0.18;    // s, real time, a pluck may come after it (learners drag a little)
 const PITCH_CENTS = 50;      // how far off the expected pitch still counts
-const PERIODIC = 0.8;        // normalised correlation at the expected period that counts as "sounding"
+const PERIODIC = 0.5;        // normalised correlation at the expected period that counts as "sounding"
 const OCTAVE_MARGIN = 0.06;  // the octave above must correlate this much less, or it was the octave above
 const STANDARD = { 4: [28, 33, 38, 43], 6: [40, 45, 50, 55, 59, 64] };
 
@@ -106,6 +106,41 @@ export function pitchPresent(x, sr, freq) {
   return { match: !edge && best >= PERIODIC && Math.abs(cents) <= PITCH_CENTS && octave < best - OCTAVE_MARGIN, cents, at: best, octave };
 }
 
+/**
+ * What the input says about the expected pitch, weighing it against the notes
+ * a player could have played instead: 'right', 'wrong' or 'unclear'.
+ * A real bass through a cable is rarely clean: the last note still ringing, an
+ * open string nobody muted, a weak fundamental. Those blur the expected pitch
+ * without putting a different one in its place, so the pitch counts as right
+ * when it's there at all, and wrong only on clear evidence of another note:
+ * a stronger, clearly periodic pitch one to six semitones away (a wrong fret),
+ * or the octave above clearly in charge (the same fret on the next string up
+ * an octave, or a harmonic).
+ */
+const RIGHT_AT = 0.45, OTHER_AT = 0.7, OCTAVE_AT = 0.6;
+export function pitchCheck(x, sr, freq) {
+  // Near the expected pitch: where the strongest period lies (within SEARCH cents), and the octave.
+  const p = pitchPresent(x, sr, freq);
+  if (p.cents === null) return { verdict: 'unclear', ...p };
+  const octaveRules = p.octave >= OCTAVE_AT && p.octave >= p.at - OCTAVE_MARGIN;
+  if (octaveRules) return { verdict: 'wrong', ...p };
+  const near = Math.abs(p.cents) <= PITCH_CENTS && !(p.at <= -1);
+  if (near && p.at >= RIGHT_AT) return { verdict: 'right', ...p };
+  if (!near) return { verdict: p.at >= OTHER_AT ? 'wrong' : 'off', ...p }; // the strongest pitch is a semitone or so away
+  // Further off (two to six semitones): a clear pitch there is another note.
+  const step = Math.max(1, Math.floor(sr / (freq * 100)));
+  const n0 = Math.floor(x.length / step), y = new Float32Array(n0);
+  for (let i = 0; i < n0; i++) { let s = 0; for (let k = 0; k < step; k++) s += x[i * step + k]; y[i] = s; }
+  const period = sr / step / freq, n = n0 - Math.ceil(period * 2 ** (6.5 / 12)) - 2;
+  let other = -1;
+  if (n > period * 1.5) for (let k = 2; k <= 6; k++) for (const sgn of [1, -1]) {
+    const c = sgn * k * 100;
+    for (let lag = Math.floor(period / 2 ** ((c + 25) / 1200)); lag <= Math.ceil(period / 2 ** ((c - 25) / 1200)); lag++) other = Math.max(other, nsdf(y, lag, n));
+  }
+  if (other >= OTHER_AT && other > p.at + 0.05) return { verdict: 'wrong', ...p, other };
+  return { verdict: 'unclear', ...p, other };
+}
+
 const TECH_PITCH_ONLY = ['hammer', 'pull', 'tap'];
 const TECH_PLUCK_ONLY = ['mute', 'harmonic', 'pinch'];
 
@@ -135,8 +170,10 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
   const heard = onsets(x, sr);
   if (needsPluck) {
     const cands = heard.filter(o => o >= at - early && o <= at + late && !taken.some(t => Math.abs(t - o) < 0.02));
-    if (!cands.length) return { hit: false, offset: null, pluck: null, why: 'no pluck' };
-    pluck = cands.reduce((a, b) => (Math.abs(b - at) < Math.abs(a - at) ? b : a));
+    // No click heard: a soft fingerstyle pluck can make none. For a single note, its pitch
+    // starting right then is proof enough (as for a hammer-on, below); otherwise a miss.
+    if (!cands.length && !needsPitch) return { hit: false, offset: null, pluck: null, why: 'no pluck' };
+    if (cands.length) pluck = cands.reduce((a, b) => (Math.abs(b - at) < Math.abs(a - at) ? b : a));
   }
   if (!needsPitch) return { hit: true, offset: pluck === null ? null : pluck - at, pluck };
 
@@ -151,7 +188,7 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     return Math.min(3.5 / freq, Math.min(next - 0.008, after === undefined ? Infinity : after - 0.005) - s - lagRoom);
   };
   const starts = pluck !== null ? [pluck + 0.015] : [];
-  let last = null;
+  let last = null, unclear = false;
   if (pluck === null) {
     // A hammer-on or pull-off is a change of pitch: if the expected pitch was
     // already ringing just before the note (an earlier note at that pitch),
@@ -168,11 +205,14 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     if (look < 1.5 / freq) continue;
     const i = Math.max(0, Math.round(s * sr)), need = Math.ceil((look + lagRoom) * sr) + 4;
     if (i + need > x.length) continue;
-    const p = pitchPresent(x.subarray(i, i + need), sr, freq);
+    const p = pitchCheck(x.subarray(i, i + need), sr, freq);
     last = p;
-    if (p.match) return { hit: true, offset: pluck === null ? null : pluck - at, pluck };
+    if (p.verdict === 'right') return { hit: true, offset: pluck === null ? null : pluck - at, pluck };
+    if (p.verdict === 'unclear') unclear = true;
   }
-  return { hit: false, offset: pluck === null ? null : pluck - at, pluck, why: 'wrong pitch', pitch: last };
+  // Plucked on time, and nothing clearly says it was another note: the benefit of the doubt.
+  if (pluck !== null && unclear && last && last.verdict !== 'wrong') return { hit: true, offset: pluck - at, pluck, unsure: true };
+  return { hit: false, offset: pluck === null ? null : pluck - at, pluck, why: needsPluck && pluck === null ? 'no pluck' : 'wrong pitch', pitch: last };
 }
 
 /**
