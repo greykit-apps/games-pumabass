@@ -7,7 +7,7 @@ const path = require('path');
 const { Psarc } = require('./psarc');
 const { parseSng } = require('./sng');
 
-const INDEX_VERSION = 7;
+const INDEX_VERSION = 8;
 const AUDIO_EXTS = new Set(['.mp3', '.ogg', '.oga', '.opus', '.flac', '.m4a', '.aac', '.wav', '.webm']);
 // Where each platform keeps charts and audio inside an archive.
 const LAYOUT = {
@@ -31,7 +31,7 @@ class Library {
   setRoot(dir) {
     for (const p of this.archives.values()) p.close();
     this.archives.clear();
-    this._sharedWems = null;
+    this._shared = null;
     this.root = dir;
   }
 
@@ -63,24 +63,28 @@ class Library {
     return files.sort();
   }
 
-  // Every numbered .wem in every archive of the library. The on-disc songs keep
-  // their audio in a different archive (audio.psarc) from their charts (songs.psarc).
-  sharedWems() {
-    if (this._sharedWems) return this._sharedWems;
-    const map = new Map();
+  // Every numbered .wem and every sound bank in every archive of the library.
+  // The on-disc songs keep their audio in a different archive (audio.psarc) from
+  // their charts (songs.psarc); the Rocksmith 1 DLC pack keeps both its banks and
+  // its audio in songs.psarc.
+  shared() {
+    if (this._shared) return this._shared;
+    const wems = new Map(), banks = new Map();
     for (const file of this.archiveFiles()) {
       let p;
       try { p = this.open(file); } catch { continue; }
       for (const n of p.list()) {
         const m = WEM_RE.exec(n);
-        if (m && !map.has(Number(m[1]))) map.set(Number(m[1]), { file, name: n, size: p.size(n) });
+        if (m && !wems.has(Number(m[1]))) wems.set(Number(m[1]), { file, name: n, size: p.size(n) });
+        else if (n.endsWith('.bnk') && !banks.has(n)) banks.set(n, file);
       }
     }
-    return (this._sharedWems = map);
+    return (this._shared = { wems, banks });
   }
 
-  // Find the wem referenced by a sound bank: scan the bank for any known wem id,
-  // first in the bank's own archive, then anywhere in the library.
+  // Find the wem referenced by a sound bank: the bank from the chart's own
+  // archive, or failing that from anywhere in the library; then scan it for any
+  // known wem id, first in the bank's own archive, then anywhere in the library.
   findWem(archive, layout, bankName) {
     const local = new Map();
     for (const n of archive.list()) {
@@ -88,8 +92,13 @@ class Library {
       if (m) local.set(Number(m[1]), { file: archive.path, name: n, size: archive.size(n) });
     }
     const bankPath = `${layout.audio}/${bankName}`;
-    if (!archive.has(bankPath)) return null;
-    const bank = archive.extract(bankPath);
+    let bank;
+    if (archive.has(bankPath)) bank = archive.extract(bankPath);
+    else {
+      const file = this.shared().banks.get(bankPath);
+      if (!file) return null;
+      bank = this.open(file).extract(bankPath);
+    }
     const pick = map => {
       let best = null;
       for (let o = 0; o + 4 <= bank.length; o++) {
@@ -98,7 +107,7 @@ class Library {
       }
       return best;
     };
-    return pick(local) || pick(this.sharedWems());
+    return pick(local) || pick(this.shared().wems);
   }
 
   scanArchive(file) {
@@ -154,6 +163,7 @@ class Library {
   }
 
   load({ onProgress } = {}) {
+    this._shared = null; // archives may have come or gone since the last scan
     let cached = null;
     try { cached = JSON.parse(fs.readFileSync(this.indexFile, 'utf8')); } catch {}
     if (cached && (cached.version !== INDEX_VERSION || cached.root !== this.root)) cached = null;

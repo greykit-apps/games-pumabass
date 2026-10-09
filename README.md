@@ -32,6 +32,8 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 - PC (`_p.psarc`) and Mac (`_m.psarc`) files both work; when both are there, the PC one is used.
 - The songs on the Rocksmith disc keep their charts in `songs.psarc` and their audio in
   `audio.psarc`. Copy both, anywhere in the folder.
+- The Rocksmith 1 DLC import pack (`rs1compatibilitydlc_p.psarc`) keeps its audio in `songs.psarc`:
+  copy that too, or its songs have no audio.
 - Nothing is copied or changed in your songs folder. Decoded audio is cached in `cache/audio`
   (kept under ~3 GB).
 
@@ -107,7 +109,7 @@ notes instead of frets.
 
 ## Songs without audio
 
-Some charts (e.g. the Rocksmith 1 import pack) ship without their audio. To play one, drop your
+Some charts ship without their audio (e.g. the Rocksmith 1 DLC import pack without `songs.psarc`). To play one, drop your
 own recording into the `music` folder named like `Artist - Title.mp3` (or just `Title.mp3`), then
 press **Rescan**. mp3, ogg, flac, m4a and wav work. Settings → Song list → **Show them** lists the
 charts still waiting for a recording. Your recording probably won't line up exactly, so use the
