@@ -57,6 +57,7 @@ export const prefs = Object.assign({
   notationStaff: true, // the notation band's standard notation...
   notationTab: true,   // ...and its tab, each on or off
   staffNames: true, // note names under the notes in the notation band
+  lefty: false,     // left-handed: the highway mirrored, the nut on the right (tab and notation are the same either way)
   view: 'highway',  // what the song is played from: the 'highway', or the 'tab' view in its place (V)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume

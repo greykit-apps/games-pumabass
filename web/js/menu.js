@@ -141,7 +141,9 @@ ${pick('view', [['highway', 'Highway'], ['tab', 'Tab']], prefs.view)}
 <section><h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 ${pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert)}
-${pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels)}</section>
+${pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels)}
+${pick('lefty', [['false', 'Right-handed'], ['true', 'Left-handed']], prefs.lefty)}
+<p class='gk-note'>Left-handed mirrors the highway, the nut on the right. Tab and notation read the same either way.</p></section>
 <section><h3>Notation</h3>
 <div class='gk-row'><span class='join'>${picBtn(`data-set='notationStaff' aria-pressed='${prefs.notation && prefs.notationStaff}'`, 'Standard notation', PICS.notationStaff)}${
   picBtn(`data-set='staffNames' aria-pressed='${prefs.staffNames}'${prefs.notation && prefs.notationStaff ? '' : ' disabled'}`, 'Names under the notes', PICS.staffNames)}</span>${
@@ -157,6 +159,7 @@ export async function settingsClick(b, sheet) {
   switch (b.dataset.set) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;
+    case 'lefty': prefs.lefty = v === 'true'; highway.lefty = prefs.lefty; break;
     case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
     case 'view': prefs.view = v; break;
     case 'staffNames': prefs.staffNames = !prefs.staffNames; break;

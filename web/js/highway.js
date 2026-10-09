@@ -46,6 +46,7 @@ export class Highway {
     this.anchors = [];
     this.lookahead = 3.0;   // seconds of notes visible
     this.invert = true;     // true = low string on top, as in Rocksmith
+    this.lefty = false;     // true = left-handed: the board mirrored, the nut on the right (text stays readable)
     this.labels = 'fret';   // on the notes: 'fret' numbers, note 'name's, or 'off'; technique marks with either
     this.camX = 5;
     this.camWidth = MIN_VIEW;
@@ -186,10 +187,12 @@ export class Highway {
     this.drawNotes(now, zMax);
   }
 
-  // Project a world point to the screen. Returns [x, y, scale].
+  // Project a world point to the screen. Returns [x, y, scale]. Left-handed, the
+  // board is mirrored about the middle of the screen: everything is placed through
+  // here, and text is drawn upright at the places it gives, so it stays readable.
   P(x, y, z) {
-    const s = this.F / (z + this.D);
-    return [this.W / 2 + (x - this.camX) * s, this.H0 + (this.camY - y) * s, s];
+    const s = this.F / (z + this.D), dx = (x - this.camX) * s;
+    return [this.W / 2 + (this.lefty ? -dx : dx), this.H0 + (this.camY - y) * s, s];
   }
 
   quad(pts, fill) {
@@ -563,7 +566,7 @@ export class Highway {
     }
 
     // Technique labels above the gem.
-    const label = this.labels !== 'off' && techLabel(p, tech);
+    const label = this.labels !== 'off' && techLabel(p, tech, this.lefty);
     if (label && s > 12 && !fx) {
       ctx.font = `bold ${Math.round(s * 0.24)}px Saira, system-ui, sans-serif`;
       ctx.textBaseline = 'bottom';
@@ -596,7 +599,7 @@ function drawFitted(ctx, text, cx, cy, maxW, maxH, ink = '#111') {
   ctx.globalAlpha = was;
 }
 
-function techLabel(p, tech) {
+function techLabel(p, tech, lefty) {
   const out = [];
   if (tech.includes('hammer')) out.push('H');
   if (tech.includes('pull')) out.push('P');
@@ -607,7 +610,8 @@ function techLabel(p, tech) {
   if (tech.includes('vibrato')) out.push('~');
   if (tech.includes('tremolo')) out.push('TR');
   if (p.bend) out.push(`↑${p.bend >= 1 ? p.bend : '½'}`);
-  if (p.slideTo !== undefined) out.push(p.slideTo > p.f ? '↗' + p.slideTo : '↘' + p.slideTo);
+  // a slide's arrow points the way the hand goes: up the neck is to the left, left-handed
+  if (p.slideTo !== undefined) out.push((p.slideTo > p.f ? (lefty ? '↖' : '↗') : lefty ? '↙' : '↘') + p.slideTo);
   return out.join(' ');
 }
 

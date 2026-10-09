@@ -78,7 +78,8 @@ of your settings (and cleared by Forget everything).
 - **Difficulty**: 100% is the full chart; lower values use Rocksmith's simpler levels.
 - **Settings** (title menu) is for setting up: the songs folder, the instrument input, the screen (TV
   or computer), how far ahead notes appear, which way up the strings go (low string on top, as in
-  Rocksmith, unless you turn it over), whether notes carry their fret numbers, the speed songs start at,
+  Rocksmith, unless you turn it over), left-handed (the highway mirrored, the nut on the right; tab and
+  notation read the same either way), whether notes carry their fret numbers, the speed songs start at,
   and Forget everything. What changes from song to song (the mix, recorded bass, scoring) is in the
   player's Mix panel (`,`). Charts without audio are hidden from the song list; the button at its
   foot shows them. There is no mute: PumaBass is nothing without its sound.
