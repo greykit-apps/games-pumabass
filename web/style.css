@@ -295,8 +295,10 @@ button.wordmark:focus-visible b { color: inherit; }
 /* The tab: each fret number on a chip in its string's colour, dark ink, as on the highway's
    notes; the strings named at the left in their colours. */
 .score .vf-tabnote text { font-family: var(--ui); font-weight: 700; fill: #111; } /* its size: notation.js, chip() */
-.score .vf-tabnote text.muted { fill: #fff; }
 .score .nt-chip { stroke-width: .8px; }
+/* the tails' marks (notation.js, drawTails): slides, vibrato, tremolo, bends */
+.score .nt-tails path { fill: none; stroke-width: 1.6px; stroke-linecap: round; stroke-linejoin: round; }
+.score .nt-tails path.nt-bend { stroke-width: 1.3px; }
 .score .vf-ntstrings text { font-family: var(--ui); font-weight: 700; text-anchor: middle; dominant-baseline: central; }
 /* chord names over the tab where the chord changes, and the capo over the strings' names */
 .score .vf-ntchords text { font-family: var(--ui); font-weight: 700; font-size: 9px; fill: var(--text); text-anchor: middle;

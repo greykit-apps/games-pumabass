@@ -129,16 +129,19 @@ back to show both ends. A tail means hold the note; a tail that bends is a slide
 (<kbd>N</kbd>). The tab's notes are chips in their strings' colours: a hit lights up and stays lit, a miss fades.
 Or play from the tab, large, in the highway's place (<kbd>V</kbd>), laid out like a page: the cyan line runs
 along the bars as you play, then drops to the line below as the lines move up.</p>`, `
-<h3>Marks on the notes</h3>
+<h3>How a note is played</h3>
+<p>As in Rocksmith, an icon on the note, and the same on the tab's chips:</p>
 ${keys([
-    ['H / P', 'hammer-on / pull-off'],
-    ['SLAP / POP', 'slap with the thumb / pop a finger'],
-    ['grey, with an X', 'muted (dead) note'],
-    ['diamond', 'harmonic'],
-    ['PM', 'palm mute'],
-    ['~', 'vibrato'],
-    ['a box round notes', 'play them together'],
-  ])}`)],
+    ['\u25bc / \u25b2', 'hammer-on / pull-off'],
+    ['envelope', 'tap or slap (flap down), pop (flap up)'],
+    ['\u2715', 'muted at the fret (dead note)'],
+    ['bow tie', 'palm mute'],
+    ['ring', 'harmonic; with spikes, pinch harmonic'],
+    ['bright outline', 'accent'],
+    ['chevrons on top', 'bend: one a half step, two a whole'],
+  ])}
+<p>And its tail: it curves to a slide's fret, lifts off the string where it bends, waves for vibrato and
+zigzags for tremolo. A box round notes: play them together.</p>`)],
   ['Your songs', cols(`
 <h3>Your song files</h3>
 <p>PumaBass plays your own Rocksmith 2014 song files (<code>.psarc</code>). Choose their folder in <b>Settings</b>;

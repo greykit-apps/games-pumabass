@@ -55,11 +55,12 @@ function parseSng(raw, platform = 'pc') {
   });
   const chordNotes = r.arr(() => {
     const noteMask = []; for (let i = 0; i < 6; i++) noteMask.push(r.u32());
-    for (let i = 0; i < 6; i++) { for (let j = 0; j < 32; j++) readBend(r); r.i32(); }
+    const bends = []; // per string: its bend points (32 slots, the count after them)
+    for (let i = 0; i < 6; i++) { const all = []; for (let j = 0; j < 32; j++) all.push(readBend(r)); bends.push(all.slice(0, Math.max(0, r.i32()))); }
     const slideTo = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
     const slideUnpitchTo = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
     const vibrato = []; for (let i = 0; i < 6; i++) vibrato.push(r.i16());
-    return { noteMask, slideTo, slideUnpitchTo, vibrato };
+    return { noteMask, bends, slideTo, slideUnpitchTo, vibrato };
   });
   const vocals = r.arr(() => ({ time: r.f32(), note: r.i32(), length: r.f32(), lyric: r.str(48) }));
   if (vocals.length > 0) {

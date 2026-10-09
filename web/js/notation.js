@@ -12,7 +12,7 @@
 
 import { $, highway } from './core.js';
 import { pitchOf, keyOf, noteName, isDownbeat, tuningNotes } from './chart.js';
-import { STRING_COLORS } from './highway.js';
+import { STRING_COLORS, noteIcon } from './highway.js';
 import { prefs } from './store.js';
 
 const TPB = 12;          // ticks per beat: a 16th is 3, a triplet 8th 4
@@ -50,7 +50,7 @@ const BAND = { el: $('notation'), part: c => BAND.el.querySelector(`.nt-${c}`), 
 // wide and a bar of quarter notes narrow, and a line holds a few seconds of the song.
 const TAB = { el: $('tabview'), box: $('tabview').querySelector('.tv-lines'), head: $('tabview').querySelector('.nt-head'),
   scale: 1.7, gap: 13, choice: '', L: null, lines: [], drawn: new Map(), cur: -1, lineH: 0 };
-const CHIP_ROOM = 14;  // from one chip's centre to the next, at least (a chip is 11 wide; 15 for two digits)
+const CHIP_GAP = 3;    // between one chip and the next, at least
 const MIN_BEAT = 24;   // the narrowest a beat may be, before scale
 const NAMES_W = 16;    // the strings' names at the start of each line
 const LINE_GAP = 34;   // px between lines
@@ -158,15 +158,16 @@ function breakLines(width) {
   return lines;
 }
 
-// The room a bar needs: its beats at the width that keeps its closest notes' chips apart.
+// The room a bar needs: its beats at the width that keeps each note's chip clear of the
+// next's (a chip is wider for two digits, and for a technique's icon: chip()).
 function barNeeds(bar) {
   const at = bar.pieces.filter(pc => pc.parts && !pc.tied);
-  let gap = TPB, wide = false;
+  const width = pc => Math.max(...pc.parts.map(p => (String(tabFret(p.f)).length > 1 ? 15 : 11) + (noteIcon(p, p.tech) ? 8 : 0)));
+  let beatW = MIN_BEAT;
   at.forEach((pc, i) => {
-    if (i) gap = Math.min(gap, pc.start - at[i - 1].start);
-    if (pc.parts.some(p => p.f >= 10)) wide = true;
+    if (i) beatW = Math.max(beatW, (((width(at[i - 1]) + width(pc)) / 2 + CHIP_GAP) * TPB) / Math.max(1, pc.start - at[i - 1].start));
   });
-  return bar.n * Math.max(MIN_BEAT, ((wide ? CHIP_ROOM + 2 : CHIP_ROOM) * TPB) / Math.max(1, gap));
+  return bar.n * beatW;
 }
 
 // One line of the tab view, drawn and placed in the stack of lines.
@@ -224,7 +225,7 @@ function buildBars(chart, notes) {
         let target = bar;
         if (tick >= bar.n * TPB) { target = bars[k + 1]; tick = 0; if (!target) continue; }
         const at = target.onsets.get(tick) || target.onsets.set(tick, { parts: [], sus: 0, chord: '' }).get(tick);
-        for (const p of r.e.notes || [r.e]) if (!at.parts.some(q => q.s === p.s)) at.parts.push({ s: p.s, f: p.f, mute: (r.e.tech || p.tech || []).includes('mute'), ev: r.e });
+        for (const p of r.e.notes || [r.e]) if (!at.parts.some(q => q.s === p.s)) at.parts.push({ s: p.s, f: p.f, tech: r.e.tech || p.tech || [], mute: (r.e.tech || p.tech || []).includes('mute'), ev: r.e, bend: p.bend, slideTo: p.slideTo, unpitched: p.unpitched, sus: p.sus });
         const name = r.e.notes && chart.chordTemplates?.[r.e.chord]?.name?.trim();
         if (name) at.chord = name;
         at.sus = Math.max(at.sus, ((r.e.sus || 0) / r.beatLen) * TPB);
@@ -414,7 +415,7 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
           return `${noteName(m, flats).toLowerCase()}/${Math.floor(m / 12) - 1}${p.mute ? '/x2' : ''}`;
         });
         sn = new StaveNote({ keys, duration: dur, clef, dots, autoStem: true });
-        tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: p.mute ? 'X' : tabFret(p.f) })), duration: dur, dots });
+        tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: tabFret(p.f) })), duration: dur, dots });
         if (!pc.tied) { named.push({ sn, pc, ps }); fretted.push({ tn, ps }); }
         if (pc.tied && open) ties.push(new StaveTie({ firstNote: open, lastNote: sn, firstIndexes: keys.map((_, n) => n), lastIndexes: keys.map((_, n) => n) }));
         open = sn;
@@ -496,22 +497,76 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('dominant-baseline', 'central');
       const str = nStr - 1 - line, p = (partsOf.get(g) || []).find(q => q.s === str);
-      chips.push({ g: chip(text, str, L.gap), ev: p && p.ev, state: '' });
+      chips.push({ g: chip(text, str, L.gap, p ? noteIcon(p, p.tech) : null), ev: p && p.ev, p, state: '' });
     }
   }
+  drawTails(el, chips, points, L);
   return { points, chips };
 }
 
+// What the highway's tails say, in the tab: a slide a line from the chip up or down
+// toward the next note (an unpitched one dashed, falling away), vibrato a wave along the string,
+// tremolo a zigzag, each as long as the note rings; a bend's strength in chevrons over
+// the chip, as on the highway's gem. Under the chips, in the string's colour.
+function drawTails(el, chips, points, L) {
+  const svg = el.querySelector('svg'), first = svg && svg.querySelector('.vf-tabnote');
+  if (!first) return;
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'nt-tails');
+  const f = n => n.toFixed(2), gap = L.gap;
+  const add = (d, color, extra = {}) => {
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', color);
+    for (const [k, v] of Object.entries(extra)) path.setAttribute(k, v);
+    g.append(path);
+  };
+  for (const c of chips) {
+    const p = c.p, ev = c.ev;
+    if (!p || !ev) continue;
+    const tech = p.tech || [], color = STRING_COLORS[p.s] || '#999';
+    // the chip's box, where it's drawn: inside its tab note, which sits TAB_NUDGE to the right
+    const bb = c.g.querySelector('.nt-chip').getBBox(), box = { x: bb.x + TAB_NUDGE, y: bb.y, width: bb.width, height: bb.height };
+    const cy = box.y + box.height / 2, x0 = box.x + box.width;
+    const sus = ev.sus || p.sus || 0, x1 = Math.max(x0 + gap * 0.8, xAt(points, ev.t + sus) - gap * 0.3);
+    if (p.slideTo !== undefined && sus > 0) {
+      const dy = (p.slideTo > p.f ? -1 : 1) * gap * 0.55;
+      add(`M${f(x0)} ${f(cy)} L${f(x1)} ${f(cy + dy)}`, color, p.unpitched ? { 'stroke-dasharray': f(gap * 0.25) } : {});
+    } else if ((tech.includes('vibrato') || tech.includes('tremolo')) && sus > 0) {
+      const trem = tech.includes('tremolo'), wl = gap * (trem ? 0.32 : 0.6), a = gap * (trem ? 0.18 : 0.16);
+      let d = `M${f(x0)} ${f(cy)}`;
+      for (let x = x0, i = 0; x < x1; x += wl / 2, i++)
+        d += trem ? ` L${f(Math.min(x1, x + wl / 2))} ${f(cy + (i % 2 ? a : -a))}` : ` Q${f(x + wl / 4)} ${f(cy + (i % 2 ? a : -a) * 2)} ${f(Math.min(x1, x + wl / 2))} ${f(cy)}`;
+      add(d, color);
+    }
+    if (p.bend > 0) {
+      const n = p.bend <= 1 ? 1 : p.bend <= 2 ? 2 : 3, cw = gap * 0.5, top = box.y - gap * 0.08;
+      let d = '';
+      for (let i = 0; i < n; i++) { const y = top - i * gap * 0.22; d += `M${f(box.x + box.width / 2 - cw / 2)} ${f(y)} L${f(box.x + box.width / 2)} ${f(y - gap * 0.18)} L${f(box.x + box.width / 2 + cw / 2)} ${f(y)} `; }
+      add(d, '#f4f7ff', { class: 'nt-bend' });
+    }
+  }
+  first.before(g);
+}
+
 // Each fret number sits on a chip in its string's colour, as the highway's notes
-// are: a darker edge, dark ink. A muted note's X is on grey.
+// are: a darker edge, dark ink. Its technique is the highway's icon (noteIcon), in the
+// chip before the number; a fret-hand mute is its cross alone, as tab writes X.
 // Chip and number together in a group, which shows how the note went (markChips).
-function chip(text, s, gap) {
+const NS = 'http://www.w3.org/2000/svg';
+function chip(text, s, gap, icon = null) {
   text.style.fontSize = `${gap * 0.7}px`; // sized to the chip, which is sized to the lines
-  const b = text.getBBox(), muted = text.textContent === 'X', color = muted ? '#777' : STRING_COLORS[s] || '#999';
-  const h = gap * 0.85, w = Math.max(h, b.width + gap * 0.38);
-  const NS = 'http://www.w3.org/2000/svg', g = document.createElementNS(NS, 'g'), r = document.createElementNS(NS, 'rect');
-  for (const [k, v] of Object.entries({ x: b.x + b.width / 2 - w / 2, y: Number(text.getAttribute('y')) - h / 2, width: w, height: h, rx: gap * 0.19 }))
+  const b = text.getBBox(), color = STRING_COLORS[s] || '#999';
+  if (icon === 'mute') text.textContent = ''; // its X is the icon
+  const cx = b.x + b.width / 2, cy = Number(text.getAttribute('y'));
+  const isz = icon ? gap * 0.5 : 0, tw = text.textContent ? b.width : 0, sp = icon && tw ? gap * 0.12 : 0;
+  const h = gap * 0.85, w = Math.max(h, isz + sp + tw + gap * 0.38);
+  const g = document.createElementNS(NS, 'g'), r = document.createElementNS(NS, 'rect');
+  for (const [k, v] of Object.entries({ x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: gap * 0.19 }))
     r.setAttribute(k, typeof v === 'number' ? v.toFixed(2) : v);
+  // the icon, then the number, centred together on the note
+  const ix = cx - (isz + sp + tw) / 2 + isz / 2;
+  if (tw) text.setAttribute('x', (ix + isz / 2 + sp + tw / 2).toFixed(2));
   r.setAttribute('class', 'nt-chip');
   r.style.fill = color;
   r.style.stroke = shade(color, 0.55);
@@ -519,8 +574,41 @@ function chip(text, s, gap) {
   g.style.setProperty('--c', color);
   text.before(g);
   g.append(r, text);
-  if (muted) text.classList.add('muted');
+  if (icon) g.append(iconSVG(icon, ix, cy, isz));
   return g;
+}
+
+// A technique's icon as SVG, as the highway draws it (highway.js, drawIcon): size across,
+// centred on (x, y), in the chip's dark ink.
+function iconSVG(icon, x, y, size) {
+  const r = size / 2, f = n => n.toFixed(2), P = pts => pts.map(([a, b], i) => `${i ? 'L' : 'M'}${f(a)} ${f(b)}`).join(' ');
+  let d = '', fill = false, stroke = Math.max(0.6, size * 0.14);
+  if (icon === 'hammer' || icon === 'pull') {
+    const k = icon === 'hammer' ? 1 : -1;
+    d = P([[x - r * 0.9, y - k * r * 0.7], [x + r * 0.9, y - k * r * 0.7], [x, y + k * r * 0.85]]) + 'Z'; fill = true;
+  } else if (icon === 'tap' || icon === 'slap' || icon === 'pop') {
+    const k = icon === 'pop' ? -1 : 1, hh = r * 0.7;
+    d = `M${f(x - r)} ${f(y - hh)}h${f(2 * r)}v${f(2 * hh)}h${f(-2 * r)}Z ` + P([[x - r, y - k * hh], [x, y + k * hh * (icon === 'tap' ? 0.9 : 0.35)], [x + r, y - k * hh]]);
+  } else if (icon === 'palm') {
+    d = P([[x - r, y - r * 0.7], [x, y], [x - r, y + r * 0.7]]) + 'Z ' + P([[x + r, y - r * 0.7], [x, y], [x + r, y + r * 0.7]]) + 'Z'; fill = true;
+  } else if (icon === 'mute') {
+    d = P([[x - r * 0.75, y - r * 0.75], [x + r * 0.75, y + r * 0.75]]) + ' ' + P([[x + r * 0.75, y - r * 0.75], [x - r * 0.75, y + r * 0.75]]);
+    stroke = Math.max(0.8, size * 0.2);
+  } else if (icon === 'harmonic' || icon === 'pinch') {
+    const rr = r * (icon === 'pinch' ? 0.55 : 0.75), dot = r * 0.2;
+    d = `M${f(x - rr)} ${f(y)}a${f(rr)} ${f(rr)} 0 1 0 ${f(2 * rr)} 0a${f(rr)} ${f(rr)} 0 1 0 ${f(-2 * rr)} 0`
+      + ` M${f(x - dot)} ${f(y)}a${f(dot)} ${f(dot)} 0 1 0 ${f(2 * dot)} 0a${f(dot)} ${f(dot)} 0 1 0 ${f(-2 * dot)} 0`;
+    if (icon === 'pinch') for (let a = Math.PI / 4; a < Math.PI * 2; a += Math.PI / 2) d += ' ' + P([[x + Math.cos(a) * r * 0.72, y + Math.sin(a) * r * 0.72], [x + Math.cos(a) * r, y + Math.sin(a) * r]]);
+  }
+  const el = document.createElementNS(NS, 'path');
+  el.setAttribute('d', d);
+  el.setAttribute('class', 'nt-icon');
+  el.setAttribute('fill', fill ? '#111' : 'none');
+  el.setAttribute('stroke', '#111');
+  el.setAttribute('stroke-width', f(stroke));
+  el.setAttribute('stroke-linejoin', 'round');
+  el.setAttribute('stroke-linecap', 'round');
+  return el;
 }
 
 // How each chip's note went, from scoring's verdicts (the highway's): a hit pulses

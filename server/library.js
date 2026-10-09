@@ -319,6 +319,13 @@ function techniques(mask) {
   return t;
 }
 
+// A bend's shape: [seconds after the note, half steps bent] at each point, or null for
+// none. A pre-bend has a point at (or before) the note's start.
+function bendCurve(points, t0) {
+  const out = (points || []).filter(b => b.time > 0 || b.step > 0).map(b => [Math.max(0, Math.round((b.time - t0) * 1000) / 1000), Math.round(b.step * 100) / 100]);
+  return out.some(b => b[1] > 0) ? out.sort((a, b) => a[0] - b[0]) : null;
+}
+
 // Converts a parsed SNG into the compact form the web player uses.
 // Notes are kept per difficulty level so the player can pick a level per phrase.
 function buildChart(entry, sng) {
@@ -341,7 +348,9 @@ function buildChart(entry, sng) {
           const m = cn ? cn.noteMask[s] : 0;
           const cnote = { s, f: fret, tech: techniques(m | n.mask) };
           if (cn && cn.slideTo[s] >= 0) cnote.slideTo = cn.slideTo[s];
-          if (cn && cn.slideUnpitchTo[s] >= 0) cnote.slideTo = cn.slideUnpitchTo[s];
+          if (cn && cn.slideUnpitchTo[s] >= 0) { cnote.slideTo = cn.slideUnpitchTo[s]; cnote.unpitched = true; }
+          const bends = cn ? bendCurve(cn.bends[s], n.time) : null;
+          if (bends) { cnote.bends = bends; cnote.bend = Math.max(...bends.map(b => b[1])); }
           out.notes.push(cnote);
         });
         if (n.sustain > 0) out.sus = r3(n.sustain);
@@ -351,8 +360,10 @@ function buildChart(entry, sng) {
       out.f = n.fret;
       if (n.sustain > 0) out.sus = r3(n.sustain);
       if (n.slideTo !== 255) out.slideTo = n.slideTo;
-      if (n.slideUnpitchTo !== 255) out.slideTo = n.slideUnpitchTo;
+      if (n.slideUnpitchTo !== 255) { out.slideTo = n.slideUnpitchTo; out.unpitched = true; }
       if (n.maxBend > 0) out.bend = n.maxBend;
+      const bends = bendCurve(n.bends, n.time);
+      if (bends) out.bends = bends;
       const tech = techniques(n.mask);
       if (tech.length) out.tech = tech;
       return out;

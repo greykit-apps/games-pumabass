@@ -409,11 +409,23 @@ export class Highway {
     const z0 = Math.max(0, this.zOf(t, now));
     const z1 = Math.min(this.zSpawn, this.zOf(t + sus, now));
     if (z1 <= z0 || z0 >= this.zSpawn) return;
-    const y = this.stringY(p.s);
+    const y = this.stringY(p.s), tech = p.tech || [];
     const startX = this.noteX(p.f, anchor);
     const endX = p.slideTo !== undefined ? this.noteX(p.slideTo, anchor) : startX;
     const fracAt = z => Math.min(1, Math.max(0, (z / this.zScale + now - t) / sus)); // 0 at the note, 1 at the end
-    const xAt = z => startX + (endX - startX) * fracAt(z);
+    // The tail says how the note is played, as Rocksmith's does: a slide curves across to
+    // its fret (an unpitched one holds, then falls away at the end); a bend lifts it off its
+    // string by how far it's bent, when it's bent; vibrato makes it wave, tremolo zigzag.
+    const slide = p.unpitched ? f => (f < 0.55 ? 0 : ((f - 0.55) / 0.45) ** 2) : f => f * f * (3 - 2 * f);
+    const vib = tech.includes('vibrato'), trem = tech.includes('tremolo');
+    const wave = f => {
+      const secs = f * sus;
+      if (trem) { const ph = (secs / 0.07) % 1; return 0.13 * (ph < 0.5 ? ph * 4 - 1 : 3 - ph * 4); }
+      if (vib) return 0.1 * Math.sin((secs / 0.16) * Math.PI * 2);
+      return 0;
+    };
+    const xAt = z => startX + (endX - startX) * slide(fracAt(z)) + wave(fracAt(z));
+    const lift = z => bendAt(p, fracAt(z) * sus) * this.stringGap * 0.45;
     const half = p.f === 0 ? anchor.width / 2 - 0.1 : 0.22;
     // The last TAPER s thin to a quarter, rounding off (only the real end: one cut
     // short by the far end of the highway runs on at full width).
@@ -427,17 +439,17 @@ export class Highway {
       return Math.min(tail, near);
     };
     // Points along it: evenly, and closer together where the ends round off.
-    const zs = [];
-    for (let i = 0; i <= 16; i++) zs.push(z0 + ((z1 - z0) * i) / 16);
+    const zs = [], steps = vib || trem || p.bends ? 96 : 16;
+    for (let i = 0; i <= steps; i++) zs.push(z0 + ((z1 - z0) * i) / steps);
     const zEnd = this.zOf(t + sus, now);
     for (let i = 1; i < 6; i++) zs.push(z0 + (head * this.zScale * i) / 6, zEnd - (taper * this.zScale * i) / 6);
     const { ctx } = this;
     ctx.beginPath();
     const left = [], right = [];
     for (const z of zs.filter(z => z >= z0 && z <= z1).sort((m, n) => m - n)) {
-      const x = xAt(z), hw = half * widthAt(z);
-      left.push(this.P(x - hw, y, z));
-      right.push(this.P(x + hw, y, z));
+      const x = xAt(z), hw = half * widthAt(z), yy = y + lift(z);
+      left.push(this.P(x - hw, yy, z));
+      right.push(this.P(x + hw, yy, z));
     }
     left.forEach(([x, yy], i) => (i ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy)));
     for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
@@ -498,7 +510,7 @@ export class Highway {
   // (a hit), glass (not filled in), a drop and a cross (a miss), a splash ring.
   drawGem(p, z, alpha, anchor, tech = [], single = true, fx = null) {
     const { ctx } = this;
-    const y = this.stringY(p.s);
+    const y = this.stringY(p.s) + bendAt(p, 0) * this.stringGap * 0.45; // a pre-bend starts off its string
     const color = STRING_COLORS[p.s];
     const open = p.f === 0;
     const x = this.noteX(p.f, anchor);
@@ -514,35 +526,29 @@ export class Highway {
     const turn = single && !open ? (Math.PI / 2) * Math.min(1, z / this.zScale / TURN_S) : 0;
 
     ctx.globalAlpha = alpha;
-    const muted = tech.includes('mute');
-    const harmonic = tech.includes('harmonic') || tech.includes('pinch');
+    // The technique is an icon in the gem, as Rocksmith draws it (noteIcon): a hammer-on's
+    // triangle pointing down, a pull-off's up, a harmonic's ring, a mute's cross...
+    const icon = noteIcon(p, tech);
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(-turn + drop * 0.5); // a miss tips as it falls
-    ctx.fillStyle = muted ? '#777' : glass ? hexA(color, 0.42) : color;
+    ctx.fillStyle = glass ? hexA(color, 0.42) : color;
     if (fx && fx.ring) { ctx.shadowColor = color; ctx.shadowBlur = fx.bright ? 30 + 30 * fx.bright : 18; } // the splash glows
-    if (harmonic && !open) {
-      ctx.beginPath();
-      ctx.moveTo(0, -h * 0.9); ctx.lineTo(w / 2, 0); ctx.lineTo(0, h * 0.9); ctx.lineTo(-w / 2, 0);
-      ctx.closePath(); ctx.fill();
-    } else {
-      roundRect(ctx, -w / 2, -h / 2, w, h, Math.min(h / 2, s * 0.08));
-      ctx.fill();
-    }
+    roundRect(ctx, -w / 2, -h / 2, w, h, Math.min(h / 2, s * 0.08));
+    ctx.fill();
     ctx.shadowBlur = 0;
     if (fx && fx.bright) { ctx.fillStyle = `rgba(255,255,255,${0.55 * fx.bright})`; ctx.fill(); } // a hit, filled in white-hot
-    const border = Math.max(1, s * (tech.includes('accent') ? 0.07 : 0.035));
+    const border = Math.max(1, s * 0.035);
     ctx.lineWidth = border;
-    // its own colour, darker, for a crisp edge (a glass note's edge is the colour itself);
-    // a white edge is kept for special notes
+    // its own colour, darker, for a crisp edge (a glass note's edge is the colour itself)
     ctx.strokeStyle = glass ? color : shade(color, 0.55);
     ctx.stroke();
-    if (muted) {
+    // An accent: a bright second outline round it, as Rocksmith's glows.
+    if (tech.includes('accent')) {
+      const g = Math.max(2, s * 0.05);
+      roundRect(ctx, -w / 2 - g, -h / 2 - g, w + 2 * g, h + 2 * g, Math.min(h / 2 + g, s * 0.1));
+      ctx.lineWidth = Math.max(1.5, s * 0.03);
       ctx.strokeStyle = '#fff';
-      ctx.lineWidth = Math.max(1.5, s * 0.05);
-      ctx.beginPath();
-      ctx.moveTo(-h * 0.35, -h * 0.35); ctx.lineTo(h * 0.35, h * 0.35);
-      ctx.moveTo(h * 0.35, -h * 0.35); ctx.lineTo(-h * 0.35, h * 0.35);
       ctx.stroke();
     }
     if (fx && fx.cross) { // a miss: a red cross through it
@@ -563,27 +569,95 @@ export class Highway {
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
+    if (fx && fx.cross) { ctx.globalAlpha = 1; return; }
 
-    // Fret number on the gem, sized to sit inside it: its ink, not its line
-    // box, is fitted to the gem's height and width and centred on the gem.
-    // (The border is stroked on the edge, so half of it is inside.) It stays
-    // upright while the gem turns, shrinking to what fits at any angle.
-    if (!muted && this.labels !== 'off' && !(fx && fx.cross)) {
-      const k = Math.sin(turn), inner = h - border - Math.max(2, h * 0.14);
-      const text = this.labels === 'name' ? noteName(pitchOf(this.chart, p.s, p.f), this.flats) : String(p.f);
-      drawFitted(ctx, text, cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k, glass ? '#fff' : '#111');
-    }
-
-    // Technique labels above the gem.
-    const label = this.labels !== 'off' && techLabel(p, tech, this.lefty);
-    if (label && s > 12 && !fx) {
-      ctx.font = `bold ${Math.round(s * 0.24)}px Saira, system-ui, sans-serif`;
-      ctx.textBaseline = 'bottom';
-      ctx.fillStyle = '#fff';
-      ctx.fillText(label, cx, cy - (h / 2) * Math.cos(turn) - (w / 2) * Math.sin(turn) - 2);
+    // What's on the gem, upright while the gem turns: its fret number (or note name), and
+    // its technique's icon beside it (above it, while the gem stands tall). With plain
+    // notes, or a fret-hand mute, the icon alone, as in Rocksmith. Sized to the gem's
+    // box on screen: its ink, not its line box, fitted (the border is half inside).
+    const k = Math.sin(turn);
+    const bw = (open ? h * 1.6 : w) * (1 - k) + h * k, bh = (h - border - Math.max(2, h * 0.14)) * (1 - k) + w * 0.7 * k;
+    const text = this.labels === 'off' || icon === 'mute' ? ''
+      : this.labels === 'name' ? noteName(pitchOf(this.chart, p.s, p.f), this.flats) : String(p.f);
+    const ink = glass ? '#fff' : '#111';
+    if (icon && !text) drawIcon(ctx, icon, cx, cy, Math.min(bw, bh) * 0.85, ink);
+    else if (icon && bw >= bh) { // side by side: the icon, then the number
+      const isz = Math.min(bh * 0.85, bw * 0.34);
+      drawIcon(ctx, icon, cx - bw * 0.2, cy, isz, ink);
+      drawFitted(ctx, text, cx + bw * 0.14, cy, bw * 0.48, bh, ink);
+    } else if (icon) { // stacked: the icon over the number
+      const isz = Math.min(bw * 0.8, bh * 0.4);
+      drawIcon(ctx, icon, cx, cy - bh * 0.24, isz, ink);
+      drawFitted(ctx, text, cx, cy + bh * 0.2, bw * 0.9, bh * 0.45, ink);
+    } else if (text) drawFitted(ctx, text, cx, cy, bw * 0.8, bh, ink);
+    // A bend's strength in chevrons on top of the gem, as Rocksmith shows it: one for a
+    // half step, two for a whole, three for more.
+    if (p.bend > 0) {
+      const n = p.bend <= 1 ? 1 : p.bend <= 2 ? 2 : 3, c = Math.max(7, Math.min(bw * 0.55, s * 0.3));
+      const top = cy - ((h * (1 - k) + w * k) / 2) - c * 0.25;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(1.5, c * 0.17);
+      ctx.lineJoin = ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const yy = top - i * c * 0.42;
+        ctx.moveTo(cx - c / 2, yy); ctx.lineTo(cx, yy - c * 0.32); ctx.lineTo(cx + c / 2, yy);
+      }
+      ctx.stroke();
+      ctx.lineCap = 'butt';
     }
     ctx.globalAlpha = 1;
   }
+}
+
+// A note's technique as Rocksmith shows it, an icon in its gem: 'hammer' (a triangle
+// pointing down), 'pull' (up), 'tap', 'slap' and 'pop' (an envelope's flap: tap and slap
+// folded down, pop up), 'palm' (a bow tie), 'mute' (a cross: muted at the fret),
+// 'harmonic' (a ring), 'pinch' (a ring with spikes). Or none.
+export function noteIcon(p, tech = []) {
+  for (const t of ['mute', 'pinch', 'harmonic', 'tap', 'slap', 'pop', 'hammer', 'pull', 'palm']) if (tech.includes(t)) return t;
+  return null;
+}
+
+// Draw a technique's icon, size across, centred on (x, y), in ink.
+export function drawIcon(ctx, icon, x, y, size, ink) {
+  if (size < 5) return;
+  const r = size / 2;
+  ctx.save();
+  ctx.fillStyle = ctx.strokeStyle = ink;
+  ctx.lineWidth = Math.max(1.2, size * 0.14);
+  ctx.lineJoin = ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (icon === 'hammer' || icon === 'pull') {
+    const k = icon === 'hammer' ? 1 : -1;
+    ctx.moveTo(x - r * 0.9, y - k * r * 0.7); ctx.lineTo(x + r * 0.9, y - k * r * 0.7); ctx.lineTo(x, y + k * r * 0.85);
+    ctx.closePath(); ctx.fill();
+  } else if (icon === 'tap' || icon === 'slap' || icon === 'pop') {
+    // an envelope: its outline, and the flap folded down (tap, slap) or up (pop)
+    const k = icon === 'pop' ? -1 : 1, hh = r * 0.7;
+    ctx.rect(x - r, y - hh, 2 * r, 2 * hh);
+    ctx.moveTo(x - r, y - k * hh); ctx.lineTo(x, y + k * hh * (icon === 'tap' ? 0.9 : 0.35)); ctx.lineTo(x + r, y - k * hh);
+    ctx.stroke();
+    if (icon === 'tap') { ctx.beginPath(); ctx.arc(x, y + hh * 0.9, size * 0.1, 0, Math.PI * 2); ctx.fill(); } // the fingertip
+  } else if (icon === 'palm') {
+    ctx.moveTo(x - r, y - r * 0.7); ctx.lineTo(x, y); ctx.lineTo(x - r, y + r * 0.7); ctx.closePath();
+    ctx.moveTo(x + r, y - r * 0.7); ctx.lineTo(x, y); ctx.lineTo(x + r, y + r * 0.7); ctx.closePath();
+    ctx.fill();
+  } else if (icon === 'mute') {
+    ctx.lineWidth = Math.max(1.5, size * 0.18);
+    ctx.moveTo(x - r * 0.75, y - r * 0.75); ctx.lineTo(x + r * 0.75, y + r * 0.75);
+    ctx.moveTo(x + r * 0.75, y - r * 0.75); ctx.lineTo(x - r * 0.75, y + r * 0.75);
+    ctx.stroke();
+  } else if (icon === 'harmonic' || icon === 'pinch') {
+    ctx.arc(x, y, r * (icon === 'pinch' ? 0.55 : 0.75), 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, r * 0.18, 0, Math.PI * 2); ctx.fill();
+    if (icon === 'pinch') { // its spikes: pinched out of the string
+      ctx.beginPath();
+      for (let a = Math.PI / 4; a < Math.PI * 2; a += Math.PI / 2) { ctx.moveTo(x + Math.cos(a) * r * 0.72, y + Math.sin(a) * r * 0.72); ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
 }
 
 // Text that fits a box of maxW x maxH, centred on (cx, cy) by its actual ink.
@@ -608,20 +682,17 @@ function drawFitted(ctx, text, cx, cy, maxW, maxH, ink = '#111') {
   ctx.globalAlpha = was;
 }
 
-function techLabel(p, tech, lefty) {
-  const out = [];
-  if (tech.includes('hammer')) out.push('H');
-  if (tech.includes('pull')) out.push('P');
-  if (tech.includes('tap')) out.push('T');
-  if (tech.includes('slap')) out.push('SLAP');
-  if (tech.includes('pop')) out.push('POP');
-  if (tech.includes('palm')) out.push('PM');
-  if (tech.includes('vibrato')) out.push('~');
-  if (tech.includes('tremolo')) out.push('TR');
-  if (p.bend) out.push(`↑${p.bend >= 1 ? p.bend : '½'}`);
-  // a slide's arrow points the way the hand goes: up the neck is to the left, left-handed
-  if (p.slideTo !== undefined) out.push((p.slideTo > p.f ? (lefty ? '↖' : '↗') : lefty ? '↙' : '↘') + p.slideTo);
-  return out.join(' ');
+// How far a note is bent (half steps) secs after it starts, from its bend's points:
+// from straight (or from a pre-bend's start) to each point in turn, held after the last.
+export function bendAt(p, secs) {
+  const b = p.bends;
+  if (!b) return 0;
+  let t0 = 0, v0 = b[0][0] <= 0 ? b[0][1] : 0;
+  for (const [t, v] of b) {
+    if (secs <= t) return t <= t0 ? v : v0 + ((v - v0) * (secs - t0)) / (t - t0);
+    t0 = t; v0 = v;
+  }
+  return v0;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
