@@ -91,6 +91,7 @@ export class Highway {
     this.chart = chart;
     this.notes = playable.notes;
     this.anchors = playable.anchors;
+    this.handShapes = playable.handShapes || [];
     this.camPath = planCamera(this.notes, this.anchors);
     this.flats = keyOf(chart, this.notes).flats; // how note names are spelt
   }
@@ -184,6 +185,7 @@ export class Highway {
     this.drawFloor(now, zMax, anchor);
     this.drawBeats(now, zMax);
     this.drawBoard(now, anchor);
+    this.drawHandShapes(now);
     this.drawNotes(now, zMax);
   }
 
@@ -360,6 +362,18 @@ export class Highway {
     const parts = n.notes ? n.notes : [n];
     const zNote = this.zOf(n.t, now);
     const anchor = this.anchorAt(n.t);
+    // A repeated chord is its frame alone, as Rocksmith draws it: you hold the shape and
+    // strum again. It flashes as it lands.
+    if (n.repeat && parts.length > 1) {
+      if (n.t < now) {
+        const k = (now - n.t) / SPLASH;
+        if (k < 1) this.drawChordFrame(parts, 0, (1 - k) ** 1.5, anchor, n, true);
+        return;
+      }
+      const alpha = this.farAlpha(zNote);
+      if (alpha > 0) this.drawChordFrame(parts, zNote, alpha, anchor, n, true);
+      return;
+    }
     // Sustain trails first.
     for (const p of parts) {
       const sus = n.sus || p.sus || 0;
@@ -469,17 +483,77 @@ export class Highway {
     ctx.shadowBlur = 0;
   }
 
-  drawChordFrame(parts, z, alpha, anchor, n) {
+  // Hand shapes, as Rocksmith draws them: while a chord's shape is held, a faint tunnel
+  // runs back from its frame along the highway for as long as it's held. An arpeggio's
+  // (arp), picked a note at a time, has a frame at its start with a bracket round each
+  // fret of the shape, and the chord's name over it.
+  drawHandShapes(now) {
+    const tpl = this.chart.chordTemplates || [], { ctx } = this;
+    for (const h of this.handShapes) {
+      if (h.end < now) continue;
+      if (h.t > now + this.lookahead * SPAWN) break;
+      const c = tpl[h.chord];
+      if (!c) continue;
+      const used = c.frets.map((f, s) => [s, f]).filter(([s, f]) => f >= 0 && s < this.chart.strings);
+      if (used.length < 2) continue; // a single note's "shape" is just the note
+      const anchor = this.anchorAt(h.t);
+      const xs = used.map(([, f]) => this.noteX(f, anchor));
+      const x0 = Math.min(...xs) - 0.5, x1 = Math.max(...xs) + 0.5;
+      const y0 = 0.05, y1 = Math.max(...used.map(([s]) => this.stringY(s))) + 0.3;
+      const zs = this.zOf(h.t, now), z0 = Math.max(0, zs), z1 = Math.min(this.zSpawn, this.zOf(h.end, now));
+      if (z1 <= z0) continue;
+      const a = this.farAlpha(z0);
+      if (a <= 0) continue;
+      this.quad([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], `rgba(150,220,255,${0.06 * a})`);
+      for (const x of [x0, x1]) for (const y of [y0, y1]) this.line([x, y, z0], [x, y, z1], `rgba(150,220,255,${0.28 * a})`, 1.5);
+      if (h.arp && zs >= 0) {
+        const p = this.P(x0, y1, zs), q = this.P(x1, y0, zs), sc = p[2];
+        ctx.strokeStyle = `rgba(150,220,255,${0.7 * a})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(p[0], p[1], q[0] - p[0], q[1] - p[1]);
+        ctx.lineWidth = Math.max(1.5, sc * 0.04);
+        for (const [str, f] of used) {
+          const [cx, cy] = this.P(this.noteX(f, anchor), this.stringY(str), zs);
+          const bw = (f === 0 ? anchor.width / 2 : 0.4) * sc, bh = this.stringGap * 0.45 * sc, lip = Math.min(bw, bh) * 0.35;
+          ctx.strokeStyle = hexA(STRING_COLORS[str], a);
+          ctx.beginPath();
+          ctx.moveTo(cx - bw + lip, cy - bh); ctx.lineTo(cx - bw, cy - bh); ctx.lineTo(cx - bw, cy + bh); ctx.lineTo(cx - bw + lip, cy + bh);
+          ctx.moveTo(cx + bw - lip, cy - bh); ctx.lineTo(cx + bw, cy - bh); ctx.lineTo(cx + bw, cy + bh); ctx.lineTo(cx + bw - lip, cy + bh);
+          ctx.stroke();
+        }
+        const name = c.name && c.name.trim();
+        if (name && sc > 14) {
+          ctx.font = `bold ${Math.round(sc * 0.35)}px Saira, system-ui, sans-serif`;
+          ctx.fillStyle = `rgba(255,255,255,${a})`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(name, (p[0] + q[0]) / 2, p[1] - 3);
+        }
+      }
+    }
+  }
+
+  // A chord's frame round its notes, its name over it. A repeat (repeat) is the frame
+  // alone, a little filled, with a palm-muted strum's bow tie or a fret-hand-muted one's
+  // cross in it, and no name: it's the chord you're holding.
+  drawChordFrame(parts, z, alpha, anchor, n, repeat = false) {
     const xs = parts.map(p => this.noteX(p.f, anchor));
     const x0 = Math.min(...xs) - 0.5, x1 = Math.max(...xs) + 0.5;
     const ys = parts.map(p => this.stringY(p.s));
     const y0 = 0.05, y1 = Math.max(...ys) + 0.3;
     const { ctx } = this;
     const a = this.P(x0, y1, z), b = this.P(x1, y0, z);
-    ctx.strokeStyle = `rgba(255,255,255,${0.6 * alpha})`;
-    ctx.lineWidth = 2;
+    if (repeat) {
+      ctx.fillStyle = `rgba(150,220,255,${0.12 * alpha})`;
+      ctx.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+      const all = t => parts.every(p => (n.tech || p.tech || []).includes(t));
+      const icon = all('mute') ? 'mute' : all('palm') ? 'palm' : null;
+      if (icon) { ctx.globalAlpha = alpha * 0.8; drawIcon(ctx, icon, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.min(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])) * 0.32, '#fff'); ctx.globalAlpha = 1; }
+    }
+    ctx.strokeStyle = `rgba(150,220,255,${(repeat ? 0.75 : 0.6) * alpha})`;
+    ctx.lineWidth = repeat ? 2.5 : 2;
     ctx.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
-    const name = this.chart.chordTemplates[n.chord]?.name;
+    const name = !repeat && this.chart.chordTemplates[n.chord]?.name;
     if (name && a[2] > 14) {
       ctx.font = `bold ${Math.round(a[2] * 0.35)}px Saira, system-ui, sans-serif`;
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;

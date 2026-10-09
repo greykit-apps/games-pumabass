@@ -299,7 +299,7 @@ const MASK = {
   CHORD: 0x02, OPEN: 0x04, FRETHANDMUTE: 0x08, TREMOLO: 0x10, HARMONIC: 0x20, PALMMUTE: 0x40,
   SLAP: 0x80, POP: 0x100, HAMMERON: 0x200, PULLOFF: 0x400, SLIDE: 0x800, BEND: 0x1000,
   SUSTAIN: 0x2000, TAP: 0x4000, PINCHHARMONIC: 0x8000, VIBRATO: 0x10000, MUTE: 0x20000,
-  IGNORE: 0x40000, SLIDEUNPITCHEDTO: 0x400000, ACCENT: 0x4000000, ARPEGGIO: 0x20000000,
+  IGNORE: 0x40000, HIGHDENSITY: 0x200000, SLIDEUNPITCHEDTO: 0x400000, ACCENT: 0x4000000, ARPEGGIO: 0x20000000,
 };
 
 function techniques(mask) {
@@ -334,7 +334,9 @@ function buildChart(entry, sng) {
   const levels = sng.levels.map(level => ({
     difficulty: level.difficulty,
     anchors: level.anchors.map(a => ({ t: r3(a.startTime), end: r3(a.endTime), fret: a.fret, width: a.width, pi: a.phraseIteration })),
-    handShapes: level.handShapes.map(h => ({ t: r3(h.startTime), end: r3(h.endTime), chord: h.chordId })),
+    // The hand shapes held over stretches of notes; arpeggios are hand shapes picked a note at a time.
+    handShapes: [...level.handShapes.map(h => ({ t: r3(h.startTime), end: r3(h.endTime), chord: h.chordId })),
+      ...level.arpeggios.map(h => ({ t: r3(h.startTime), end: r3(h.endTime), chord: h.chordId, arp: true }))].sort((a, b) => a.t - b.t),
     notes: level.notes.map(n => {
       const out = { t: r3(n.time), pi: n.phraseIteration };
       if (n.chordId >= 0) {
@@ -342,6 +344,7 @@ function buildChart(entry, sng) {
         const tpl = sng.chordTemplates[n.chordId];
         const cn = n.chordNotesId >= 0 ? sng.chordNotes[n.chordNotesId] : null;
         out.chord = n.chordId;
+        if (n.mask & MASK.HIGHDENSITY) out.repeat = true; // the chord again, straight after: Rocksmith draws its frame alone
         out.notes = [];
         tpl.frets.forEach((fret, s) => {
           if (fret < 0) return;

@@ -122,7 +122,9 @@ up to bring in the one after. The notation (`N`) is the highway view's.
   differently from how you'd write it by hand. Techniques are shown as Rocksmith shows them, an icon
   on the note (▼ hammer-on, ▲ pull-off, ✕ fret-hand mute, a ring for a harmonic...) and a tail that curves for a
   slide, lifts for a bend, waves for vibrato; the tab's chips carry the same icons and marks. They're not yet
-  marked in the standard notation.
+  marked in the standard notation. Chords are Rocksmith's too: a chord played again straight after is its
+  frame alone (with a palm-muted or fret-hand-muted strum's icon in it), a held hand shape is a faint tunnel
+  back from its frame, and an arpeggio's frame brackets the frets of the shape.
 - Drawn by [VexFlow](https://www.vexflow.com/) 5.0.0 (MIT), kept in `web/vendor/vexflow/` so it works
   without the internet.
 
