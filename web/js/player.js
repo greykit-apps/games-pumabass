@@ -603,7 +603,7 @@ export function playerKey(e) {
   else if (k === 's' || k === 'S') { if (!audio.paused) togglePlay(); openSettings(); }
   else if (k === 'Escape') {
     if (!$('settings').classList.contains('hidden')) closeMix();
-    else if (!audio.paused || liveAt !== null) { togglePlay(); toast('Paused: Esc again for the song list'); } // a stray Esc only pauses
+    else if (!audio.paused || liveAt !== null) togglePlay(); // a stray Esc only pauses: the paused screen says Esc again leaves
     else closeSong();
   }
 }
