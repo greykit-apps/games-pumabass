@@ -6,9 +6,9 @@ import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
 import { api } from './api.js';
 import { $, highway, esc, fmtMs, songs, info, setScreen } from './core.js';
-import { shortLabel, inputStatus, chooseInput, showTuner } from './instrument.js';
+import { inputStatus, chooseInput, showTuner } from './instrument.js';
 import { pickLibrary, loadLibrary, showLibrary } from './library-screen.js';
-import { openSong, syncPlayerPrefs } from './player.js';
+import { openSong, syncPlayerPrefs, setScoreMode } from './player.js';
 import { KEY_RESUME, load, prefs, savePrefs, forgetEverything, applyScreen } from './store.js';
 import { runCalibration } from './sync-test.js';
 import { STRING_COLORS } from './highway.js';
@@ -24,8 +24,9 @@ export function titleCfg() {
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? partsLabel(parts) : 'choose your songs folder' },
-      { act: 'tuner', label: 'Tuner', key: 'T', meta: prefs.input ? shortLabel(prefs.input.label) : 'Real Tone Cable' },
-      { act: 'sync', label: 'Sync', key: 'Y', meta: prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : 'line up sound and picture' },
+      { act: 'score', label: 'Score a song', key: 'C', meta: 'beta' },
+      { act: 'tuner', label: 'Tuner', key: 'T' },
+      { act: 'sync', label: 'Sync', key: 'Y', meta: prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : '' },
       'gap',
       { act: 'settings', label: 'Settings', key: 'S' },
       { act: 'help', label: 'Help', key: '?' },
@@ -37,11 +38,15 @@ export function titleCfg() {
     about: ABOUT,
     settings: { html: settingsHTML, onClick: settingsClick },
     onAct: act => {
-      if (act === 'resume' && rs) { leaveTitle(); openSong(rs, resume.t, { resumed: true }); }
+      if (act === 'resume' && rs) { setScoreMode(resume.scored); leaveTitle(); openSong(rs, resume.t, { resumed: true }); }
       if (act === 'tuner') showTuner();
       if (act === 'sync') runCalibration();
-      if (act === 'new' && !songs.length) pickLibrary();
-      else if (act === 'new') { leaveTitle(); showLibrary(); }
+      // Learn a song plays along; Score a song scores (beta). The song list is the same.
+      if (act === 'new' || act === 'score') {
+        setScoreMode(act === 'score');
+        if (!songs.length) pickLibrary();
+        else { leaveTitle(); showLibrary(); }
+      }
     },
   };
 }
@@ -82,7 +87,7 @@ export function libraryLabel() {
 }
 
 /* Settings is for setting up: the songs, the input, the screen, the highway.
- * What changes from song to song (the mix, recorded bass, scoring) lives in the
+ * What changes from song to song (the mix, recorded bass) lives in the
  * player's Mix panel. */
 /* Settings that read better as a picture than a name: drawn the way the game draws
  * them, the name kept as the button's tooltip and label. Drawn on 72 x 40, shown a
@@ -127,7 +132,7 @@ export function settingsHTML() {
 <section><h3>Instrument input</h3>
 <p class='gk-note'>${inputStatus()}</p>
 <div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button><button data-set='sync'>Sync</button></div>
-<p class='gk-note'>Scoring, hearing your bass and the mix: the Mix panel (<kbd>M</kbd>) in a song.</p></section>
+<p class='gk-note'>Hearing your bass and the mix: the Mix panel (<kbd>M</kbd>) in a song. Scoring: <b>Score a song</b> on the menu (beta).</p></section>
 <section><h3>Screen</h3>
 ${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close']], prefs.screen)}
 <p class='gk-note'>TV draws everything larger, to read from the couch.</p></section>

@@ -105,9 +105,10 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   updatePlayButton();
   saveResume();
   await maybeAutoTune();
-  // Scoring on and an input chosen before: open it now, quietly, so a song never goes unscored
-  // just because nothing had opened the cable since PumaBass started.
-  if (prefs.scoring && prefs.input && !input.open) await ensureInput({ ask: false });
+  // Open the input now, quietly: the one chosen before, or the Real Tone Cable if it's
+  // plugged in. Scoring needs it; playing along, it's heard (unless the Mix says not), so
+  // you hear yourself with the song from the first note.
+  if (!input.open && (scoreMode || prefs.hear)) await ensureInput({ ask: false });
   startScoring();
   // Straight into it: every song has ten seconds or so before its first note.
   // (Resume game counts back in, as a play after a pause does.)
@@ -208,7 +209,7 @@ export async function openTestSong(test) {
 }
 
 export function saveResume() {
-  if (song && chart && !song.calib) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10 });
+  if (song && chart && !song.calib) save(KEY_RESUME, { id: song.id, t: Math.round(audio.currentTime * 10) / 10, scored: scoreMode });
 }
 
 /* Stop the song and put the player away. */
@@ -254,14 +255,21 @@ export function applyDifficulty() {
 }
 
 /* ---- scoring ---- */
+// Scoring is a mode of its own, in beta: "Score a song" on the menu. "Learn a song" is
+// play-along: nothing is judged, and the Real Tone Cable, when it's there, is heard.
+export let scoreMode = false;
+export function setScoreMode(on) {
+  scoreMode = !!on;
+  $('settings').classList.toggle('scoring', scoreMode);
+}
 export let scorer = null;
 export let sync = null; // this frame's song time against the audio clock, to find the input for a note
 
 export const sectionIndex = t => chart.sections.findIndex(x => x.t <= t && t < x.end);
 
-/* Score while it is on and an input is open; otherwise, not at all. */
+/* Score in score mode while an input is open; otherwise, not at all. */
 export function startScoring() {
-  scorer = prefs.scoring && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex) : null;
+  scorer = scoreMode && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex) : null;
   if (scorer) scorer.seek(songTime());
   startTake();
   updateHud();
@@ -282,7 +290,7 @@ export function inputBetween(t0, t1) {
 
 export function updateHud() {
   // Scoring wanted but no input open: say so where the score would be, and offer the input.
-  const off = !scorer && prefs.scoring && !!chart && !(song && song.calib) && !input.open;
+  const off = !scorer && scoreMode && !!chart && !(song && song.calib) && !input.open;
   $('no-score').classList.toggle('hidden', !off);
   const el = $('score-hud');
   el.classList.toggle('hidden', !scorer);
@@ -551,7 +559,6 @@ $('hear').addEventListener('change', async () => {
   applyMix();
   syncPlayerPrefs();
 });
-$('score-toggle').addEventListener('change', () => { prefs.scoring = $('score-toggle').checked; savePrefs(); if (screen === 'player') startScoring(); });
 $('recorded-bass').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (b) setRecordedBass(b.dataset.rb); });
 
 /* The player's controls follow the saved preferences, wherever they were changed. */
@@ -563,7 +570,6 @@ export function syncPlayerPrefs() {
   audio.volume = 1; // the song's volume is the mixer's
   $('volume').value = prefs.volume;
   $('hear').checked = prefs.hear;
-  $('score-toggle').checked = prefs.scoring;
   $('boost').value = prefs.bassBoost;
   $('boost-val').textContent = `+${prefs.bassBoost} dB`;
   for (const b of document.querySelectorAll('#recorded-bass [data-rb]')) b.setAttribute('aria-pressed', String(b.dataset.rb === prefs.recordedBass));

@@ -1,12 +1,12 @@
 // The song list, and choosing the songs folder.
 
-import { tuningName, formatTime, arrangementLabel, difficultyLevel } from './chart.js';
+import { tuningName, formatTime, arrangementLabel, difficultyLevel, numberAlternates } from './chart.js';
 import { alertSheet } from './title.js';
 import { api } from './api.js';
 import { $, esc, toast, screen, songs, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
-import { openSong } from './player.js';
+import { openSong, scoreMode } from './player.js';
 import { KEY_RECENT, KEY_FAVS, KEY_STATS, load, prefs, savePrefs, toggleFav } from './store.js';
 
 /* The songs folder, picked from this computer's folders through the server,
@@ -98,12 +98,15 @@ export function chooseFolder() {
 /* ---- the song list ---- */
 export async function loadLibrary() {
   const [list, about] = await Promise.all([api('/api/songs'), api('/api/info')]);
+  numberAlternates(list);
   setLibrary(list, about);
   if (screen === 'library') renderLibrary();
 }
 
 export function showLibrary() {
   setScreen('library');
+  // Score a song (beta) says so over the list; Learn a song is plain Songs.
+  $('library').querySelector('.top h1').innerHTML = scoreMode ? 'Score a song <span class="beta">beta</span>' : 'Songs';
   $('player').classList.add('hidden');
   $('library').classList.remove('hidden');
   renderLibrary();

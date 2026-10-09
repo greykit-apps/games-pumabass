@@ -16,7 +16,7 @@ off.</p>
 <p>The song's sections, coloured by kind. Click to jump; Shift+click moves the nearest loop edge; paused, the
 mouse wheel scrubs.</p>
 <h3>At the end</h3>
-<p>How far you got, and your score with scoring on. <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes to the
+<p>How far you got, and your score when scoring (<b>Score a song</b>). <kbd>Space</kbd> plays it again, <kbd>Esc</kbd> goes to the
 song list, <kbd>M</kbd> to the menu, and <kbd>P</kbd> practises the section that went worst.</p>`, `
 <h3>Keys while a song is up</h3>
 ${keys([
@@ -71,7 +71,7 @@ ${keys([
 <p><kbd>L</kbd> loops the section you're in, with a second's run-up. <kbd>[</kbd> and <kbd>]</kbd> set your own
 start and end.</p>
 <h3>Riff repeater</h3>
-<p><kbd>R</kbd> loops the section from 60% speed, 5% faster each time round, up to full speed. With scoring on, a
+<p><kbd>R</kbd> loops the section from 60% speed, 5% faster each time round, up to full speed. When scoring, a
 round only speeds it up when 70% of its notes were hit.</p>
 <h3>Fewer notes</h3>
 <p><b>Notes</b> plays Rocksmith's simpler versions of each phrase: 100% is the full chart, 80% keeps about three
@@ -90,8 +90,9 @@ under <b>This song's timing</b>.</p>`)],
 to the cents, and opens by itself when a song needs a different one. Play each open string: it's ticked once it
 holds in tune.</p>
 <h3>Hearing your bass</h3>
-<p>Through the cable the bass makes no sound; <b>Hear your bass</b> (in the tuner or the Mix) plays it, with a
-short delay. A splitter to an amp has none.</p>
+<p>Through the cable the bass makes no sound, so PumaBass plays it with the song, with a short delay: when you
+open a song it opens the cable too, if it's plugged in. <b>Hear your bass</b> (in the tuner or the Mix) turns
+that off, for a splitter to an amp, which has no delay.</p>
 <h3>Another input</h3>
 <p>Any audio input works, an audio interface or a microphone by an acoustic bass: choose it in Settings.</p>`, `
 <h3>The mix (<kbd>M</kbd>)</h3>
@@ -101,16 +102,17 @@ set the two meters about level. A limiter keeps them from distorting.</p>
 <b>Cut</b> pull it well down by cutting the low middle of the mix. Its overtones stay, and the kick drum loses some
 thump.</p>`)],
   ['Scoring', cols(`
-<p>With the cable open, PumaBass listens to each note as it lands: a hit fills in bright; a miss is crossed out
+<p>Scoring is in beta, and a mode of its own: choose <b>Score a song</b> (<kbd>C</kbd>) on the menu. With the
+cable open, PumaBass listens to each note as it lands: a hit fills in bright; a miss is crossed out
 and drops away. The top bar keeps your accuracy and streak, and the end screen gives your score, your best streak,
 whether you play early or late, and where to practise.</p>
 <h3>What counts</h3>
 <p>The right note, within about an eighth of a second. Hammer-ons and pull-offs need the new pitch, no pluck;
 muted notes and harmonics just the pluck; chords count on the pluck alone, as one cable can't tell a chord's
 shape. Tune first: within half a semitone.</p>`, `
-<h3>Off, or many misses?</h3>
-<p>Turn scoring off in the Mix (<kbd>M</kbd>) to practise unmarked. It never runs without an input, so playing
-through an amp is never marked wrong.</p>
+<h3>Unmarked, or many misses?</h3>
+<p><b>Learn a song</b> plays along unmarked. Scoring never runs without an input, so playing through an amp is
+never marked wrong.</p>
 <p>Right notes marked missed? Run <b>Sync</b> with the cable open: scoring then allows for its delay. Still
 wrong? Tick <b>Record a take</b> under <b>Takes</b> in the Mix and play; <b>Save take</b> keeps what the cable
 heard, to find out why.</p>`)],

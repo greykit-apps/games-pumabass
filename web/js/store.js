@@ -44,12 +44,11 @@ try { localStorage.removeItem('pumabass_lessons_v1'); localStorage.removeItem('p
 export const prefs = Object.assign({
   type: 'bass', sort: 'artist', sortRev: false, showMissing: false, difficulty: 100, lookahead: 3, invert: true, volume: 100, startSpeed: 100,
   input: null,      // { id, label } of the instrument input
-  hear: false,      // play the input through the speakers
+  hear: true,       // play the input through the speakers (playing along, you hear yourself with the song)
   bassBoost: 12,    // dB added to the input: the cable's signal is quiet next to a finished record
   recordedBass: 'full', // the song's own bass: full, reduced or cut (RECORDED_BASS)
   favOnly: false,   // the song list shows favorites only
   avOffset: 0,      // ms the notes land later, for every song: this computer's sound vs. its picture (calibrated)
-  scoring: true,    // score the playing (only ever while an instrument input is open)
   inputOffset: 0,   // ms your plucks reach us later than the notes you see, through the input (from the sync test)
   screen: 'couch',  // 'couch': drawn bigger on a TV, to read from across the room; 'desk': as is
   noteLabels: 'fret', // on the highway's notes: 'fret' numbers, note 'name's, or 'off'
@@ -63,7 +62,7 @@ export const prefs = Object.assign({
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 // Settings that are gone: the tuner always offers itself, the riff repeater has
 // fixed steps, sound is always on.
-for (const k of ['hearLast', 'autoTune', 'repeatFrom', 'repeatStep']) delete prefs[k];
+for (const k of ['hearLast', 'autoTune', 'repeatFrom', 'repeatStep', 'scoring']) delete prefs[k];
 // Note labels were on or off before note names joined them.
 if (prefs.noteLabels === true) prefs.noteLabels = 'fret';
 if (prefs.noteLabels === false) prefs.noteLabels = 'off';
@@ -74,6 +73,9 @@ prefs.difficulty = Math.max(20, Math.min(100, Math.round(Number(prefs.difficulty
 // "invert", so the old default can't be told from a choice: everyone moves over
 // once, and Settings decides after that.
 if (!prefs.lowOnTopDefault) { prefs.invert = true; prefs.lowOnTopDefault = true; }
+// Scoring became a mode of its own ("Score a song"), and playing along you hear the cable:
+// everyone moves over to hearing it once, and the Mix decides after that.
+if (!prefs.hearDefault) { prefs.hear = true; prefs.hearDefault = true; }
 export const savePrefs = () => save(KEY_PREFS, prefs);
 
 /* The couch scale (style.css): a class on the page, the sizes in the stylesheet. */

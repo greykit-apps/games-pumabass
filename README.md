@@ -39,6 +39,10 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 
 ## Playing
 
+**Learn a song** on the menu plays along: nothing is marked, and the Real Tone Cable, if it's plugged in, opens
+with the song and you hear yourself with it. **Score a song** (`C`, in beta) is the same song list, scored with
+the cable (see Scoring).
+
 | Key | Action |
 | --- | --- |
 | Space | Play / pause (play after a pause starts 6 s back and counts you in) |
@@ -59,7 +63,7 @@ a whole Rocksmith install, a copied `dlc` folder, a USB stick, or a mix. Choose 
 | Esc | Back to the song list, then the menu |
 
 At the end of a song the end screen says, in a sentence, how far you got and whether it counted as
-finished, with the notes, difficulty and speed under it, and the score when scoring was on. Played
+finished, with the notes, difficulty and speed under it, and the score when scoring. Played
 through, the stage comes back behind it with its lights up. `Space` goes to the main menu with nothing
 left to resume, `R` plays it again, `Esc` goes to the song list.
 
@@ -80,12 +84,12 @@ of your settings (and cleared by Forget everything).
   or computer), how far ahead notes appear, which way up the strings go (low string on top, as in
   Rocksmith, unless you turn it over), left-handed (the highway mirrored, the nut on the right; tab and
   notation read the same either way), whether notes carry their fret numbers, the speed songs start at,
-  and Forget everything. What changes from song to song (the mix, recorded bass, scoring) is in the
+  and Forget everything. What changes from song to song (the mix, recorded bass) is in the
   player's Mix panel (`,`). Charts without audio are hidden from the song list; the button at its
   foot shows them. There is no mute: PumaBass is nothing without its sound.
 
 **Riff repeater** (`R`, or the button by Loop): loops the section and speeds it up each time round,
-from 60% to full speed in 5% steps. With scoring on, a time round only speeds it
+from 60% to full speed in 5% steps. When scoring, a time round only speeds it
 up when 70% of its notes were hit.
 
 ## Reading music
@@ -100,8 +104,10 @@ highest notes, so nothing runs into the tab. Settings → Highway can also put n
 notes instead of frets.
 
 The tab's notes are chips in their strings' colours, as on the highway, each with its fret on it, and the strings
-are named at the left. With scoring on, a note you hit lights up and stays lit as it scrolls away; a miss fades
-back (without scoring, every note fades as it goes by).
+are named at the left (a guitar's top string as a small e). A chord's name sits over the tab where the chord
+changes. With a capo, the tab counts frets from the capo, as tab with a capo is written, and says so at the
+left; the highway shows the capo on the board, with its real fret numbers. When scoring, a note you hit lights up and stays lit as it scrolls away; a miss fades
+back (playing along, every note fades as it goes by).
 
 Or play from the tab: **tab view** (`V`, or Settings → View) puts the tab, large, in the highway's place, laid
 out like a page. The bars stand still, in lines across the screen, the current line on top and the next below it.
@@ -157,7 +163,8 @@ found by name; any other audio input (an audio interface, a microphone) can be c
 - It opens by itself on the first song of the day and when a song needs a different tuning from the
   last (close it to skip). It only does so once an input has been chosen and is plugged in.
 - **Hear your bass** plays the input through PumaBass, for a bass plugged into the cable instead of
-  an amp. There's a short delay on the way (the browser's audio path); a splitter to an amp has none.
+  an amp. It's on to start with: opening a song opens the cable too, if it's plugged in. There's a short
+  delay on the way (the browser's audio path); a splitter to an amp has none, so turn it off for one.
 - **The mix** (`,` in the player): **Your bass** boosts the cable's quiet signal by up to +30 dB
   (default +12), **Song** sets the record's level, and a meter on each helps set them about level.
   A limiter on the two together keeps a big boost from distorting.
@@ -179,8 +186,8 @@ found by name; any other audio input (an audio interface, a microphone) can be c
 
 ## Scoring
 
-With the Real Tone Cable (or any input) open and **Scoring** on (the Mix panel, `,`),
-each note is judged as it lands: a ring in the string's colour for a hit, a red cross for a miss, and
+Scoring is in beta, and a mode of its own: **Score a song** on the menu (`C`). With the Real Tone Cable (or any
+input) open, each note is judged as it lands: a ring in the string's colour for a hit, a red cross for a miss, and
 accuracy and streak in the top bar. The end screen gives the score, best streak, typical timing (early
 or late), a strip of the song coloured by section, and your best accuracy over full plays.
 
