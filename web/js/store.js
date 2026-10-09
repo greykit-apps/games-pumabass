@@ -42,7 +42,7 @@ export function save(key, value) {
 try { localStorage.removeItem('pumabass_lessons_v1'); localStorage.removeItem('pumabass_muted_v1'); } catch (e) { /* no storage */ }
 
 export const prefs = Object.assign({
-  type: 'bass', sort: 'artist', sortRev: false, showMissing: false, difficulty: 100, lookahead: 3, invert: true, volume: 100, startSpeed: 100,
+  type: 'bass', library: 'all', sort: 'artist', sortRev: false, showMissing: false, difficulty: 100, lookahead: 3, invert: true, volume: 100, startSpeed: 100,
   input: null,      // { id, label } of the instrument input
   hear: true,       // play the input through the speakers (playing along, you hear yourself with the song)
   bassBoost: 12,    // dB added to the input: the cable's signal is quiet next to a finished record

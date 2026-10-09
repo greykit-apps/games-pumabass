@@ -1,6 +1,10 @@
 # Generated song index and decoded audio
 cache/
 
+# The song libraries: Rocksmith song sets and downloaded custom songs (not shared)
+bundles/
+cdlc/
+
 # Your own recordings (not shared)
 music/*
 !music/.gitkeep

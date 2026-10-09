@@ -114,7 +114,7 @@ applyScreen();
 keepScreenOn();
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'), 'pb-beam-list');
-const boot = runBoot({ lines: ['PumaBass', 'reading your songs folder'] });
+const boot = runBoot({ lines: ['PumaBass', 'reading your songs'] });
 applyMix();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
@@ -124,9 +124,9 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   if (!startProblem && (info.stale || !(info.api >= SERVER_API))) startProblem = SERVER_OLD;
   showTitle();
   const lines = startProblem ? ['server: needs attention']
-    : !info.libraryDir ? ['no songs folder chosen yet']
-    : !info.libraryFound ? ['songs folder not found']
-    : [libraryLabel(), waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
+    : !songs.length ? ['no songs yet']
+    : [libraryLabel(), info.libraryDir && !info.libraryFound ? 'your Rocksmith folder is missing'
+      : waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
   if (!startProblem && !info.vgmstream) lines.push('vgmstream missing: no song audio');
   return boot.finish(lines);
 }).then(async () => {

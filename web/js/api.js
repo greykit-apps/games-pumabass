@@ -8,7 +8,7 @@
  * disk, the server only when it starts). Nothing fails silently. */
 export const START_AGAIN = 'start it again (start.bat on Windows, ./start.sh on Linux)';
 export const SERVER_DOWN = `PumaBass can't reach its server: its window may have been closed. Please ${START_AGAIN} and leave that window open.`;
-export const SERVER_API = 4; // must match API_VERSION in server/server.js
+export const SERVER_API = 5; // must match API_VERSION in server/server.js
 export const SERVER_OLD = `PumaBass was updated while it was running. To finish the update, close its window and ${START_AGAIN}.`;
 export async function api(path, opts) {
   let res;

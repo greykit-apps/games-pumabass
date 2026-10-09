@@ -16,10 +16,18 @@ const LAYOUT = {
 };
 const WEM_RE = /^audio\/(?:windows|mac)\/(\d+)\.wem$/;
 
+/* The libraries, each a folder of song files and a tab on the song list. A song
+ * in more than one (a copy, while songs are being moved) is listed once, from
+ * the first of these that has it. */
+const SOURCES = ['bundles', 'cdlc', 'music', 'folder'];
+
 class Library {
-  constructor({ libraryDir, cacheDir, musicDir }) {
-    this.root = libraryDir || null;
-    this.musicDir = musicDir;
+  constructor({ libraryDir, cacheDir, musicDir, cdlcDir, bundlesDir }) {
+    this.root = libraryDir || null; // the 'folder' library: any Rocksmith folder the player points at
+    this.bundlesDir = bundlesDir || null; // Rocksmith's own song sets
+    this.cdlcDir = cdlcDir || null; // downloaded custom songs
+    this.musicDir = musicDir; // songs you made, and recordings for charts without audio
+    this.sourceOf = new Map(); // song file -> its library's key (archiveFiles)
     this.cacheDir = cacheDir;
     this.indexFile = path.join(cacheDir, 'library.json');
     this.archives = new Map(); // path -> Psarc (opened lazily, kept open)
@@ -41,11 +49,18 @@ class Library {
     return p;
   }
 
-  // Every .psarc under the library folder. A Mac copy (_m) is skipped when the
-  // PC copy (_p) sits beside it; on its own it is read like any other.
+  /** Each library's folder, by key, in SOURCES order; null when not set. */
+  dirs() {
+    return { bundles: this.bundlesDir, cdlc: this.cdlcDir, music: this.musicDir, folder: this.root };
+  }
+
+  // Every .psarc under every library's folder. A Mac copy (_m) is skipped when
+  // the PC copy (_p) sits beside it; on its own it is read like any other.
+  // Notes which library each file is in (the first, if folders overlap).
   archiveFiles() {
-    if (!this.root || !fs.existsSync(this.root)) return [];
     const files = [];
+    this.sourceOf = new Map();
+    let source = null;
     const walk = dir => {
       let entries;
       try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; } // unreadable folder
@@ -56,10 +71,13 @@ class Library {
         if (!/\.psarc$/i.test(e.name)) continue;
         const m = /^(.*)_m\.psarc$/i.exec(e.name);
         if (m && names.has(`${m[1]}_p.psarc`.toLowerCase())) continue;
+        if (this.sourceOf.has(full)) continue; // one folder inside another
+        this.sourceOf.set(full, source);
         files.push(full);
       }
     };
-    walk(this.root);
+    const dirs = this.dirs();
+    for (const key of SOURCES) if (dirs[key] && fs.existsSync(dirs[key])) { source = key; walk(dirs[key]); }
     return files.sort();
   }
 
@@ -166,7 +184,8 @@ class Library {
     this._shared = null; // archives may have come or gone since the last scan
     let cached = null;
     try { cached = JSON.parse(fs.readFileSync(this.indexFile, 'utf8')); } catch {}
-    if (cached && (cached.version !== INDEX_VERSION || cached.root !== this.root)) cached = null;
+    const dirsKey = JSON.stringify(this.dirs());
+    if (cached && (cached.version !== INDEX_VERSION || cached.dirs !== dirsKey)) cached = null;
     const files = this.archiveFiles();
     // When archives come or go, charts that had no audio get another look:
     // their audio may have just arrived (audio.psarc copied after songs.psarc).
@@ -190,13 +209,20 @@ class Library {
       if (onProgress) onProgress(++i, files.length);
     }
     fs.mkdirSync(this.cacheDir, { recursive: true });
-    fs.writeFileSync(this.indexFile, JSON.stringify({ version: INDEX_VERSION, root: this.root, archives: result }));
-    // The same arrangement in a PC and a Mac archive: keep the PC one.
-    const seen = new Map();
-    for (const s of Object.values(result).flatMap(a => a.songs)) {
-      const key = s.id.replace(/_[pm]:/, ':');
-      const prev = seen.get(key);
-      if (!prev || (prev.platform === 'mac' && s.platform === 'pc')) seen.set(key, s);
+    fs.writeFileSync(this.indexFile, JSON.stringify({ version: INDEX_VERSION, dirs: dirsKey, archives: result }));
+    // The same arrangement twice: in a PC and a Mac archive, keep the PC one; in
+    // two libraries (a copy), keep the first library's, listed under both.
+    const seen = new Map(), rank = s => SOURCES.indexOf(s.source);
+    for (const [file, a] of Object.entries(result)) {
+      for (const song of a.songs) {
+        const s = { ...song, source: this.sourceOf.get(file) || 'folder' };
+        const key = s.id.replace(/_[pm]:/, ':');
+        const prev = seen.get(key);
+        const better = !prev || (prev.platform === 'mac' && s.platform === 'pc')
+          || (prev.platform === s.platform && rank(s) < rank(prev));
+        s.sources = [...new Set([...(prev ? prev.sources : []), s.source])].sort((x, y) => SOURCES.indexOf(x) - SOURCES.indexOf(y));
+        if (better) seen.set(key, s); else prev.sources = s.sources;
+      }
     }
     this.songs = [...seen.values()];
     this.archiveCount = files.length;

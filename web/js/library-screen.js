@@ -3,7 +3,7 @@
 import { tuningName, formatTime, arrangementLabel, difficultyLevel, numberAlternates } from './chart.js';
 import { alertSheet } from './title.js';
 import { api } from './api.js';
-import { $, esc, toast, screen, songs, setScreen, setLibrary } from './core.js';
+import { $, esc, toast, screen, songs, info, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
 import { openSong, scoreMode } from './player.js';
@@ -22,11 +22,12 @@ export async function pickLibrary() {
     await alertSheet(e.message, "Can't choose the songs folder");
     return;
   }
-  const playable = songs.filter(s => s.audio !== false);
+  const playable = songs.filter(s => s.audio !== false && (s.sources || []).includes('folder'));
   const bass = playable.filter(s => s.type === 'bass').length;
-  await alertSheet(chosen.songs
-    ? `Found ${new Set(playable.map(s => s.songKey)).size} songs with ${bass} bass parts in ${chosen.archives} song ${chosen.archives === 1 ? 'file' : 'files'}.`
-    : `No Rocksmith 2014 songs were found in ${chosen.libraryDir} or the folders inside it. Choose the folder that holds your .psarc song files.`, 'Songs folder');
+  const files = ((info.libraries || []).find(l => l.key === 'folder') || {}).files || 0;
+  await alertSheet(files
+    ? `Found ${new Set(playable.map(s => s.songKey)).size} songs with ${bass} bass parts in ${files} song ${files === 1 ? 'file' : 'files'}. They're on the Rocksmith folder tab of the song list.`
+    : `No Rocksmith 2014 songs were found in ${chosen.libraryDir} or the folders inside it. Choose the folder that holds your .psarc song files.`, 'Rocksmith folder');
   if (screen === 'title') { leaveTitle(); showTitle().reveal(); }
   else if (screen === 'library') renderLibrary();
 }
@@ -122,12 +123,35 @@ export function showSongInList(id) {
   if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'center' }); }
 }
 
+/* The libraries, each a tab on the song list and a folder the server reads
+ * (server/library.js: SOURCES). Your own Rocksmith folder has a tab only once
+ * you've chosen one. */
+export const LIBRARIES = [
+  ['all', 'All'],
+  ['bundles', 'Bundles', 'Rocksmith song sets'],
+  ['cdlc', 'CDLC', 'custom songs you download'],
+  ['music', 'Music', 'songs you made, and your recordings'],
+  ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
+];
+const shownLibraries = () => LIBRARIES.filter(([k]) => k !== 'folder' || info.libraryDir);
+const inLibrary = (s, key) => key === 'all' || (s.sources || ['folder']).includes(key);
+const libraryDir = key => ((info.libraries || []).find(l => l.key === key) || {}).dir;
+
 export const stringsOf = s => (s.type === 'bass' ? 4 : 6);
 export function renderLibrary() {
   const q = $('search').value.trim().toLowerCase();
   const recent = load(KEY_RECENT, {});
-  const ofType = songs.filter(s => prefs.type === 'all' || s.type === prefs.type);
+  const libs = shownLibraries();
+  if (!libs.some(([k]) => k === prefs.library)) prefs.library = 'all'; // its folder was taken out of Settings
+  const ofPart = songs.filter(s => prefs.type === 'all' || s.type === prefs.type);
+  const ofType = ofPart.filter(s => inLibrary(s, prefs.library));
   const favs = load(KEY_FAVS, {}), stats = load(KEY_STATS, {});
+  // Each tab counts the songs it would list, with these parts.
+  const tabs = $('lib-tabs');
+  tabs.innerHTML = libs.map(([k, name, about]) => {
+    const n = new Set(ofPart.filter(s => inLibrary(s, k) && (prefs.showMissing || s.audio !== false)).map(s => s.songKey)).size;
+    return `<button data-lib="${k}" aria-pressed="${k === prefs.library}" title="${esc(about ? `${name}: ${about}` : 'Every library')}"><span>${esc(name)}</span><small>${n}</small></button>`;
+  }).join('');
   let list = ofType.filter(s => (prefs.showMissing || s.audio !== false) && (!prefs.favOnly || favs[s.id]));
   if (q) list = list.filter(s => `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q));
   const cmp = {
@@ -164,22 +188,28 @@ export function renderLibrary() {
   const el = $('song-list');
   const keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#song-list .song');
   const keepId = keep && keep.dataset.id, keepShelf = keep && keep.classList.contains('shelved');
+  const lib = LIBRARIES.find(([k]) => k === prefs.library);
   el.innerHTML = list.length ? '' : !songs.length
-    ? '<div class="empty"><p>No songs yet. PumaBass plays your own Rocksmith 2014 song files: show it where they are.</p><button class="primary" data-act="choose">Choose your songs folder</button></div>'
-    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.' : 'No songs here.'}</div>`;
+    ? `<div class="empty"><p>No songs yet. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>). Put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button></div>`
+    : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.'
+      : prefs.library !== 'all' && !ofType.length && libraryDir(prefs.library)
+        ? `No songs in ${esc(lib[1])} yet. Put song files (<code>.psarc</code>) in <code>${esc(libraryDir(prefs.library))}</code>, then Rescan.`
+        : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
   const head = text => { const h = document.createElement('div'); h.className = 'group'; h.appendChild(document.createElement('span')).textContent = text; frag.appendChild(h); };
   let group = null;
+  const groups = []; // for the index beside the list
   if (shelf.length) head('Recently played');
   [...shelf.map(s => [s, true]), ...list.map(s => [s, false])].forEach(([s, shelved]) => {
     if (!shelved) {
       const g = groupOf ? groupOf(s) : shelf.length ? 'All songs' : null;
-      if (g !== null && g !== group) { group = g; head(g); }
+      if (g !== null && g !== group) { group = g; head(g); groups.push(g); }
     }
     const row = document.createElement('div');
     row.className = 'song' + (s.audio === false ? ' noaudio' : '') + (shelved ? ' shelved' : '');
     row.tabIndex = 0;
     row.dataset.id = s.id;
+    if (!shelved && group !== null) row.dataset.group = group;
     row.setAttribute('role', 'listitem');
     const tn = tuningName(s.tuning, stringsOf(s));
     const st = stats[s.id] || {}, fav = !!favs[s.id];
@@ -200,6 +230,7 @@ export function renderLibrary() {
     frag.appendChild(row);
   });
   el.appendChild(frag);
+  buildIndex(groupOf ? groups : []);
   if (keepId) {
     const back = el.querySelector(`.song${keepShelf ? '.shelved' : ':not(.shelved)'}[data-id="${CSS.escape(keepId)}"]`) || el.querySelector(`.song[data-id="${CSS.escape(keepId)}"]`);
     const to = back || el.querySelector('.song');
@@ -238,6 +269,13 @@ $('library').querySelector('.songs-head').addEventListener('click', e => {
   savePrefs(); renderLibrary();
 });
 $('fav-filter').addEventListener('click', () => { prefs.favOnly = !prefs.favOnly; savePrefs(); renderLibrary(); });
+$('lib-tabs').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  prefs.library = b.dataset.lib;
+  savePrefs();
+  renderLibrary();
+});
 $('type-filter').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
@@ -259,6 +297,97 @@ $('library').querySelector('.bar').addEventListener('click', async e => {
   }
 });
 
+/* The heading (title, tabs, search, columns) and the foot (Menu, Rescan...) stay put over the list, but
+ * slide away while you go down it, for more of the list, and come back as soon as you go up, reach the
+ * top, or use them (style.css: .lib-head, .head-away). A group's name stays at the top either way. */
+const libEl = $('library'), libHead = libEl.querySelector('.lib-head'), libFoot = libEl.querySelector('.pb > .bar');
+function headAway(on) { libEl.classList.toggle('head-away', on && libEl.scrollTop > libHead.offsetHeight); }
+// Where the list was when you last scrolled it. Moving to a row scrolls too, but that isn't you
+// scrolling (focusRow resets this), or bringing the foot back would nudge the list down and send it away.
+let libLastY = 0;
+{
+  libEl.addEventListener('scroll', () => {
+    const y = libEl.scrollTop, d = y - libLastY;
+    if (Math.abs(d) < 4) return; // a nudge either way changes nothing
+    headAway(d > 0);
+    libLastY = y;
+  }, { passive: true });
+  // Tabbing to the search box, a tab or a button there: back it comes.
+  libHead.addEventListener('focusin', () => headAway(false));
+  libFoot.addEventListener('focusin', () => headAway(false));
+}
+/* The index beside the list: its groups as sorted (initials, tunings, difficulty), the one you're in lit.
+ * Click one to go there, or press and slide along it to skim. (The keys do the same: Left / Right.) */
+const libIndex = $('lib-index');
+let indexRows = [];
+const indexLabel = g => g.replace(/^Difficulty (\d) of 5$/, '$1').replace(/^No difficulty rating$/, '–').replace(/ Standard$/, ' Std');
+function buildIndex(groups) {
+  libIndex.hidden = groups.length < 2;
+  libIndex.innerHTML = libIndex.hidden ? '' : groups.map(g => `<button tabindex="-1" data-g="${esc(g)}" title="${esc(g)}">${esc(indexLabel(g))}</button>`).join('');
+  indexRows = [...$('song-list').querySelectorAll('.song[data-group]')];
+  markIndex();
+}
+// Where the rows start: under the heading (when it's there) and the group's name pinned below it.
+function rowsTop() {
+  const away = libEl.classList.contains('head-away'), g = $('song-list').querySelector('.group');
+  return (away ? libEl.getBoundingClientRect().top : libHead.getBoundingClientRect().bottom) + (g ? g.getBoundingClientRect().height : 0);
+}
+function markIndex() {
+  if (libIndex.hidden || !indexRows.length) return;
+  const y = rowsTop() + 2;
+  let lo = 0, hi = indexRows.length - 1; // the first row not yet scrolled past
+  while (lo < hi) { const m = (lo + hi) >> 1; if (indexRows[m].getBoundingClientRect().bottom > y) hi = m; else lo = m + 1; }
+  const g = indexRows[lo].dataset.group;
+  for (const b of libIndex.children) b.classList.toggle('on', b.dataset.g === g);
+}
+function jumpToGroup(g) {
+  const row = indexRows.find(r => r.dataset.group === g);
+  if (!row) return;
+  const down = row.getBoundingClientRect().top > rowsTop();
+  libEl.classList.toggle('head-away', down); // going down the heading goes; up, it comes back
+  row.focus({ preventScroll: true });
+  row.scrollIntoView({ block: 'start' });
+  if (libEl.scrollTop <= libHead.offsetHeight) libEl.classList.remove('head-away');
+  libLastY = libEl.scrollTop;
+  markIndex();
+}
+{
+  let ticking = false, scrub = false;
+  libEl.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { ticking = false; markIndex(); });
+  }, { passive: true });
+  const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.closest && t.closest('#lib-index button'); };
+  libIndex.addEventListener('pointerdown', e => {
+    const b = at(e);
+    if (!b) return;
+    e.preventDefault();
+    scrub = true;
+    libIndex.setPointerCapture(e.pointerId);
+    jumpToGroup(b.dataset.g);
+  });
+  libIndex.addEventListener('pointermove', e => { const b = scrub && at(e); if (b && !b.classList.contains('on')) jumpToGroup(b.dataset.g); });
+  const stop = () => { scrub = false; };
+  libIndex.addEventListener('pointerup', stop);
+  libIndex.addEventListener('pointercancel', stop);
+}
+
+/* Their heights let a row brought into view clear them, and a group's name sit under the heading. */
+{
+  const lib = libEl, head = libHead, foot = libFoot;
+  const measure = () => {
+    const group = $('song-list').querySelector('.group');
+    lib.style.setProperty('--lib-head-h', `${head.offsetHeight}px`);
+    lib.style.setProperty('--lib-foot-h', `${foot.offsetHeight}px`);
+    lib.style.setProperty('--lib-group-h', `${group ? group.offsetHeight : 0}px`); // some sorts have no groups
+  };
+  const seen = new ResizeObserver(measure);
+  seen.observe(head);
+  seen.observe(foot);
+  new MutationObserver(measure).observe($('song-list'), { childList: true });
+}
+
 const SHELF = 4; // songs on the Recently played shelf
 const initial = t => { const c = String(t || '').trim().charAt(0).toUpperCase(); return /[A-Z]/.test(c) ? c : c ? '#' : '#'; };
 const DESC = new Set(['plays', 'finished', 'recent']); // sorts that put the most first
@@ -271,6 +400,7 @@ function focusRow(row) {
   const h = row.previousElementSibling;
   (h && h.classList.contains('group') ? h : row).scrollIntoView({ block: 'nearest' });
   row.scrollIntoView({ block: 'nearest' });
+  libLastY = libEl.scrollTop;
 }
 
 export function libraryKey(e, typing) {
@@ -293,17 +423,20 @@ export function libraryKey(e, typing) {
     const to = nearest($('library').querySelector('.bar'), rows[i], k);
     if (to) { to.focus({ preventScroll: true }); to.scrollIntoView({ block: 'nearest' }); }
   }
-  else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); focusRow(rows[Math.min(rows.length - 1, i + 1)]); }
-  else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); if (i === 0) { $('search').focus(); $('library').scrollTop = 0; } else focusRow(rows[i - 1]); }
-  else if (k === 'PageDown' && rows.length && !typing) { e.preventDefault(); focusRow(rows[Math.min(rows.length - 1, Math.max(0, i) + page())]); }
-  else if (k === 'PageUp' && rows.length && !typing) { e.preventDefault(); focusRow(rows[Math.max(0, i - page())]); }
-  else if (k === 'Home' && rows.length && !typing) { e.preventDefault(); focusRow(rows[0]); $('library').scrollTop = 0; }
-  else if (k === 'End' && rows.length && !typing) { e.preventDefault(); focusRow(rows[rows.length - 1]); }
+  // Going down the list the heading slides away; going up it comes back (headAway), before the row is
+  // brought into view, so the row lands clear of it.
+  else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); headAway(true); focusRow(rows[Math.min(rows.length - 1, i + 1)]); }
+  else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); headAway(false); if (i === 0) { $('search').focus(); $('library').scrollTop = 0; } else focusRow(rows[i - 1]); }
+  else if (k === 'PageDown' && rows.length && !typing) { e.preventDefault(); headAway(true); focusRow(rows[Math.min(rows.length - 1, Math.max(0, i) + page())]); }
+  else if (k === 'PageUp' && rows.length && !typing) { e.preventDefault(); headAway(false); focusRow(rows[Math.max(0, i - page())]); }
+  else if (k === 'Home' && rows.length && !typing) { e.preventDefault(); headAway(false); focusRow(rows[0]); $('library').scrollTop = 0; }
+  else if (k === 'End' && rows.length && !typing) { e.preventDefault(); headAway(true); focusRow(rows[rows.length - 1]); }
   else if ((k === 'ArrowRight' || k === 'ArrowLeft') && rows.length && i >= 0) {
     // The next or previous group: the next initial, tuning or difficulty, as the list is sorted.
     e.preventDefault();
     const st = starts();
     const to = k === 'ArrowRight' ? st.find(r => rows.indexOf(r) > i) : st.filter(r => rows.indexOf(r) < i).pop();
+    headAway(k === 'ArrowRight');
     if (to) { focusRow(to); toast(to.previousElementSibling.textContent); }
   }
   else if ((k === 'o' || k === 'O') && !typing) {
@@ -315,6 +448,12 @@ export function libraryKey(e, typing) {
     e.preventDefault();
     const n = PARTS[(PARTS.findIndex(([v]) => v === prefs.type) + 1) % PARTS.length];
     prefs.type = n[0]; savePrefs(); renderLibrary(); toast(n[1]);
+  }
+  else if ((k === 'l' || k === 'L') && !typing) {
+    e.preventDefault();
+    const libs = shownLibraries();
+    const n = libs[(libs.findIndex(([v]) => v === prefs.library) + 1) % libs.length];
+    prefs.library = n[0]; savePrefs(); renderLibrary(); toast(n[0] === 'all' ? 'All libraries' : n[1]);
   }
   else if (k === 'F' && e.shiftKey && !typing) {
     e.preventDefault();
