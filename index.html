@@ -42,30 +42,21 @@
           <h1>Songs</h1>
           <span id="count" class="muted small"></span>
           <span class="grow"></span>
-          <span class="brand">PumaBass</span>
+          <span class="brand">Puma<b>Bass</b></span>
         </header>
         <div class="topline"><i></i></div>
         <div class="tools">
           <input id="search" type="search" placeholder="Search songs, artists, albums  ( / )" autocomplete="off" aria-label="Search">
           <div id="type-filter" class="seg" role="group" aria-label="Part (P)" title="Which parts to list (P)">
-            <kbd>P</kbd>
             <button data-type="bass">Bass</button>
             <button data-type="lead">Lead</button>
             <button data-type="rhythm">Rhythm</button>
             <button data-type="all">All</button>
           </div>
-          <button id="fav-filter" aria-pressed="false" title="Show only your favorites (Shift+F)"><kbd>&#8679;F</kbd><span class="ico heart-ico fill" aria-hidden="true"></span> Favorites</button>
-          <label class="sort" title="Sort the list (O)"><kbd>O</kbd>Sort
-          <select id="sort" aria-label="Sort (O)">
-            <option value="artist">Artist</option>
-            <option value="title">Title</option>
-            <option value="difficulty">Difficulty</option>
-            <option value="tuning">Tuning</option>
-            <option value="recent">Recently played</option>
-            <option value="plays">Most played</option>
-          </select></label>
+          <button id="fav-filter" aria-pressed="false" title="Show only your favorites (Shift+F)"><span class="ico heart-ico fill" aria-hidden="true"></span> Favorites</button>
         </div>
-        <div class="songs-head" aria-hidden="true"><span><span class="ico heart-ico fill"></span></span><span>Song</span><span>Part</span><span class="c-diff" title="Rocksmith's difficulty rating for the part">Difficulty</span><span class="c-tun">Tuning</span><span class="c-num" title="Times started">Plays</span><span class="c-num" title="Times played to the end">Finished</span><span class="c-len">Length</span></div>
+        <!-- The column headings sort the list (again: the other way round). -->
+        <div class="songs-head" role="group" aria-label="Sort by (O)"><span aria-hidden="true"><span class="ico heart-ico fill"></span></span><span class="c-song"><button class="sorter" data-sort="title">Song</button><button class="sorter" data-sort="artist">Artist</button></span><button class="sorter" data-sort="part">Part</button><button class="sorter c-diff" data-sort="difficulty" title="Rocksmith's difficulty rating for the part">Difficulty</button><button class="sorter c-tun" data-sort="tuning">Tuning</button><button class="sorter c-num" data-sort="plays" title="Times started">Plays</button><button class="sorter c-num" data-sort="finished" title="Times played to the end">Finished</button><button class="sorter c-len" data-sort="length">Length</button></div>
         <div id="song-list" role="list"></div>
         <nav class="bar">
           <button data-act="menu"><kbd>Esc</kbd>Menu</button>

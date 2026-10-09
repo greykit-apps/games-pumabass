@@ -133,11 +133,19 @@ export function renderLibrary() {
     tuning: (a, b) => tuningName(a.tuning, stringsOf(a)).localeCompare(tuningName(b.tuning, stringsOf(b))) || a.artist.localeCompare(b.artist),
     recent: (a, b) => (recent[b.id] || 0) - (recent[a.id] || 0) || a.artist.localeCompare(b.artist),
     plays: (a, b) => ((stats[b.id] || {}).plays || 0) - ((stats[a.id] || {}).plays || 0) || ((stats[b.id] || {}).finished || 0) - ((stats[a.id] || {}).finished || 0) || a.artist.localeCompare(b.artist),
+    finished: (a, b) => ((stats[b.id] || {}).finished || 0) - ((stats[a.id] || {}).finished || 0) || ((stats[b.id] || {}).plays || 0) - ((stats[a.id] || {}).plays || 0) || a.artist.localeCompare(b.artist),
+    part: (a, b) => arrangementLabel(a).localeCompare(arrangementLabel(b)) || a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
+    length: (a, b) => (a.length || 0) - (b.length || 0) || a.artist.localeCompare(b.artist),
   }[prefs.sort] || (() => 0);
-  list.sort((a, b) => cmp(a, b) || arrangementLabel(a).localeCompare(arrangementLabel(b)));
+  const dir = prefs.sortRev ? -1 : 1; // a second click on a heading: the other way round
+  list.sort((a, b) => dir * (cmp(a, b) || arrangementLabel(a).localeCompare(arrangementLabel(b))));
 
   for (const b of document.querySelectorAll('#type-filter button')) b.setAttribute('aria-pressed', String(b.dataset.type === prefs.type));
-  $('sort').value = prefs.sort;
+  for (const b of document.querySelectorAll('.songs-head .sorter')) {
+    const on = b.dataset.sort === prefs.sort, up = !DESC.has(b.dataset.sort) !== prefs.sortRev; // up: A to Z, least first
+    b.dataset.dir = on ? (up ? 'up' : 'down') : '';
+    b.setAttribute('aria-pressed', String(on));
+  }
   $('fav-filter').setAttribute('aria-pressed', String(prefs.favOnly));
 
   // From the couch, the list is long: the songs played last come first, on a shelf of their own, and the
@@ -218,7 +226,13 @@ $('song-list').addEventListener('click', e => {
 });
 $('search').addEventListener('input', renderLibrary);
 $('missing-toggle').addEventListener('click', () => { prefs.showMissing = !prefs.showMissing; savePrefs(); renderLibrary(); });
-$('sort').addEventListener('change', () => { prefs.sort = $('sort').value; savePrefs(); renderLibrary(); });
+$('library').querySelector('.songs-head').addEventListener('click', e => {
+  const b = e.target.closest('.sorter');
+  if (!b) return;
+  if (b.dataset.sort === prefs.sort) prefs.sortRev = !prefs.sortRev;
+  else { prefs.sort = b.dataset.sort; prefs.sortRev = false; }
+  savePrefs(); renderLibrary();
+});
 $('fav-filter').addEventListener('click', () => { prefs.favOnly = !prefs.favOnly; savePrefs(); renderLibrary(); });
 $('type-filter').addEventListener('click', e => {
   const b = e.target.closest('button');
@@ -243,6 +257,7 @@ $('library').querySelector('.bar').addEventListener('click', async e => {
 
 const SHELF = 4; // songs on the Recently played shelf
 const initial = t => { const c = String(t || '').trim().charAt(0).toUpperCase(); return /[A-Z]/.test(c) ? c : c ? '#' : '#'; };
+const DESC = new Set(['plays', 'finished', 'recent']); // sorts that put the most first
 const SORTS = [['artist', 'artist'], ['title', 'title'], ['difficulty', 'difficulty'], ['tuning', 'tuning'], ['recent', 'recently played'], ['plays', 'most played']];
 const PARTS = [['bass', 'Bass parts'], ['lead', 'Lead guitar parts'], ['rhythm', 'Rhythm guitar parts'], ['all', 'Every part']];
 
@@ -284,7 +299,7 @@ export function libraryKey(e, typing) {
   else if ((k === 'o' || k === 'O') && !typing) {
     e.preventDefault();
     const n = SORTS[(SORTS.findIndex(([v]) => v === prefs.sort) + 1) % SORTS.length];
-    prefs.sort = n[0]; savePrefs(); renderLibrary(); toast(`Sorted by ${n[1]}`);
+    prefs.sort = n[0]; prefs.sortRev = false; savePrefs(); renderLibrary(); toast(`Sorted by ${n[1]}`);
   }
   else if ((k === 'p' || k === 'P') && !typing) {
     e.preventDefault();

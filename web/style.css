@@ -143,19 +143,30 @@ html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
   box-shadow: 0 40px 120px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .05); }
 .top { display: flex; align-items: baseline; gap: var(--s4); padding: var(--s4) var(--s5) var(--s3); }
 .top h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 40px; text-transform: uppercase; color: var(--text); transform: var(--lean); }
-.top .brand { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; color: var(--accent); transform: var(--lean); }
+.top .brand { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; color: var(--text); transform: var(--lean); }
+.top .brand b { color: var(--accent); font-weight: 800; } /* the wordmark: PUMA white, BASS cyan */
 .topline { height: 3px; background: var(--line); }
 .topline i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--accent), rgba(var(--hot-rgb), 0) 60%); }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); padding: var(--s4) var(--s5) var(--s2); }
 .tools #search { flex: 1; min-width: 220px; }
 .seg { display: flex; align-items: center; gap: var(--s1); }
-.tools kbd { margin-right: 4px; }
-.tools .sort { display: flex; align-items: center; gap: 6px; color: var(--dim); }
 .check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--dim); }
 #count { padding: 0 var(--s5) var(--s2); font-size: 16px; color: var(--dim); white-space: nowrap; }
 .songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 96px 90px 168px 52px 76px 60px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
 .songs-head { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); padding-top: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
-.songs-head .c-num { text-align: right; }
+/* the headings sort the list: the one in use lit, with an arrow (up: A to Z, least first) */
+.songs-head .sorter { font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left; white-space: nowrap;
+  background: none; border: 0; box-shadow: none; min-height: 0; padding: 0; }
+.songs-head .sorter:hover:not(:disabled) { color: var(--text); }
+.songs-head .sorter[aria-pressed=true] { color: var(--accent); }
+.songs-head .sorter[data-dir=up]::after { content: ' \25B2'; font-size: .75em; }
+.songs-head .sorter[data-dir=down]::after { content: ' \25BC'; font-size: .75em; }
+/* the number columns are right-aligned: their arrow goes in front, clear of the next column */
+.songs-head .c-num, .songs-head .c-len { text-align: right; justify-self: end; } /* too wide for the column: spill left */
+.songs-head :is(.c-num, .c-len)[data-dir]::after { content: none; }
+.songs-head :is(.c-num, .c-len)[data-dir=up]::before { content: '\25B2  '; font-size: .75em; white-space: pre; }
+.songs-head :is(.c-num, .c-len)[data-dir=down]::before { content: '\25BC  '; font-size: .75em; white-space: pre; }
+.songs-head .c-song { display: flex; gap: var(--s4); }
 /* the list's groups: Recently played, then initials, tunings or difficulty, as sorted */
 #song-list .group { padding: 22px var(--s5) var(--s2); font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: .02em; text-transform: uppercase;
   color: var(--accent); border-bottom: 1px solid var(--line); }
