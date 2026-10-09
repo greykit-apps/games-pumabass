@@ -135,6 +135,9 @@ ${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close
 <div class='gk-row'><button data-set='forget'>Forget everything</button></div>
 <p class='gk-note'>Clears your favorites, play counts, audio offsets, recent songs, where you left off and these settings. Your songs, recordings and decoded audio are not touched.</p></section>
 </div><div class='set-col'>
+<section><h3>View</h3>
+${pick('view', [['highway', 'Highway'], ['tab', 'Tab']], prefs.view)}
+<p class='gk-note'>Play from the note highway, or from tab in its place. <kbd>V</kbd> switches while you play.</p></section>
 <section><h3>Highway</h3>
 ${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
 ${pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert)}
@@ -155,6 +158,7 @@ export async function settingsClick(b, sheet) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;
     case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
+    case 'view': prefs.view = v; break;
     case 'staffNames': prefs.staffNames = !prefs.staffNames; break;
     case 'notationStaff': case 'notationTab': {
       // One toggle each; the band shows while either is on (N may have turned the band off with both set).

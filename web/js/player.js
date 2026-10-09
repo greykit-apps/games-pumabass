@@ -8,7 +8,7 @@ import { Scorer } from './scoring.js';
 import { api } from './api.js';
 import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen, setInfo } from './core.js';
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
-import { setNotationSong, updateNotation } from './notation.js';
+import { setNotationSong, updateNotation, tabView } from './notation.js';
 import { applyMix, setRecordedBass, ensureInput, showTuner, maybeAutoTune } from './instrument.js';
 import { showLibrary, showSongInList } from './library-screen.js';
 import { openHelp, openSettings } from './menu.js';
@@ -137,7 +137,8 @@ async function audioTrouble(s) {
   return `The browser couldn't play the audio for "${s.title}". Open it again; if it fails twice, its file may be in a format this browser can't play.`;
 }
 
-/* N: the notation band goes standard notation, tab, both, off, and round again. */
+/* N: the notation band goes standard notation, tab, both, off, and round again. It's
+ * the highway view's: the tab view is the tab itself. */
 const NOTATION_STEPS = [
   { name: 'staff', staff: true, tab: false, say: 'Standard notation' },
   { name: 'tab', staff: false, tab: true, say: 'Tab' },
@@ -145,6 +146,7 @@ const NOTATION_STEPS = [
   { name: 'off', say: 'Notation off' },
 ];
 function cycleNotation() {
+  if (tabView()) { toast('Notation is over the highway: V to switch'); return; }
   const now = !prefs.notation || (!prefs.notationStaff && !prefs.notationTab) ? 'off'
     : prefs.notationStaff && prefs.notationTab ? 'both' : prefs.notationStaff ? 'staff' : 'tab';
   const next = NOTATION_STEPS[(NOTATION_STEPS.findIndex(s => s.name === now) + 1) % NOTATION_STEPS.length];
@@ -152,6 +154,13 @@ function cycleNotation() {
   if (prefs.notation) { prefs.notationStaff = next.staff; prefs.notationTab = next.tab; }
   savePrefs();
   toast(next.say);
+}
+
+/* V: the highway, or the tab view in its place. */
+function cycleView() {
+  prefs.view = tabView() ? 'highway' : 'tab';
+  savePrefs();
+  toast(tabView() ? 'Tab view' : 'Highway view');
 }
 
 /* The song's name, as a music video credits it: lower left, just over the board,
@@ -331,7 +340,7 @@ export function togglePlay() {
 }
 
 /* While paused, the keys worth knowing, so none has to be remembered. */
-const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['N', 'notation'], ['T', 'tuner'], ['M', 'mix'], ['?', 'help'], ['Esc', 'song list']]
+const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['N', 'notation'], ['V', 'view'], ['T', 'tuner'], ['M', 'mix'], ['?', 'help'], ['Esc', 'song list']]
   .map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</span>`;
 
 /* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
@@ -594,6 +603,7 @@ export function playerKey(e) {
   else if (k === 'm' || k === 'M') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
   else if (k === 'n' || k === 'N') cycleNotation();
+  else if (k === 'v' || k === 'V') cycleView();
   else if (k === 'f' || k === 'F') { toggleFav(song.id); toast(isFav(song.id) ? 'Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
@@ -628,9 +638,12 @@ export function frame() {
       loopCameRound();
     }
     updateNotation(t, !calib);
+    // The tab view stands in for the highway (never in the sync test, which is all highway).
+    const tabs = !calib && tabView();
+    $('player').classList.toggle('tabview', tabs);
     // with a verdict coming (a scored song; the sync test judges nothing), notes wait on their string for it
     highway.judging = !!input.open && !!scorer;
-    highway.draw(t);
+    if (!tabs) highway.draw(t);
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
     $('time').textContent = `${formatTime(t)} / ${formatTime(len)}`;
@@ -670,7 +683,7 @@ export function frame() {
         $(id).classList.toggle('hot', db > -1);
       }
     }
-    if (!$('caption').classList.contains('hidden')) $('caption').style.bottom = `${highway.H - highway.boardTop + 12}px`;
+    if (!$('caption').classList.contains('hidden')) $('caption').style.bottom = tabs ? '' : `${highway.H - highway.boardTop + 12}px`;
     if (!audio.paused && performance.now() - lastResumeSave > 3000) { lastResumeSave = performance.now(); saveResume(); }
   }
   requestAnimationFrame(frame);

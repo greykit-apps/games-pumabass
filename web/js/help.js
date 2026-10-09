@@ -31,7 +31,8 @@ ${keys([
     ['B', 'recorded bass: full, reduced, cut'],
     ['F', 'favorite'],
     ['T', 'tuner'],
-    ['N', 'notation: standard, tab, both, off'],
+    ['V', 'view: highway or tab'],
+    ['N', 'notation over the highway: standard, tab, both, off'],
     ['S', 'Settings'],
     ['?', 'this help'],
     ['Esc', 'pause; again, the song list'],
@@ -123,7 +124,9 @@ its time on the floor, over the beat lines.</p>
 <p>The lit lane is where your hand goes; the fret numbers under it light up to match. On a big jump the view pulls
 back to show both ends. A tail means hold the note; a tail that bends is a slide.</p>
 <p>Over the top, standard notation and tab scroll by, each note crossing the blue line as you play it
-(<kbd>N</kbd>).</p>`, `
+(<kbd>N</kbd>). The tab's notes are chips in their strings' colours: a hit lights up and stays lit, a miss fades.
+Or play from the tab, large, in the highway's place (<kbd>V</kbd>), laid out like a page: the cyan line runs
+along the bars as you play, then drops to the line below as the lines move up.</p>`, `
 <h3>Marks on the notes</h3>
 ${keys([
     ['H / P', 'hammer-on / pull-off'],

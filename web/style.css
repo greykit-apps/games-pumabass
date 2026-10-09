@@ -265,30 +265,62 @@ button.wordmark:focus-visible b { color: inherit; }
   text-shadow: 0 0 6px rgba(var(--bg-rgb), .95); }
 #calib-cue b { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(24px, 3.4vw, 44px); letter-spacing: .04em; text-transform: uppercase; color: var(--accent); line-height: 1.1; }
 #calib-cue span { display: block; margin-top: 6px; font-size: clamp(13px, 1.6vw, 17px); color: var(--text); }
-/* the notation band: standard notation over tab, scrolling over the top of the highway,
-   which runs on behind it; the clef stays at the left, the bars slide under the playhead */
+/* the scrolling scores (web/js/notation.js): the clef stays at the left, the bars slide under the playhead.
+   The notation band: standard notation over tab, over the top of the highway, which runs on behind it. */
 #notation { position: absolute; top: 60px; left: var(--s4); right: var(--s4); height: 196px; pointer-events: none;
   background: linear-gradient(rgba(var(--bg-rgb), .5), rgba(var(--bg-rgb), 0)); }
-#nt-clef { position: absolute; left: 0; top: 0; }
-#nt-view { position: absolute; top: 0; bottom: 0; left: 64px; right: 0; overflow: hidden;
+.score .nt-clef { position: absolute; left: 0; top: 0; }
+.score .nt-view { position: absolute; top: 0; bottom: 0; left: 64px; right: 0; overflow: hidden;
   -webkit-mask-image: linear-gradient(to right, transparent, #000 3%, #000 90%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 3%, #000 90%, transparent); }
-#nt-strip { position: absolute; top: 0; left: 0; will-change: transform; }
-#notation svg { display: block; overflow: visible; filter: drop-shadow(0 0 2px rgba(var(--bg-rgb), .95)) drop-shadow(0 0 1px rgba(var(--bg-rgb), .95)); }
+.score .nt-strip { position: absolute; top: 0; left: 0; will-change: transform; }
+.score svg { display: block; overflow: visible; filter: drop-shadow(0 0 2px rgba(var(--bg-rgb), .95)) drop-shadow(0 0 1px rgba(var(--bg-rgb), .95)); }
 /* VexFlow draws for paper: light ink here, and the tab's number backings (which hide
    the line behind a fret) as nothing, so the highway shows through. The lines are
    quiet so the notes stand out; fret numbers and names are bold, each with a dark halo
    that cuts the line away behind it and holds up over the highway. */
-#notation svg [stroke="black"] { stroke: var(--steel); }
-#notation .vf-stave path { stroke: #3a4a78; }
-#notation .vf-stavebarline rect { fill: #3a4a78; }
-#notation .vf-tabnote text, #notation .vf-ntnames text { font-family: var(--ui); font-weight: 700;
-  fill: #f4f7ff; stroke: rgba(var(--bg-rgb), .95); stroke-width: 4px; stroke-linejoin: round; paint-order: stroke; }
-#notation .vf-tabnote text { font-size: 12px; }
-#notation .vf-ntnames text { font-size: 11px; fill: var(--text); text-anchor: middle; }
-#notation svg [stroke="#444"] { stroke: var(--lit); }
-#notation svg rect[fill="white"] { fill: transparent; }
-#nt-head { position: absolute; width: 2px; background: var(--accent); box-shadow: 0 0 10px rgba(var(--hot-rgb), .7); }
+.score svg [stroke="black"] { stroke: var(--steel); }
+.score .vf-stave path { stroke: #3a4a78; }
+.score .vf-stavebarline rect { fill: #3a4a78; }
+.score .vf-ntnames text { font-family: var(--ui); font-weight: 700; font-size: 11px; fill: var(--text); text-anchor: middle;
+  stroke: rgba(var(--bg-rgb), .95); stroke-width: 4px; stroke-linejoin: round; paint-order: stroke; }
+.score svg [stroke="#444"] { stroke: var(--lit); }
+.score svg rect[fill="white"] { fill: transparent; }
+.score .nt-head { position: absolute; width: 2px; background: var(--accent); box-shadow: 0 0 10px rgba(var(--hot-rgb), .7); }
+/* The tab: each fret number on a chip in its string's colour, dark ink, as on the highway's
+   notes; the strings named at the left in their colours. */
+.score .vf-tabnote text { font-family: var(--ui); font-weight: 700; fill: #111; } /* its size: notation.js, chip() */
+.score .vf-tabnote text.muted { fill: #fff; }
+.score .nt-chip { stroke-width: .8px; }
+.score .vf-ntstrings text { font-family: var(--ui); font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+/* how the note went (notation.js, markChips): a miss, or a note gone by unscored, fades back;
+   a hit flashes white-hot, swells and settles, and stays lit in its colour as it scrolls away */
+.score .nt-note { transform-box: fill-box; transform-origin: center; transition: opacity .25s; }
+.score .nt-note.missed { opacity: .3; }
+.score .nt-note.hit { filter: brightness(1.35) drop-shadow(0 0 3px var(--c)); animation: chip-hit .45s ease-out; }
+.score .nt-note.hit.settled { animation: none; }
+@keyframes chip-hit {
+  0% { transform: scale(1); filter: brightness(2.4) drop-shadow(0 0 8px var(--c)); }
+  35% { transform: scale(1.35); filter: brightness(1.9) drop-shadow(0 0 7px var(--c)); }
+  100% { transform: scale(1); filter: brightness(1.35) drop-shadow(0 0 3px var(--c)); }
+}
+@media (prefers-reduced-motion: reduce) { .score .nt-note.hit { animation: none; } }
+
+/* The tab view (V): the tab, large, in place of the highway, as a page: two lines in view,
+   the current one on top. The playhead runs along it; at its end the playhead drops to the
+   next line, and a moment later the lines glide up, gently, so the eye can follow the
+   playhead down and then up with its line (notation.js sets the glide off for any other jump). */
+#player.tabview #highway { visibility: hidden; }
+#player.tabview { background: var(--highway); }
+#player.tabview #caption { bottom: 150px; } /* under the tab, over the controls */
+#tabview { position: absolute; top: calc(50% - 40px); left: var(--s4); right: var(--s4); transform: translateY(-50%);
+  overflow: hidden; pointer-events: none; }
+#tabview svg { filter: none; }
+#tabview .tv-lines { position: absolute; left: 0; right: 0; top: 0; transition: transform 1.1s cubic-bezier(.45, 0, .25, 1) .35s; will-change: transform; }
+#tabview .tv-line { position: absolute; left: 0; }
+#tabview .nt-head { z-index: 1; box-shadow: 0 0 14px rgba(var(--hot-rgb), .8); }
+#tabview .vf-stave path { stroke: #4a5c8e; }
+@media (prefers-reduced-motion: reduce) { #tabview .tv-lines { transition: none; } }
 
 /* the song's name at its start, as a music video credits it: lower left over the board */
 #caption { position: absolute; left: var(--s5); bottom: 40%; max-width: min(640px, 60%); pointer-events: none; opacity: 0;
