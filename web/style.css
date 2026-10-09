@@ -431,9 +431,17 @@ html .gk-sheet .gk-box:has(.gk-tabs) { width: min(1180px, 100%); }
 @media (max-width: 760px) { .gk-sheet .help-cols { grid-template-columns: 1fr; } }
 /* Settings: two columns in a wider box, so it fits the screen without scrolling */
 html .gk-sheet .gk-box:has(.set-cols) { width: min(1180px, 100%); }
-.gk-sheet .set-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
-.gk-sheet .set-col section + section { margin-top: 18px; }
-.gk-sheet .set-col .gk-note { margin-bottom: 6px; }
+.gk-sheet .set-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
+/* each column a list of rows: a name, then its controls (menu.js, settingsHTML) */
+.gk-sheet .set-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px 18px; align-items: center; }
+.gk-sheet .set-label { font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+.gk-sheet .set-cell .gk-row { margin: 0; }
+.gk-sheet .set-val { margin: 0 0 6px; font-size: 14px; color: var(--dim); overflow-wrap: anywhere; }
+.gk-sheet .set-val.inline { margin: 0 0 0 6px; align-self: center; }
+/* Forget everything, on its own at the foot, quiet, last to reach */
+.gk-sheet .set-foot { display: flex; justify-content: flex-end; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+.gk-sheet .set-foot button.quiet { background: none; box-shadow: none; border-color: transparent; color: var(--dim); font-size: 14px; }
+.gk-sheet .set-foot button.quiet:hover, .gk-sheet .set-foot button.quiet:focus-visible { color: var(--danger); border-color: var(--danger); }
 .gk-sheet .gk-row button.pic { padding: 4px 8px; line-height: 0; } /* a picture, its name in the tooltip */
 .gk-sheet .gk-row button.pic svg { display: block; }
 /* standard notation and the names under its notes: one pair, the names only with the staff */

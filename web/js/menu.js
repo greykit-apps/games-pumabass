@@ -118,45 +118,33 @@ const PICS = {
 const picBtn = (attrs, label, pic) => `<button class='pic' ${attrs} title='${label}' aria-label='${label}'>${pic}</button>`;
 
 export function settingsHTML() {
-  const pick = (set, opts, cur) => `<div class='gk-row'>${opts.map(([v, l, pic]) => pic
+  const pick = (set, opts, cur, tip = '') => `<div class='gk-row'${tip ? ` title='${tip}'` : ''}>${opts.map(([v, l, pic]) => pic
     ? picBtn(`data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'`, l, pic)
     : `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
-  const where = !info.libraryDir ? 'No songs folder chosen yet.'
+  const row = (label, body) => `<span class='set-label'>${label}</span><div class='set-cell'>${body}</div>`;
+  const where = !info.libraryDir ? 'No songs folder chosen yet'
     : `<code>${esc(info.libraryDir)}</code> · ${info.libraryFound ? libraryLabel() : 'that folder is missing'}`;
-  // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols).
-  return `<div class='set-cols'><div class='set-col'>
-<section><h3>Song library</h3>
-<p class='gk-note'>${where}</p>
-<div class='gk-row'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>
-<p class='gk-note'>Your Rocksmith 2014 song files (<code>.psarc</code>), here or in folders inside. Rescan after adding songs.</p></section>
-<section><h3>Instrument input</h3>
-<p class='gk-note'>${inputStatus()}</p>
-<div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button><button data-set='sync'>Sync</button></div>
-<p class='gk-note'>Hearing your bass and the mix: the Mix panel (<kbd>M</kbd>) in a song. Scoring: <b>Score a song</b> on the menu (beta).</p></section>
-<section><h3>Screen</h3>
-${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close']], prefs.screen)}
-<p class='gk-note'>TV draws everything larger, to read from the couch.</p></section>
-<section><h3>This browser</h3>
-<div class='gk-row'><button data-set='forget'>Forget everything</button></div>
-<p class='gk-note'>Clears your favorites, play counts, audio offsets, recent songs, where you left off and these settings. Your songs, recordings and decoded audio are not touched.</p></section>
-</div><div class='set-col'>
-<section><h3>View</h3>
-${pick('view', [['highway', 'Highway'], ['tab', 'Tab']], prefs.view)}
-<p class='gk-note'>Play from the note highway, or from tab in its place. <kbd>V</kbd> switches while you play.</p></section>
-<section><h3>Highway</h3>
-${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
-${pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert)}
-${pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels)}
-${pick('lefty', [['false', 'Right-handed'], ['true', 'Left-handed']], prefs.lefty)}
-<p class='gk-note'>Left-handed mirrors the highway, the nut on the right. Tab and notation read the same either way.</p></section>
-<section><h3>Notation</h3>
-<div class='gk-row'><span class='join'>${picBtn(`data-set='notationStaff' aria-pressed='${prefs.notation && prefs.notationStaff}'`, 'Standard notation', PICS.notationStaff)}${
+  // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols): what
+  // PumaBass is set up with, and how you like to play. Forget everything on its own at the foot.
+  return `<div class='set-cols'><section class='set-col'><h3>App</h3><div class='set-grid'>
+${row('Songs', `<p class='set-val'>${where}</p><div class='gk-row' title='Your Rocksmith 2014 song files (.psarc), in this folder or folders inside. Rescan after adding songs.'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>`)}
+${row('Input', `<p class='set-val'>${inputStatus()}</p><div class='gk-row'><button data-set='input'>Choose input</button></div>`)}
+${row('Tuner', `<div class='gk-row'><button data-set='tuner' title='Tune to the song with the Real Tone Cable; it opens by itself when a song needs another tuning'>Open tuner</button></div>`)}
+${row('Sync', `<div class='gk-row'><button data-set='sync' title='Line up the sound and the picture, and the cable'>Run sync</button><span class='set-val inline'>${
+  prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : 'not run yet'}</span></div>`)}
+${row('Screen', pick('screen', [['couch', 'TV'], ['desk', 'Computer']], prefs.screen, 'TV draws everything larger, to read from across the room'))}
+</div></section><section class='set-col'><h3>Playing</h3><div class='set-grid'>
+${row('View', pick('view', [['highway', 'Highway'], ['tab', 'Tab']], prefs.view, 'Play from the note highway, or from tab in its place (V while you play)'))}
+${row('Look ahead', pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead, 'How far ahead the highway shows the notes'))}
+${row('Strings', pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert))}
+${row('Notes', pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels))}
+${row('Hand', pick('lefty', [['false', 'Right'], ['true', 'Left']], prefs.lefty, 'Left mirrors the highway, the nut on the right; tab and notation read the same either way'))}
+${row('Notation', `<div class='gk-row' title='Over the highway (N while you play)'><span class='join'>${picBtn(`data-set='notationStaff' aria-pressed='${prefs.notation && prefs.notationStaff}'`, 'Standard notation', PICS.notationStaff)}${
   picBtn(`data-set='staffNames' aria-pressed='${prefs.staffNames}'${prefs.notation && prefs.notationStaff ? '' : ' disabled'}`, 'Names under the notes', PICS.staffNames)}</span>${
-  picBtn(`data-set='notationTab' aria-pressed='${prefs.notation && prefs.notationTab}'`, 'Tab', PICS.notationTab)}</div></section>
-<section><h3>Start speed</h3>
-${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
-<p class='gk-note'>Every song starts at this speed. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p></section>
-</div></div>`;
+  picBtn(`data-set='notationTab' aria-pressed='${prefs.notation && prefs.notationTab}'`, 'Tab', PICS.notationTab)}</div>`)}
+${row('Start speed', pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed, 'Every song starts at this speed; Up and Down change it while you play'))}
+</div></section></div>
+<div class='set-foot'><button data-set='forget' class='quiet' title='Clears your favorites, play counts, audio offsets, recent songs, where you left off and these settings. Your songs, recordings and decoded audio are not touched.'>Forget everything</button></div>`;
 }
 
 export async function settingsClick(b, sheet) {
