@@ -391,6 +391,8 @@ export class Highway {
     return fret - 0.5;
   }
 
+  // A sustain: a ribbon along its string, soft at the edges, fading along its
+  // length and thinning to a rounded end, so it trails off rather than stops square.
   drawSustain(p, t, sus, now, zMax, anchor) {
     const z0 = Math.max(0, this.zOf(t, now));
     const z1 = Math.min(this.zSpawn, this.zOf(t + sus, now));
@@ -398,34 +400,49 @@ export class Highway {
     const y = this.stringY(p.s);
     const startX = this.noteX(p.f, anchor);
     const endX = p.slideTo !== undefined ? this.noteX(p.slideTo, anchor) : startX;
-    const xAt = z => {
-      const frac = Math.min(1, Math.max(0, (z / this.zScale + now - t) / sus));
-      return startX + (endX - startX) * frac;
-    };
-    const steps = startX === endX ? 1 : 12;
+    const fracAt = z => Math.min(1, Math.max(0, (z / this.zScale + now - t) / sus)); // 0 at the note, 1 at the end
+    const xAt = z => startX + (endX - startX) * fracAt(z);
     const half = p.f === 0 ? anchor.width / 2 - 0.1 : 0.22;
+    // The last TAPER s thin to a quarter, rounding off (only the real end: one cut
+    // short by the far end of the highway runs on at full width).
+    const taper = Math.min(0.15, sus * 0.3);
+    // Its near end rounds off a little too, where it meets the strings.
+    const head = Math.min(0.06, (z1 - z0) / this.zScale / 3);
+    const widthAt = z => {
+      const left = (1 - fracAt(z)) * sus, fromNear = (z - z0) / this.zScale;
+      const tail = left >= taper ? 1 : 0.25 + 0.75 * Math.sin((Math.PI / 2) * (left / taper));
+      const near = fromNear >= head ? 1 : 0.55 + 0.45 * Math.sin((Math.PI / 2) * (fromNear / head));
+      return Math.min(tail, near);
+    };
+    // Points along it: evenly, and closer together where the ends round off.
+    const zs = [];
+    for (let i = 0; i <= 16; i++) zs.push(z0 + ((z1 - z0) * i) / 16);
+    const zEnd = this.zOf(t + sus, now);
+    for (let i = 1; i < 6; i++) zs.push(z0 + (head * this.zScale * i) / 6, zEnd - (taper * this.zScale * i) / 6);
     const { ctx } = this;
     ctx.beginPath();
     const left = [], right = [];
-    for (let i = 0; i <= steps; i++) {
-      const z = z0 + ((z1 - z0) * i) / steps;
-      const x = xAt(z);
-      left.push(this.P(x - half, y, z));
-      right.push(this.P(x + half, y, z));
+    for (const z of zs.filter(z => z >= z0 && z <= z1).sort((m, n) => m - n)) {
+      const x = xAt(z), hw = half * widthAt(z);
+      left.push(this.P(x - hw, y, z));
+      right.push(this.P(x + hw, y, z));
     }
     left.forEach(([x, yy], i) => (i ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy)));
     for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
     ctx.closePath();
     const color = STRING_COLORS[p.s];
-    if (z1 <= this.zSolid) ctx.fillStyle = hexA(color, 0.45);
-    else {
-      // Reaching into the far end: fade along its length, as the notes do there.
-      const a = this.P(startX, y, z0), b = this.P(xAt(z1), y, z1);
-      const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
-      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, hexA(color, 0.45 * this.farAlpha(z0 + ((z1 - z0) * i) / 4)));
-      ctx.fillStyle = g;
+    // Fading along its length, and in from the far end as the notes do there.
+    const a = this.P(xAt(z0), y, z0), b = this.P(xAt(z1), y, z1);
+    const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
+    for (let i = 0; i <= 6; i++) {
+      const z = z0 + ((z1 - z0) * i) / 6;
+      g.addColorStop(i / 6, hexA(color, (0.5 - 0.3 * fracAt(z)) * this.farAlpha(z)));
     }
+    ctx.fillStyle = g;
+    ctx.shadowColor = hexA(color, 0.6); // soft edges
+    ctx.shadowBlur = Math.max(4, a[2] * 0.08);
     ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   drawChordFrame(parts, z, alpha, anchor, n) {
