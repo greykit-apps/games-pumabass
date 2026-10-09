@@ -2,7 +2,7 @@
 
 import { alertSheet } from './title.js';
 import { syncTest, SyncMeter, syncCue, syncResult, metronome, SYNC } from './calibrate.js';
-import { $, audio, highway, input, fmtMs, screen } from './core.js';
+import { $, audio, input, fmtMs, screen } from './core.js';
 import { ensureInput } from './instrument.js';
 import { showLibrary } from './library-screen.js';
 import { showTitle, leaveTitle } from './menu.js';
@@ -22,7 +22,7 @@ export async function runCalibration() {
   const test = syncTest();
   calib = { test, meter: new SyncMeter(test.targets), back: screen, phase: 'align', orig: { av: prefs.avOffset, input: prefs.inputOffset } };
   if (screen === 'title') leaveTitle();
-  await openTestSong(test, input.open ? 'Line up the picture with the sound, then play along on the cable' : 'Line up the picture with the sound');
+  await openTestSong(test);
   $('metro').classList.remove('hidden', 'playing');
   $('metro-done').innerHTML = `<kbd>Enter</kbd>${input.open ? 'They match: play along' : 'They match'}`;
   $('metro-step').textContent = input.open ? 'Step 1 of 2 \u00b7 then play along' : ''; // one step without the cable: the corner says it
@@ -104,7 +104,8 @@ $('metro-done').addEventListener('click', alignDone);
  * line-up, and the bar and what to do. */
 export function syncFrame(t) {
   if (!audio.paused) {
-    if (calib.phase === 'play' && input.open) calib.meter.update(t, audio.playbackRate, inputBetween, (tg, heard) => highway.mark(tg.ev, heard));
+    // Heard or not, its notes aren't judged on the highway: it's a measurement, not a test of you.
+    if (calib.phase === 'play' && input.open) calib.meter.update(t, audio.playbackRate, inputBetween);
     // The line-up goes round again for as long as it takes (by a whole number of beats).
     if (calib.phase === 'align' && t >= SYNC.ALIGN_END - 1) { seek(audio.currentTime - 60, false); t = songTime(); }
   }

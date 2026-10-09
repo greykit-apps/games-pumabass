@@ -167,7 +167,7 @@ function showCaption(title, by, more) {
 }
 
 /* The sync test's song (web/js/sync-test.js): its own chart and audio, not the server's. */
-export async function openTestSong(test, sub) {
+export async function openTestSong(test) {
   closeEndScreen();
   song = { id: test.chart.id, title: 'Sync', artist: 'PumaBass', type: 'bass', calib: true };
   chart = test.chart;
@@ -179,6 +179,8 @@ export async function openTestSong(test, sub) {
   $('back').title = 'Back (Esc)'; $('back').ariaLabel = 'Back';
   $('p-tuning').textContent = 'Open E string';
   $('player').classList.add('syncing'); // the test has no loops, speeds or mix (style.css)
+  $('caption').classList.add('hidden'); // a song's, if it came from one: the test has none
+  $('caption').classList.remove('run');
   offsetMs = 0;
   $('offset').value = 0; showOffset();
   loop = null;
@@ -193,8 +195,7 @@ export async function openTestSong(test, sub) {
   liveAt = null;
   session = null;
   setSpeed(100);
-  startScoring();
-  showCaption('Sync', sub, '');
+  startScoring(); // no title caption: its step and its count of plucks say what's on
 }
 
 export function saveResume() {
@@ -627,8 +628,8 @@ export function frame() {
       loopCameRound();
     }
     updateNotation(t, !calib);
-    // with a verdict coming, notes wait on their string for it
-    highway.judging = !!input.open && (!!scorer || (!!calib && calib.phase === 'play'));
+    // with a verdict coming (a scored song; the sync test judges nothing), notes wait on their string for it
+    highway.judging = !!input.open && !!scorer;
     highway.draw(t);
     const len = chart.songLength;
     $('playhead').style.left = `${(Math.max(0, t) / len) * 100}%`;
