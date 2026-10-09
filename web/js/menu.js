@@ -11,6 +11,7 @@ import { pickLibrary, loadLibrary, showLibrary } from './library-screen.js';
 import { openSong, syncPlayerPrefs } from './player.js';
 import { KEY_RESUME, load, prefs, savePrefs, forgetEverything, applyScreen } from './store.js';
 import { runCalibration } from './sync-test.js';
+import { STRING_COLORS } from './highway.js';
 
 export let title = null; // the title screen, while it is up
 
@@ -83,37 +84,69 @@ export function libraryLabel() {
 /* Settings is for setting up: the songs, the input, the screen, the highway.
  * What changes from song to song (the mix, recorded bass, scoring) lives in the
  * player's Mix panel. */
+/* Settings that read better as a picture than a name: drawn the way the game draws
+ * them, the name kept as the button's tooltip and label. Drawn on 72 x 40, shown a
+ * quarter larger. */
+const SVG = body => `<svg viewBox='0 0 72 40' width='90' height='50' aria-hidden='true'>${body}</svg>`;
+const SC = STRING_COLORS;
+// A glass note of the A string, carrying a fret number, a note name, or nothing.
+const gemPic = t => SVG(`<rect x='14' y='8' width='44' height='24' rx='5' fill='${SC[1]}' fill-opacity='.42' stroke='${SC[1]}' stroke-width='2'/>${t
+  ? `<text x='36' y='26.5' text-anchor='middle' font-size='17' font-weight='700' fill='#fff' font-family='Saira, system-ui, sans-serif'>${t}</text>` : ''}`);
+// The four strings, low E (red) on top or at the bottom.
+const stringsPic = lowOnTop => SVG((lowOnTop ? [0, 1, 2, 3] : [3, 2, 1, 0]).map((st, i) => `<text x='6' y='${10.5 + i * 9}' text-anchor='middle'
+  font-size='9' font-weight='700' fill='currentColor' font-family='Saira, system-ui, sans-serif'>${'EADG'[st]}</text>
+<line x1='14' y1='${7 + i * 9}' x2='70' y2='${7 + i * 9}' stroke='${SC[st]}' stroke-width='3'/>`).join(''));
+// A staff (five lines from y0, gap apart); a note head with its stem.
+const staff = (y0, gap) => [0, 1, 2, 3, 4].map(i => `<line x1='4' y1='${y0 + i * gap}' x2='68' y2='${y0 + i * gap}' stroke='currentColor' stroke-opacity='.6'/>`).join('');
+const head = (x, y, stem) => `<ellipse cx='${x}' cy='${y}' rx='4.6' ry='3.4' transform='rotate(-20 ${x} ${y})' fill='currentColor'/><line x1='${x + 4.2}' y1='${y}' x2='${x + 4.2}' y2='${y - stem}' stroke='currentColor' stroke-width='1.3'/>`;
+const tabNum = (n, x, y) => `<text x='${x}' y='${y + 4}' text-anchor='middle' font-size='12' font-weight='700' fill='currentColor' font-family='Saira, system-ui, sans-serif'>${n}</text>`;
+const PICS = {
+  fret: gemPic('5'), name: gemPic('D'), off: gemPic(''),
+  lowTop: stringsPic(true), lowBottom: stringsPic(false),
+  notationStaff: SVG(staff(8, 6) + head(26, 26, 18) + head(46, 17, 16)),
+  // tab: four lines, broken where its fret numbers sit
+  notationTab: SVG([9, 17, 25, 33].map(y => y === 25 ? `<line x1='4' y1='${y}' x2='20' y2='${y}' stroke='currentColor' stroke-opacity='.6'/><line x1='32' y1='${y}' x2='68' y2='${y}' stroke='currentColor' stroke-opacity='.6'/>`
+    : y === 17 ? `<line x1='4' y1='${y}' x2='42' y2='${y}' stroke='currentColor' stroke-opacity='.6'/><line x1='54' y1='${y}' x2='68' y2='${y}' stroke='currentColor' stroke-opacity='.6'/>`
+    : `<line x1='4' y1='${y}' x2='68' y2='${y}' stroke='currentColor' stroke-opacity='.6'/>`).join('') + tabNum(5, 26, 25) + tabNum(7, 48, 17)),
+  staffNames: SVG(staff(4, 4.5) + head(36, 15.25, 13) + `<text x='36' y='37' text-anchor='middle' font-size='11' font-weight='700' fill='currentColor' font-family='Saira, system-ui, sans-serif'>D</text>`),
+};
+const picBtn = (attrs, label, pic) => `<button class='pic' ${attrs} title='${label}' aria-label='${label}'>${pic}</button>`;
+
 export function settingsHTML() {
-  const pick = (set, opts, cur) => `<div class='gk-row'>${opts.map(([v, l]) =>
-    `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
+  const pick = (set, opts, cur) => `<div class='gk-row'>${opts.map(([v, l, pic]) => pic
+    ? picBtn(`data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'`, l, pic)
+    : `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const where = !info.libraryDir ? 'No songs folder chosen yet.'
     : `<code>${esc(info.libraryDir)}</code> · ${info.libraryFound ? libraryLabel() : 'that folder is missing'}`;
-  return `<h3>Song library</h3>
+  // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols).
+  return `<div class='set-cols'><div class='set-col'>
+<section><h3>Song library</h3>
 <p class='gk-note'>${where}</p>
 <div class='gk-row'><button data-set='library'>${info.libraryDir ? 'Change folder' : 'Choose folder'}</button><button data-set='rescan'>Rescan</button></div>
-<p class='gk-note'>Your Rocksmith 2014 song files (<code>.psarc</code>), in this folder or the folders inside it. Rescan after adding songs.</p>
-<h3>Instrument input</h3>
+<p class='gk-note'>Your Rocksmith 2014 song files (<code>.psarc</code>), here or in folders inside. Rescan after adding songs.</p></section>
+<section><h3>Instrument input</h3>
 <p class='gk-note'>${inputStatus()}</p>
-<div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button></div>
-<p class='gk-note'>Scoring, hearing your bass and the mix are in the player's Mix panel (<kbd>M</kbd>).</p>
-<h3>Screen</h3>
+<div class='gk-row'><button data-set='input'>Choose input</button><button data-set='tuner'>Tuner</button><button data-set='sync'>Sync</button></div>
+<p class='gk-note'>Scoring, hearing your bass and the mix: the Mix panel (<kbd>M</kbd>) in a song.</p></section>
+<section><h3>Screen</h3>
 ${pick('screen', [['couch', 'TV, across the room'], ['desk', 'Computer, up close']], prefs.screen)}
-<p class='gk-note'>On a big screen, TV draws everything larger so it reads from the couch.</p>
-<h3>Highway</h3>
-${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
-${pick('invert', [['true', 'Low string on top'], ['false', 'Low string at the bottom']], prefs.invert)}
-${pick('labels', [['fret', 'Fret numbers'], ['name', 'Note names'], ['off', 'Plain notes']], prefs.noteLabels)}
-<p class='gk-note'>How far ahead the notes appear, which way up the strings go, and what the notes carry: fret numbers, note names, or nothing.</p>
-<h3>Notation</h3>
-<div class='gk-row'>${[['notationStaff', 'Standard notation', prefs.notation && prefs.notationStaff], ['notationTab', 'Tab', prefs.notation && prefs.notationTab],
-    ['staffNames', 'Names under the notes', prefs.staffNames]].map(([set, l, on]) => `<button data-set='${set}' aria-pressed='${on}'>${l}</button>`).join('')}</div>
-<p class='gk-note'>The part scrolling over the top of the highway: each turns on and off; with neither standard notation nor tab, there's none. <kbd>N</kbd> steps through standard notation, tab, both and off while you play.</p>
-<h3>Speed</h3>
-${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
-<p class='gk-note'>The speed every song starts at. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p>
-<h3>This browser</h3>
+<p class='gk-note'>TV draws everything larger, to read from the couch.</p></section>
+<section><h3>This browser</h3>
 <div class='gk-row'><button data-set='forget'>Forget everything</button></div>
-<p class='gk-note'>Clears everything PumaBass keeps in this browser: your favorites, play counts, each song's audio offset, which songs you played last, where you left off, and these settings. Your songs, your recordings and the decoded audio on disk are not touched.</p>`;
+<p class='gk-note'>Clears your favorites, play counts, audio offsets, recent songs, where you left off and these settings. Your songs, recordings and decoded audio are not touched.</p></section>
+</div><div class='set-col'>
+<section><h3>Highway</h3>
+${pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead)}
+${pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert)}
+${pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels)}</section>
+<section><h3>Notation</h3>
+<div class='gk-row'><span class='join'>${picBtn(`data-set='notationStaff' aria-pressed='${prefs.notation && prefs.notationStaff}'`, 'Standard notation', PICS.notationStaff)}${
+  picBtn(`data-set='staffNames' aria-pressed='${prefs.staffNames}'${prefs.notation && prefs.notationStaff ? '' : ' disabled'}`, 'Names under the notes', PICS.staffNames)}</span>${
+  picBtn(`data-set='notationTab' aria-pressed='${prefs.notation && prefs.notationTab}'`, 'Tab', PICS.notationTab)}</div></section>
+<section><h3>Start speed</h3>
+${pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, '90%'], [100, '100%']], prefs.startSpeed)}
+<p class='gk-note'>Every song starts at this speed. <kbd>Up</kbd> and <kbd>Down</kbd> change it while you play.</p></section>
+</div></div>`;
 }
 
 export async function settingsClick(b, sheet) {
@@ -149,6 +182,10 @@ export async function settingsClick(b, sheet) {
     case 'tuner':
       sheet.close();
       showTuner();
+      return;
+    case 'sync':
+      sheet.close();
+      runCalibration();
       return;
     case 'forget':
       if (await sheet.confirm('Forget everything PumaBass has saved in this browser: your favorites and play counts, every audio offset, your recent songs and where you left off, and your settings? This cannot be undone.', 'Forget everything')) forgetEverything();

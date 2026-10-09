@@ -48,7 +48,7 @@ ${keys([
     ['Enter', 'play the song'],
     ['F', 'heart the song: a favorite'],
     ['Shift+F', 'favorites only, or every song'],
-    ['O', 'sort: artist, title, difficulty, tuning, recently played, most played'],
+    ['O', 'sort: artist, title, difficulty, tuning, recently played, most played (or click a column\'s heading; again to reverse)'],
     ['P', 'parts: bass, lead, rhythm, every part'],
     ['T', 'the tuner'],
     ['S', 'Settings'],
@@ -61,7 +61,7 @@ above the list shows only your favorites: your own library.</p>
 <h3>Plays and Finished</h3>
 <p><b>Plays</b> counts each time you start a song. Pausing and carrying on is the same play, and so is picking it up
 again with Resume game. <b>Finished</b> counts the times you played it through to its last note, having played at
-least half of what was left when you began: jumping to the end doesn't count. Sort by <b>Most played</b> to see your
+least half of what was left when you began: jumping to the end doesn't count. Click the <b>Plays</b> heading to see your
 regulars first.</p>`],
   ['Practice', `
 <h3>Slow it down</h3>
