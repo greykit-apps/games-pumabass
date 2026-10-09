@@ -11,7 +11,7 @@ export const HELP = [
 <p><b>Learn a song</b> opens your song list; a song starts as it opens. Its notes come down the highway and land
 on their strings in time with the record: play each one as it lands.</p>
 <p>After a pause, play starts six seconds back and counts you in. <b>Resume game</b> picks up where you left
-off.</p>
+off. Done for the day? <kbd>Esc</kbd> twice on the menu quits: it closes PumaBass and stops its server.</p>
 <p>The arrow keys move between the buttons on every screen. While a song is up they seek and change speed;
 <kbd>Tab</kbd> gets you to the player's own controls, where the arrows move between them (on a slider,
 Left and Right set it), and <kbd>Esc</kbd> lets go.</p>

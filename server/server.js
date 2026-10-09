@@ -188,6 +188,16 @@ function hostAllowed(req) {
   return LOOPBACK.has(host);
 }
 
+/* Stop for good. Run by `node --watch` (the systemd user unit), exiting would only leave the
+ * watcher waiting for a file to change, so the watcher is stopped instead, and this with it;
+ * a plain stop, so systemd doesn't start it again (Restart=on-failure). Launching PumaBass
+ * starts it again. */
+function quit() {
+  server.close();
+  if (process.env.WATCH_REPORT_DEPENDENCIES && process.ppid > 1) process.kill(process.ppid, 'SIGTERM');
+  else process.exit(0);
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = decodeURIComponent(url.pathname);
@@ -203,6 +213,15 @@ const server = http.createServer(async (req, res) => {
         stale: codeStamp() !== STARTED_WITH,
         api: API_VERSION,
       });
+    }
+    if (p === '/api/quit' && req.method === 'POST') {
+      // From the menu (Esc twice): the game is over, so is the server. JSON only: a cross-site
+      // form can't send that without asking first, so no other page can stop PumaBass.
+      if (!/^application\/json\b/.test(req.headers['content-type'] || '')) return sendJson(res, { error: 'json only' }, 415);
+      sendJson(res, { bye: true });
+      console.log('Quit from the menu: stopping.');
+      setTimeout(quit, 150);
+      return;
     }
     if (p === '/api/rescan') {
       loadLibrary();

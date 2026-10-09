@@ -19,7 +19,7 @@ import { SERVER_API, SERVER_OLD } from './api.js';
 import { $, mixer, highway, input, screen, songs, info } from './core.js';
 import { applyMix } from './instrument.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
-import { title, showTitle, libraryLabel, sheetKeys } from './menu.js';
+import { title, showTitle, libraryLabel, sheetKeys, titleEscape } from './menu.js';
 import { chart, session, openSong, scorer, sync, inputBetween, playerKey } from './player.js';
 import { calib, runCalibration, calibKey } from './sync-test.js';
 import { saveTake } from './takes.js';
@@ -86,6 +86,7 @@ document.addEventListener('keydown', e => {
   if (document.querySelector('.gk-sheet')) return; // an open sheet has the keys
   const typing = !!(e.target.closest && e.target.closest('input[type=search],input[type=text],select'));
   if (calib && screen === 'player' && calibKey(e)) return;
+  if (screen === 'title' && title && e.key === 'Escape') { e.preventDefault(); titleEscape(); return; } // twice: quit
   if (screen === 'library') libraryKey(e, typing);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
