@@ -51,6 +51,33 @@ export function titleCfg() {
   };
 }
 
+/* Esc twice on the menu: quit. The first asks, for a few seconds; the second stops the
+ * server and closes the window (in a browser that won't let a page close its own tab, the
+ * page says it has stopped instead). */
+let quitAsked = 0;
+export function titleEscape() {
+  const now = performance.now();
+  if (now - quitAsked < 3000) { quitAsked = 0; quitGame(); return; }
+  quitAsked = now;
+  let el = document.querySelector('.quit-ask');
+  if (!el) { el = document.createElement('div'); el.className = 'quit-ask'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.innerHTML = 'Press <kbd>Esc</kbd> again to quit PumaBass';
+  el.classList.remove('gone');
+  clearTimeout(el.timer);
+  el.timer = setTimeout(() => { el.classList.add('gone'); quitAsked = 0; }, 3000);
+}
+async function quitGame() {
+  const ask = document.querySelector('.quit-ask');
+  if (ask) ask.remove();
+  const el = document.createElement('div');
+  el.className = 'quit-done';
+  el.setAttribute('role', 'status');
+  el.innerHTML = '<h1>PumaBass has stopped</h1><p>Close this window, or just turn off the TV. Starting PumaBass again starts it all again.</p>';
+  document.body.appendChild(el);
+  try { await fetch('/api/quit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); } catch (e) { /* already gone */ }
+  window.close();
+}
+
 export function showTitle() {
   setScreen('title');
   $('library').classList.add('hidden');

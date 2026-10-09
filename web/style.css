@@ -111,14 +111,21 @@ html.couch .gk-sheet .gk-box { max-height: calc(100dvh / var(--z, 1) - 32px); }
 /* ---- the title (the canon's markup and keys; PumaBass's look) ---- */
 html .gk-title>.gk-shade { background: linear-gradient(rgba(var(--bg-rgb), .85), rgba(var(--bg-rgb), .4) 45%, rgba(var(--bg-rgb), 0) 75%),
   linear-gradient(transparent calc(100% - 90px), rgba(var(--bg-rgb), .85)); }
-html .gk-title { padding-top: 40px; padding-bottom: 56px; }
+html .gk-title { padding-top: 32px; padding-bottom: 52px; }
+/* The canon centres the menu, with equal room above and below; with eight items (Resume game
+ * and Score a song) that pushed the name and the credit off a TV. The room below gives way first. */
+html .gk-title main { grid-template-rows: minmax(min-content, 1fr) auto minmax(0, 1fr); min-height: 0; }
+/* ...which takes the title being exactly the screen's height: with only a minimum, the canon's
+ * 1fr rows grow to their content, and the empty row under the menu matched the name's height. */
+html .gk-title { height: 100dvh; }
+html.couch .gk-title { height: calc(100dvh / var(--z, 1)); }
 html .gk-title h1 { font-family: var(--display); font-weight: 800; font-size: 80px; line-height: .9; letter-spacing: -.01em; padding: 0;
   color: var(--text); transform: var(--lean); text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
 html .gk-title h1 b { color: var(--accent); font-weight: inherit; }
 html .gk-title .gk-rule { width: 220px; height: 4px; margin: 14px 0 20px; background: linear-gradient(90deg, var(--accent), #8af6ff); transform: skewX(-20deg); }
-html .gk-menu { gap: 6px; width: min(460px, 100%); }
+html .gk-menu { gap: 5px; width: min(460px, 100%); }
 html .gk-menu .gk-lbl { display: inline-block; transform: var(--lean); }
-html .gk-menu button { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: .03em; min-height: 52px; padding: 0 18px;
+html .gk-menu button { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: .03em; min-height: 48px; padding: 0 18px;
   border-radius: 6px; border: 1px solid var(--line); color: var(--text);
   background: linear-gradient(rgba(var(--tile-rgb), .92), rgba(var(--panel-rgb), .92)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .35);
   transition: transform .15s cubic-bezier(.22, 1, .36, 1), background .15s, border-color .15s; }
@@ -556,3 +563,13 @@ button.heart:focus-visible { padding: 2px 6px; }
 .end-strip-note { margin: 4px 0 0; font-size: 14px; color: var(--dim); }
 /* a key named in a sentence sits in it like a word */
 p kbd, .note kbd, .gk-note kbd, td kbd { margin: 0 2px; }
+
+/* ---- quitting: Esc on the menu asks, a second Esc stops PumaBass ---- */
+.quit-ask { position: fixed; z-index: 60; left: 50%; bottom: 72px; transform: translateX(-50%); padding: 10px 20px; border-radius: 8px;
+  background: linear-gradient(var(--sheet-top), var(--sheet-bot)); border: 1px solid var(--accent); color: var(--text); font-size: 18px; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5); transition: opacity .3s; }
+.quit-ask.gone { opacity: 0; pointer-events: none; }
+.quit-ask kbd { margin: 0 4px; }
+.quit-done { position: fixed; inset: 0; z-index: 2147483001; display: grid; place-content: center; text-align: center; gap: 12px; background: var(--bg); }
+.quit-done h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 52px; text-transform: uppercase; color: var(--text); transform: var(--lean); }
+.quit-done p { margin: 0; font-size: 18px; color: var(--ink); }
