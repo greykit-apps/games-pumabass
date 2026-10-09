@@ -26,8 +26,8 @@ address yourself). On first run, **Learn a song** asks for your songs folder.
 ## Your songs
 
 PumaBass reads Rocksmith 2014 song files (`.psarc`) from three folders beside it, each a library
-with its own tab on the song list (after **All**, which lists every song once; **L** steps through
-them):
+with its own tab on the song list once it has songs (after **All**, which lists every song once;
+**L** steps through them):
 
 - `bundles/`: Rocksmith's own song sets, such as the on-disc songs (`songs.psarc`) and the
   Rocksmith 1 import packs.

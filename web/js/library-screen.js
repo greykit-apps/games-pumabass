@@ -124,8 +124,8 @@ export function showSongInList(id) {
 }
 
 /* The libraries, each a tab on the song list and a folder the server reads
- * (server/library.js: SOURCES). Your own Rocksmith folder has a tab only once
- * you've chosen one. */
+ * (server/library.js: SOURCES). A library with no songs in its folder has no
+ * tab (your own Rocksmith folder: none until you choose one); All always does. */
 export const LIBRARIES = [
   ['all', 'All'],
   ['bundles', 'Bundles', 'Rocksmith song sets'],
@@ -133,9 +133,8 @@ export const LIBRARIES = [
   ['music', 'Music', 'songs you made, and your recordings'],
   ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
 ];
-const shownLibraries = () => LIBRARIES.filter(([k]) => k !== 'folder' || info.libraryDir);
 const inLibrary = (s, key) => key === 'all' || (s.sources || ['folder']).includes(key);
-const libraryDir = key => ((info.libraries || []).find(l => l.key === key) || {}).dir;
+const shownLibraries = () => LIBRARIES.filter(([k]) => k === 'all' || songs.some(s => inLibrary(s, k)));
 
 export const stringsOf = s => (s.type === 'bass' ? 4 : 6);
 export function renderLibrary() {
@@ -192,8 +191,8 @@ export function renderLibrary() {
   el.innerHTML = list.length ? '' : !songs.length
     ? `<div class="empty"><p>No songs yet. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>). Put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button></div>`
     : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.'
-      : prefs.library !== 'all' && !ofType.length && libraryDir(prefs.library)
-        ? `No songs in ${esc(lib[1])} yet. Put song files (<code>.psarc</code>) in <code>${esc(libraryDir(prefs.library))}</code>, then Rescan.`
+      : prefs.library !== 'all' && !ofType.length
+        ? `None of the songs in ${esc(lib[1])} have ${esc(prefs.type)} parts. Choose All parts above, or another library.`
         : 'No songs here.'}</div>`;
   const frag = document.createDocumentFragment();
   const head = text => { const h = document.createElement('div'); h.className = 'group'; h.appendChild(document.createElement('span')).textContent = text; frag.appendChild(h); };
