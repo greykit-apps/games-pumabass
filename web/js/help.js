@@ -141,7 +141,9 @@ ${keys([
     ['chevrons on top', 'bend: one a half step, two a whole'],
   ])}
 <p>And its tail: it curves to a slide's fret, lifts off the string where it bends, waves for vibrato and
-zigzags for tremolo. A box round notes: play them together.</p>`)],
+zigzags for tremolo. A box round notes: play them together; an empty box, the same chord again (a bow tie or
+cross in it: palm-muted or fret-hand-muted). A faint tunnel behind a chord: keep holding its shape; brackets on
+the strings: an arpeggio, that shape picked a note at a time.</p>`)],
   ['Your songs', cols(`
 <h3>Your song files</h3>
 <p>PumaBass plays your own Rocksmith 2014 song files (<code>.psarc</code>). Choose their folder in <b>Settings</b>;

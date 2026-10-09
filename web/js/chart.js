@@ -6,6 +6,7 @@ export function buildPlayable(chart, percent) {
   const byDiff = new Map(chart.levels.map(l => [l.difficulty, l]));
   const notes = [];
   const anchors = [];
+  const handShapes = [];
   chart.phraseIterations.forEach((it, i) => {
     const maxD = chart.phrases[it.phrase]?.maxDifficulty ?? 0;
     const want = Math.round((maxD * percent) / 100);
@@ -15,11 +16,20 @@ export function buildPlayable(chart, percent) {
     if (!level) return;
     for (const n of level.notes) if (n.pi === i) notes.push(n);
     for (const a of level.anchors) if (a.pi === i) anchors.push(a);
+    for (const h of level.handShapes || []) if (h.t >= it.t && h.t < it.end) handShapes.push(h);
   });
   notes.sort((a, b) => a.t - b.t);
   anchors.sort((a, b) => a.t - b.t);
+  handShapes.sort((a, b) => a.t - b.t);
+  // A chord straight after the same chord is a repeat, drawn as its frame alone. Rocksmith
+  // 2014's charts say which (repeat); older ones don't, so: the same chord as the note just
+  // before, within a second.
+  if (!notes.some(n => n.repeat)) notes.forEach((n, i) => {
+    const prev = notes[i - 1];
+    if (n.notes && prev && prev.notes && prev.chord === n.chord && n.t - prev.t < 1) n.repeat = true;
+  });
   if (!anchors.length) anchors.push({ t: 0, end: chart.songLength, fret: 1, width: 4 });
-  return { notes, anchors };
+  return { notes, anchors, handShapes };
 }
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
