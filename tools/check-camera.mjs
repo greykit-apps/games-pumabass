@@ -32,9 +32,9 @@ if (!songs.length) { console.error('no bass charts with audio found -- nothing c
 let notes = 0, off = 0, late = 0, moves = 0, moving = 0, wide = 0, frames = 0;
 const peaks = [], offBy = {};
 for (const s of songs) {
-  const p = buildPlayable(lib.chart(s.id), 100);
+  const chart = lib.chart(s.id), p = buildPlayable(chart, 100);
   const hw = new Highway({ getContext: () => ({}) });
-  hw.setChart({ strings: 4 }, p);
+  hw.setChart(chart, p);
   const inView = (f, t) => { const c = hw.camAt(t); return f - 1 >= c.c - c.w / 2 - 0.01 && f <= c.c + c.w / 2 + 0.01; };
   for (const n of p.notes) for (const q of n.notes || [n]) {
     if (!(q.f > 0)) continue;
