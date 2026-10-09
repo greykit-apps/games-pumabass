@@ -26,6 +26,16 @@ const TURN_S = 1;
 // in as they approach: no popping into view. As fractions of the lookahead's depth:
 const SPAWN = 1.12;  // where a note (or beat line) first exists
 const SOLID = 0.8;   // where it is fully drawn
+// Notes are glass (half filled, edged in their colour) until a hit fills them in. A
+// note reaching its string lands with a pulse and fades: a little splash. With
+// scoring live it waits there for its verdict: a hit fills in bright as it goes,
+// a miss is crossed out and drops off the board.
+const SPLASH = 0.3;  // s (song time), the pulse and fade with no verdict to wait for
+const WAIT = 0.5;    // s (song time), the most a scored note waits on its string for its verdict
+const HIT_MS = 380;  // a hit, filling in bright as it fades
+const MISS_MS = 600; // a miss, crossed out and falling away
+const LINGER = 1.4;  // s (song time) a note stays in the running after it lands
+const easeOut = k => 1 - (1 - k) * (1 - k);
 
 export class Highway {
   constructor(canvas) {
@@ -40,7 +50,8 @@ export class Highway {
     this.camX = 5;
     this.camWidth = MIN_VIEW;
     this.camPath = null;
-    this.marks = [];        // scoring's verdicts to show: { ev, hit, wall }
+    this.verdicts = new Map(); // scoring's verdicts, shown as the notes land: note event -> { hit, wall }
+    this.judging = false;   // scoring is live: notes wait on their string for a verdict
     // A loop being played: { from, to }. Play goes back to `from` on reaching
     // `to`, so past `to` the highway shows the loop's start coming round
     // again, and the camera glides there, and the jump back is seamless.
@@ -63,14 +74,19 @@ export class Highway {
     return L.from + ((t - L.to) % (L.to - L.from));
   }
 
-  /** Show a note's verdict where it crossed the strings. */
+  /** Scoring's verdict on a note, shown as it lands. */
   mark(ev, hit) {
-    this.marks.push({ ev, hit, wall: performance.now() });
-    if (this.marks.length > 40) this.marks.splice(0, this.marks.length - 40);
+    const wall = performance.now();
+    this.verdicts.set(ev, { hit, wall });
+    if (this.verdicts.size > 200) for (const [e, v] of this.verdicts) if (wall - v.wall > 3000) this.verdicts.delete(e);
+  }
+  /** After a jump (a loop coming round, say): the notes from t on are unplayed again. */
+  forget(t) {
+    for (const ev of this.verdicts.keys()) if (ev.t >= t) this.verdicts.delete(ev);
   }
 
   setChart(chart, playable) {
-    this.marks = [];
+    this.verdicts.clear();
     this.chart = chart;
     this.notes = playable.notes;
     this.anchors = playable.anchors;
@@ -168,38 +184,6 @@ export class Highway {
     this.drawBeats(now, zMax);
     this.drawBoard(now, anchor);
     this.drawNotes(now, zMax);
-    this.drawMarks();
-  }
-
-  // Hits ring out in the string's colour; misses get a red cross. Each fades in 0.6 s.
-  drawMarks() {
-    const { ctx } = this;
-    const nowWall = performance.now();
-    this.marks = this.marks.filter(m => nowWall - m.wall < 600);
-    for (const m of this.marks) {
-      const age = (nowWall - m.wall) / 600, alpha = 1 - age;
-      const anchor = this.anchorAt(m.ev.t);
-      for (const p of m.ev.notes || [m.ev]) {
-        const [x, y, s] = this.P(this.noteX(p.f, anchor), this.stringY(p.s), 0);
-        const r = s * (0.22 + age * 0.35);
-        ctx.globalAlpha = alpha;
-        if (m.hit) {
-          ctx.strokeStyle = STRING_COLORS[p.s];
-          ctx.lineWidth = Math.max(2, s * 0.06);
-          ctx.shadowColor = STRING_COLORS[p.s];
-          ctx.shadowBlur = 18;
-          ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-          ctx.shadowBlur = 0;
-        } else {
-          const k = s * 0.16;
-          ctx.strokeStyle = '#ff5266';
-          ctx.lineWidth = Math.max(2, s * 0.05);
-          ctx.beginPath(); ctx.moveTo(x - k, y - k); ctx.lineTo(x + k, y + k); ctx.moveTo(x + k, y - k); ctx.lineTo(x - k, y + k); ctx.stroke();
-        }
-        if (!m.hit) break; // one cross for a missed chord
-      }
-      ctx.globalAlpha = 1;
-    }
   }
 
   // Project a world point to the screen. Returns [x, y, scale].
@@ -353,7 +337,7 @@ export class Highway {
       const n = notes[i];
       if (n.t > now + this.lookahead * SPAWN || (L && n.t >= L.to)) break;
       const end = n.t + (n.sus || 0);
-      if (end < now - 0.25) continue;
+      if (end < now - LINGER) continue;
       visible.push(n);
     }
     // Far to near so close notes paint on top.
@@ -369,18 +353,37 @@ export class Highway {
       const sus = n.sus || p.sus || 0;
       if (sus > 0) this.drawSustain(p, n.t, sus, now, zMax, anchor);
     }
-    if (zNote < -0.5) return; // the gem has passed; only the sustain remains
-    const passed = n.t < now;
-    const z = Math.max(0, zNote);
-    // Fading out once played, and in from the far end.
-    const alpha = (passed ? Math.max(0, 1 - (now - n.t) / 0.2) : 1) * this.farAlpha(z);
+    if (n.t < now) { this.drawLanding(n, parts, now - n.t, anchor); return; }
+    const z = zNote;
+    const alpha = this.farAlpha(z); // fading in from the far end
     if (alpha <= 0) return;
 
     // Every note's tail first, so none is drawn over a note: notes played together
     // (an open string under a fretted one, say) stack on one mark and land as one.
     for (const p of parts) this.drawTail(p, z, alpha, anchor);
     if (n.notes && parts.length > 1) this.drawChordFrame(parts, z, alpha, anchor, n);
-    for (const p of parts) this.drawGem(p, z, alpha, anchor, passed, n.tech ? n.tech : p.tech, parts.length === 1);
+    for (const p of parts) this.drawGem(p, z, alpha, anchor, n.tech ? n.tech : p.tech, parts.length === 1);
+  }
+
+  // A note on its string (dt s after it arrived): the splash, or with scoring
+  // live, the wait for its verdict and then the hit or the miss. Gems only: a
+  // landed note has no tail or chord frame.
+  drawLanding(n, parts, dt, anchor) {
+    const v = this.verdicts.get(n);
+    const pulse = 1 + 0.15 * easeOut(Math.min(1, dt / 0.08)); // the bump as it lands
+    let fx;
+    if (v) {
+      const k = (performance.now() - v.wall) / (v.hit ? HIT_MS : MISS_MS);
+      if (k >= 1) return;
+      fx = v.hit ? { scale: pulse + 0.45 * easeOut(k), alpha: (1 - k) ** 1.3, bright: 1 - k / 2, ring: 1.3 + 1.7 * easeOut(k) }
+        : { scale: pulse, alpha: 1 - k * k, drop: k * k, cross: true, glass: true };
+    } else if (this.judging && dt < WAIT) fx = { scale: pulse, alpha: 1, glass: true };
+    else {
+      const k = (dt - (this.judging ? WAIT : 0)) / SPLASH;
+      if (k >= 1) return;
+      fx = { scale: pulse + 0.3 * easeOut(k), alpha: (1 - k) ** 1.5, ring: 1.1 + 1.2 * easeOut(k), glass: true };
+    }
+    for (const p of parts) this.drawGem(p, 0, fx.alpha, anchor, n.tech ? n.tech : p.tech, parts.length === 1, fx);
   }
 
   noteX(fret, anchor) {
@@ -388,6 +391,8 @@ export class Highway {
     return fret - 0.5;
   }
 
+  // A sustain: a ribbon along its string, soft at the edges, fading along its
+  // length and thinning to a rounded end, so it trails off rather than stops square.
   drawSustain(p, t, sus, now, zMax, anchor) {
     const z0 = Math.max(0, this.zOf(t, now));
     const z1 = Math.min(this.zSpawn, this.zOf(t + sus, now));
@@ -395,34 +400,49 @@ export class Highway {
     const y = this.stringY(p.s);
     const startX = this.noteX(p.f, anchor);
     const endX = p.slideTo !== undefined ? this.noteX(p.slideTo, anchor) : startX;
-    const xAt = z => {
-      const frac = Math.min(1, Math.max(0, (z / this.zScale + now - t) / sus));
-      return startX + (endX - startX) * frac;
-    };
-    const steps = startX === endX ? 1 : 12;
+    const fracAt = z => Math.min(1, Math.max(0, (z / this.zScale + now - t) / sus)); // 0 at the note, 1 at the end
+    const xAt = z => startX + (endX - startX) * fracAt(z);
     const half = p.f === 0 ? anchor.width / 2 - 0.1 : 0.22;
+    // The last TAPER s thin to a quarter, rounding off (only the real end: one cut
+    // short by the far end of the highway runs on at full width).
+    const taper = Math.min(0.15, sus * 0.3);
+    // Its near end rounds off a little too, where it meets the strings.
+    const head = Math.min(0.06, (z1 - z0) / this.zScale / 3);
+    const widthAt = z => {
+      const left = (1 - fracAt(z)) * sus, fromNear = (z - z0) / this.zScale;
+      const tail = left >= taper ? 1 : 0.25 + 0.75 * Math.sin((Math.PI / 2) * (left / taper));
+      const near = fromNear >= head ? 1 : 0.55 + 0.45 * Math.sin((Math.PI / 2) * (fromNear / head));
+      return Math.min(tail, near);
+    };
+    // Points along it: evenly, and closer together where the ends round off.
+    const zs = [];
+    for (let i = 0; i <= 16; i++) zs.push(z0 + ((z1 - z0) * i) / 16);
+    const zEnd = this.zOf(t + sus, now);
+    for (let i = 1; i < 6; i++) zs.push(z0 + (head * this.zScale * i) / 6, zEnd - (taper * this.zScale * i) / 6);
     const { ctx } = this;
     ctx.beginPath();
     const left = [], right = [];
-    for (let i = 0; i <= steps; i++) {
-      const z = z0 + ((z1 - z0) * i) / steps;
-      const x = xAt(z);
-      left.push(this.P(x - half, y, z));
-      right.push(this.P(x + half, y, z));
+    for (const z of zs.filter(z => z >= z0 && z <= z1).sort((m, n) => m - n)) {
+      const x = xAt(z), hw = half * widthAt(z);
+      left.push(this.P(x - hw, y, z));
+      right.push(this.P(x + hw, y, z));
     }
     left.forEach(([x, yy], i) => (i ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy)));
     for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
     ctx.closePath();
     const color = STRING_COLORS[p.s];
-    if (z1 <= this.zSolid) ctx.fillStyle = hexA(color, 0.45);
-    else {
-      // Reaching into the far end: fade along its length, as the notes do there.
-      const a = this.P(startX, y, z0), b = this.P(xAt(z1), y, z1);
-      const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
-      for (let i = 0; i <= 4; i++) g.addColorStop(i / 4, hexA(color, 0.45 * this.farAlpha(z0 + ((z1 - z0) * i) / 4)));
-      ctx.fillStyle = g;
+    // Fading along its length, and in from the far end as the notes do there.
+    const a = this.P(xAt(z0), y, z0), b = this.P(xAt(z1), y, z1);
+    const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
+    for (let i = 0; i <= 6; i++) {
+      const z = z0 + ((z1 - z0) * i) / 6;
+      g.addColorStop(i / 6, hexA(color, (0.5 - 0.3 * fracAt(z)) * this.farAlpha(z)));
     }
+    ctx.fillStyle = g;
+    ctx.shadowColor = hexA(color, 0.6); // soft edges
+    ctx.shadowBlur = Math.max(4, a[2] * 0.08);
     ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   drawChordFrame(parts, z, alpha, anchor, n) {
@@ -462,7 +482,9 @@ export class Highway {
     ctx.beginPath(); ctx.moveTo(floor[0], floor[1]); ctx.lineTo(cx, cy); ctx.stroke();
   }
 
-  drawGem(p, z, alpha, anchor, passed, tech = [], single = true) {
+  // fx: how a landed note is drawn (drawLanding): its scale, a fill of bright
+  // (a hit), glass (not filled in), a drop and a cross (a miss), a splash ring.
+  drawGem(p, z, alpha, anchor, tech = [], single = true, fx = null) {
     const { ctx } = this;
     const y = this.stringY(p.s);
     const color = STRING_COLORS[p.s];
@@ -470,8 +492,11 @@ export class Highway {
     const x = this.noteX(p.f, anchor);
     const halfW = open ? anchor.width / 2 - 0.05 : 0.38;
     const halfH = open ? this.stringGap * 0.3 : this.stringGap * 0.47;
-    const [cx, cy, s] = this.P(x, y, z);
-    const w = halfW * 2 * s, h = halfH * 2 * s;
+    const [cx, cy0, s] = this.P(x, y, z);
+    const scale = fx ? fx.scale : 1, drop = fx && fx.drop ? fx.drop : 0;
+    const cy = cy0 + drop * s * 2.2; // a miss falls away below its string
+    const w = halfW * 2 * s * scale, h = halfH * 2 * s * scale;
+    const glass = fx ? !!fx.glass : true; // notes are glass until a hit fills them in
     // Upright (a quarter turn) TURN_S out, flat on arrival. Open notes are bars across
     // the hand's frets, and a chord's notes arrive in its frame: neither turns.
     const turn = single && !open ? (Math.PI / 2) * Math.min(1, z / this.zScale / TURN_S) : 0;
@@ -481,9 +506,9 @@ export class Highway {
     const harmonic = tech.includes('harmonic') || tech.includes('pinch');
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(-turn);
-    ctx.fillStyle = muted ? '#777' : color;
-    if (passed) { ctx.shadowColor = color; ctx.shadowBlur = 25; }
+    ctx.rotate(-turn + drop * 0.5); // a miss tips as it falls
+    ctx.fillStyle = muted ? '#777' : glass ? hexA(color, 0.42) : color;
+    if (fx && fx.ring) { ctx.shadowColor = color; ctx.shadowBlur = fx.bright ? 30 + 30 * fx.bright : 18; } // the splash glows
     if (harmonic && !open) {
       ctx.beginPath();
       ctx.moveTo(0, -h * 0.9); ctx.lineTo(w / 2, 0); ctx.lineTo(0, h * 0.9); ctx.lineTo(-w / 2, 0);
@@ -493,9 +518,12 @@ export class Highway {
       ctx.fill();
     }
     ctx.shadowBlur = 0;
+    if (fx && fx.bright) { ctx.fillStyle = `rgba(255,255,255,${0.55 * fx.bright})`; ctx.fill(); } // a hit, filled in white-hot
     const border = Math.max(1, s * (tech.includes('accent') ? 0.07 : 0.035));
     ctx.lineWidth = border;
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    // its own colour, darker, for a crisp edge (a glass note's edge is the colour itself);
+    // a white edge is kept for special notes
+    ctx.strokeStyle = glass ? color : shade(color, 0.55);
     ctx.stroke();
     if (muted) {
       ctx.strokeStyle = '#fff';
@@ -505,21 +533,38 @@ export class Highway {
       ctx.moveTo(h * 0.35, -h * 0.35); ctx.lineTo(-h * 0.35, h * 0.35);
       ctx.stroke();
     }
+    if (fx && fx.cross) { // a miss: a red cross through it
+      const k = h * 0.75;
+      ctx.strokeStyle = '#ff5266';
+      ctx.lineWidth = Math.max(2.5, s * 0.07);
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-k, -k); ctx.lineTo(k, k); ctx.moveTo(k, -k); ctx.lineTo(-k, k); ctx.stroke();
+      ctx.lineCap = 'butt';
+    }
     ctx.restore();
+    if (fx && fx.ring) { // the splash: a ring in the string's colour, spreading as it fades
+      const rw = halfW * 2 * s * fx.ring, rh = halfH * 2 * s * fx.ring;
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color; ctx.shadowBlur = 12;
+      ctx.lineWidth = Math.max(1.5, s * 0.05 * alpha);
+      roundRect(ctx, cx - rw / 2, cy - rh / 2, rw, rh, Math.min(rh / 2, s * 0.1));
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
 
     // Fret number on the gem, sized to sit inside it: its ink, not its line
     // box, is fitted to the gem's height and width and centred on the gem.
     // (The border is stroked on the edge, so half of it is inside.) It stays
     // upright while the gem turns, shrinking to what fits at any angle.
-    if (!muted && this.labels !== 'off') {
+    if (!muted && this.labels !== 'off' && !(fx && fx.cross)) {
       const k = Math.sin(turn), inner = h - border - Math.max(2, h * 0.14);
       const text = this.labels === 'name' ? noteName(pitchOf(this.chart, p.s, p.f), this.flats) : String(p.f);
-      drawFitted(ctx, text, cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k);
+      drawFitted(ctx, text, cx, cy, (open ? h * 1.6 : w * 0.8) * (1 - k) + h * 0.7 * k, inner * (1 - k) + h * 0.7 * k, glass ? '#fff' : '#111');
     }
 
     // Technique labels above the gem.
     const label = this.labels !== 'off' && techLabel(p, tech);
-    if (label && s > 12) {
+    if (label && s > 12 && !fx) {
       ctx.font = `bold ${Math.round(s * 0.24)}px Saira, system-ui, sans-serif`;
       ctx.textBaseline = 'bottom';
       ctx.fillStyle = '#fff';
@@ -530,7 +575,7 @@ export class Highway {
 }
 
 // Text that fits a box of maxW x maxH, centred on (cx, cy) by its actual ink.
-function drawFitted(ctx, text, cx, cy, maxW, maxH) {
+function drawFitted(ctx, text, cx, cy, maxW, maxH, ink = '#111') {
   if (maxH < 6) return;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic'; // the ink measurements below are from the baseline
@@ -543,7 +588,7 @@ function drawFitted(ctx, text, cx, cy, maxW, maxH) {
   if (px < 7) return;
   ctx.font = `bold ${px}px Saira, system-ui, sans-serif`;
   m = ctx.measureText(text);
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = ink;
   // Fade in as it grows legible, rather than appear at a size.
   const was = ctx.globalAlpha;
   ctx.globalAlpha = was * Math.min(1, (px - 6) / 5);
@@ -579,6 +624,12 @@ function roundRect(ctx, x, y, w, h, r) {
 function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+// A colour darkened to k of its brightness.
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`;
 }
 
 const lerp = (a, b, u) => a + (b - a) * u;
