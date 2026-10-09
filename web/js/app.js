@@ -25,12 +25,64 @@ import { calib, runCalibration, calibKey } from './sync-test.js';
 import { saveTake } from './takes.js';
 import { applyScreen } from './store.js';
 import { keepScreenOn } from './wake.js';
+import { isArrow, moveFocus, nearest } from './spatial.js';
 
 // No browser right-click menu over the game; a text box keeps its own (to paste a search).
 document.addEventListener('contextmenu', e => { if (!e.target.closest('input[type=search], input[type=text], textarea')) e.preventDefault(); });
 
+/* Arrow keys move the focus on every screen (web/js/spatial.js), except where the arrows
+ * already do something there: a slider's value and a text box's caret (Left/Right), the
+ * title menu (the canon's own Up/Down), the song list's rows and groups, the player's
+ * seek and speed (until one of its controls has the focus), and the sync test's nudges.
+ * First in line (registered before any sheet's own keys), so a move here is final. */
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!isArrow(e.key) || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.defaultPrevented) return;
+  const t = e.target, side = e.key === 'ArrowLeft' || e.key === 'ArrowRight';
+  if (side && t.matches && t.matches('input[type=range]')) return; // its value
+  // A text box keeps Left/Right for its caret, until the caret is at that end of the text.
+  if (side && t.matches && t.matches('input[type=search], input[type=text], input:not([type]), textarea')
+    && (e.key === 'ArrowLeft' ? t.selectionStart > 0 : t.selectionEnd < t.value.length)) return;
+  const done = () => { e.preventDefault(); e.stopPropagation(); };
+  const sheet = [...document.querySelectorAll('.gk-sheet')].pop();
+  if (sheet) {
+    // Left/Right along a row of tabs switch tabs, as tabs do.
+    if (side && t.getAttribute && t.getAttribute('role') === 'tab' && sheet.contains(t)) {
+      const tabs = [...sheet.querySelectorAll('[role=tab]')], i = tabs.indexOf(t);
+      const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+      done(); next.click();
+      const now = sheet.querySelector(`[data-tab="${next.dataset.tab}"]`); if (now) now.focus();
+      return;
+    }
+    // Up/Down: to the next control that way, unless there's text that way to read first.
+    const body = sheet.querySelector('.gk-body'), down = e.key === 'ArrowDown';
+    const to = sheet.contains(t) && t !== sheet ? nearest(sheet, t, e.key) : null;
+    const canScroll = body && !side && (down ? body.scrollTop + body.clientHeight < body.scrollHeight - 2 : body.scrollTop > 0);
+    if (canScroll && !(to && body.contains(to))) {
+      done();
+      body.scrollBy({ top: down ? 60 : -60, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      return;
+    }
+    if (moveFocus(sheet, e.key) || sheet.contains(t)) done();
+    return;
+  }
+  if (screen === 'library') {
+    // The rows and the search box have their own arrows (libraryKey); the controls around them move.
+    if (t.closest && (t.closest('#song-list') || t === document.body || (t.id === 'search' && !side))) return;
+    if (moveFocus($('library').querySelector('.pb'), e.key)) done();
+    return;
+  }
+  if (screen === 'player' && !calib) {
+    const mix = $('settings');
+    if (!mix.classList.contains('hidden') && mix.contains(t)) { done(); moveFocus(mix, e.key); return; }
+    // With one of the player's controls focused, the arrows go round the controls; otherwise
+    // they seek and change speed (playerKey). Esc hands them back to the highway.
+    const bars = [...$('player').querySelectorAll('.p-top, .p-bottom')];
+    if (bars.some(b => b.contains(t)) && !(side && t.matches('input[type=range]'))) { done(); moveFocus(bars, e.key); }
+  }
+}, true);
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
   if (document.querySelector('.gk-sheet')) return; // an open sheet has the keys
   const typing = !!(e.target.closest && e.target.closest('input[type=search],input[type=text],select'));
   if (calib && screen === 'player' && calibKey(e)) return;

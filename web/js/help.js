@@ -12,6 +12,9 @@ export const HELP = [
 on their strings in time with the record: play each one as it lands.</p>
 <p>After a pause, play starts six seconds back and counts you in. <b>Resume game</b> picks up where you left
 off.</p>
+<p>The arrow keys move between the buttons on every screen. While a song is up they seek and change speed;
+<kbd>Tab</kbd> gets you to the player's own controls, where the arrows move between them (on a slider,
+Left and Right set it), and <kbd>Esc</kbd> lets go.</p>
 <h3>The bar along the bottom</h3>
 <p>The song's sections, coloured by kind. Click to jump; Shift+click moves the nearest loop edge; paused, the
 mouse wheel scrubs.</p>
@@ -53,6 +56,8 @@ ${keys([
     ['Up / Down', 'through the list'],
     ['Page Up / Down', 'a screenful at a time'],
     ['Left / Right', 'the previous / next group'],
+    ['Up from the top', 'the search box; Right from its end, the buttons beside it'],
+    ['Down at the bottom', 'the buttons under the list'],
     ['Home / End', 'top / bottom'],
     ['Enter', 'play the song'],
     ['F', 'heart it'],

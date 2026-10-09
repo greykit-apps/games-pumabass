@@ -7,6 +7,7 @@ import { $, esc, toast, screen, songs, setScreen, setLibrary } from './core.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
 import { openSong, scoreMode } from './player.js';
+import { nearest } from './spatial.js';
 import { KEY_RECENT, KEY_FAVS, KEY_STATS, load, prefs, savePrefs, toggleFav } from './store.js';
 
 /* The songs folder, picked from this computer's folders through the server,
@@ -286,6 +287,12 @@ export function libraryKey(e, typing) {
   } else if (k === '/' && !typing) { e.preventDefault(); $('search').focus(); }
   else if ((k === '?' || k === 'h') && !typing) { e.preventDefault(); openHelp(); }
   else if ((k === 't' || k === 'T') && !typing) { e.preventDefault(); showTuner(); }
+  else if (k === 'ArrowDown' && rows.length && i === rows.length - 1) {
+    // Past the last song: down to the buttons at the foot of the list.
+    e.preventDefault();
+    const to = nearest($('library').querySelector('.bar'), rows[i], k);
+    if (to) { to.focus({ preventScroll: true }); to.scrollIntoView({ block: 'nearest' }); }
+  }
   else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); focusRow(rows[Math.min(rows.length - 1, i + 1)]); }
   else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); if (i === 0) { $('search').focus(); $('library').scrollTop = 0; } else focusRow(rows[i - 1]); }
   else if (k === 'PageDown' && rows.length && !typing) { e.preventDefault(); focusRow(rows[Math.min(rows.length - 1, Math.max(0, i) + page())]); }
