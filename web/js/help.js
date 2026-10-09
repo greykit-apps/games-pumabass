@@ -112,9 +112,10 @@ cable open, PumaBass listens to each note as it lands: a hit fills in bright; a 
 and drops away. The top bar keeps your accuracy and streak, and the end screen gives your score, your best streak,
 whether you play early or late, and where to practise.</p>
 <h3>What counts</h3>
-<p>The right note, within about an eighth of a second. Hammer-ons and pull-offs need the new pitch, no pluck;
-muted notes and harmonics just the pluck; chords count on the pluck alone, as one cable can't tell a chord's
-shape. Tune first: within half a semitone.</p>`, `
+<p>The right note, within about a sixth of a second. It's forgiving of a muddy sound (the last note still
+ringing, a string you didn't mute): a note only counts as wrong when it clearly was another one.
+Hammer-ons and pull-offs need the new pitch, no pluck; muted notes and harmonics just the pluck; chords
+count on the pluck alone, as one cable can't tell a chord's shape. Tune first: within half a semitone.</p>`, `
 <h3>Unmarked, or many misses?</h3>
 <p><b>Learn a song</b> plays along unmarked. Scoring never runs without an input, so playing through an amp is
 never marked wrong.</p>

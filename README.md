@@ -195,10 +195,15 @@ input) open, each note is judged as it lands: a ring in the string's colour for 
 accuracy and streak in the top bar. The end screen gives the score, best streak, typical timing (early
 or late), a strip of the song coloured by section, and your best accuracy over full plays.
 
-- A note counts when the right pitch (within half a semitone, octave checked) is plucked within
-  130 ms early to 150 ms late, in real time, so slowed-down practice is judged the same. Each pluck
-  goes to its nearest note, so a fast run can't lend one note's pluck to another, and a note still
-  ringing from before never counts again.
+- A note counts when it's plucked within 150 ms early to 180 ms late, in real time (so slowed-down
+  practice is judged the same), and its pitch is right. Scoring is forgiving about a muddy signal (the
+  last note still ringing, an open string nobody muted, a weak fundamental): the pitch counts when it's
+  there at all (within half a semitone), and is wrong only on clear evidence of another note, a fret or
+  more away or the octave above. Plucked on time with the pitch merely unclear, a note gets the benefit
+  of the doubt; a soft pluck with no click counts when its pitch starts right then. Each pluck goes to
+  its nearest note, so a fast run can't lend one note's pluck to another, and a note still ringing from
+  before never counts again. `node tools/check-scoring.mjs --sloppy` plays like a learner through a real
+  cable (dragging, notes left ringing, soft plucks, an open string ringing) to keep it forgiving.
 - Hammer-ons and pull-offs need the new pitch (and not to have been ringing already); muted notes and
   harmonics, the pluck; chords, the pluck alone (a wrong chord shape isn't caught).
 - The input is recorded continuously on the audio thread (`web/js/capture-worklet.js`), stamped with
