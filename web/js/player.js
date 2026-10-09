@@ -137,8 +137,8 @@ async function audioTrouble(s) {
   return `The browser couldn't play the audio for "${s.title}". Open it again; if it fails twice, its file may be in a format this browser can't play.`;
 }
 
-/* N: the notation band goes standard notation, tab, both, off, and round again. In the
- * tab view, where the tab is the view itself, it turns the standard notation over it on and off. */
+/* N: the notation band goes standard notation, tab, both, off, and round again. It's
+ * the highway view's: the tab view is the tab itself. */
 const NOTATION_STEPS = [
   { name: 'staff', staff: true, tab: false, say: 'Standard notation' },
   { name: 'tab', staff: false, tab: true, say: 'Tab' },
@@ -146,15 +146,7 @@ const NOTATION_STEPS = [
   { name: 'off', say: 'Notation off' },
 ];
 function cycleNotation() {
-  if (tabView()) {
-    const on = !(prefs.notation && prefs.notationStaff);
-    if (on && !prefs.notation) prefs.notationTab = false; // the band was off: back on the highway it's the staff alone
-    prefs.notationStaff = on;
-    prefs.notation = prefs.notationStaff || prefs.notationTab;
-    savePrefs();
-    toast(on ? 'Standard notation' : 'Standard notation off');
-    return;
-  }
+  if (tabView()) { toast('Notation is over the highway: V to switch'); return; }
   const now = !prefs.notation || (!prefs.notationStaff && !prefs.notationTab) ? 'off'
     : prefs.notationStaff && prefs.notationTab ? 'both' : prefs.notationStaff ? 'staff' : 'tab';
   const next = NOTATION_STEPS[(NOTATION_STEPS.findIndex(s => s.name === now) + 1) % NOTATION_STEPS.length];

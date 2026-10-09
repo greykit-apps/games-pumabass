@@ -32,7 +32,7 @@ ${keys([
     ['F', 'favorite'],
     ['T', 'tuner'],
     ['V', 'view: highway or tab'],
-    ['N', 'notation: standard, tab, both, off (tab view: standard on / off)'],
+    ['N', 'notation over the highway: standard, tab, both, off'],
     ['S', 'Settings'],
     ['?', 'this help'],
     ['Esc', 'pause; again, the song list'],
@@ -125,8 +125,8 @@ its time on the floor, over the beat lines.</p>
 back to show both ends. A tail means hold the note; a tail that bends is a slide.</p>
 <p>Over the top, standard notation and tab scroll by, each note crossing the blue line as you play it
 (<kbd>N</kbd>). The tab's notes are chips in their strings' colours: a hit lights up and stays lit, a miss fades.
-Or play from the tab, large, in the highway's place (<kbd>V</kbd>), each note played as it crosses the cyan line,
-with the standard notation over it, each note above its chip (<kbd>N</kbd> turns it on and off).</p>`, `
+Or play from the tab, large, in the highway's place (<kbd>V</kbd>), laid out like a page: the cyan line runs
+along the bars as you play, then drops to the line below as the lines move up.</p>`, `
 <h3>Marks on the notes</h3>
 ${keys([
     ['H / P', 'hammer-on / pull-off'],

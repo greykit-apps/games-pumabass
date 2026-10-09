@@ -1,14 +1,14 @@
-// The scrolling score, in two places. The notation band: standard notation over tab,
-// scrolling smoothly over the top of the highway, so you can learn to read music while
-// you play. And the tab view (V): the tab, large, in place of the highway, with the
-// band over it showing just the standard notation, each note over its own chip. In
-// both the tab's notes are chips in their strings' colours, lit by a hit and faded by
-// a miss, and the strings are named at the left. The chart's notes are fitted to its own beats,
-// bar by bar (16ths, or triplets where they fit a beat better). A fixed playhead sits
-// a little in from the left: notes cross it as you play them, and most of the score is
-// what's coming. The clef and key stay put at the left while the bars slide past. In
-// the band, the staff, the tab and the note names each turn on and off. Drawn by
-// VexFlow (web/vendor/vexflow/, MIT), loaded the first time a score is wanted.
+// The score, in two places. The notation band: standard notation over tab, scrolling
+// smoothly over the top of the highway past a fixed playhead, so you can learn to read
+// music while you play. And the tab view (V): the tab, large, in place of the highway,
+// as a page: the bars stand still, laid out in lines across the screen, and the cyan
+// playhead runs along the current line with the next line below it. At the end of a
+// line it jumps down to the next, and the lines glide up to bring in the one after. In
+// both the tab's notes are chips in their strings' colours, lit by a hit and faded by a
+// miss, and the strings are named at the left. The chart's notes are fitted to its own
+// beats, bar by bar (16ths, or triplets where they fit a beat better). In the band, the
+// staff, the tab and the note names each turn on and off. Drawn by VexFlow
+// (web/vendor/vexflow/, MIT), loaded the first time a score is wanted.
 
 import { $, highway } from './core.js';
 import { pitchOf, keyOf, noteName, isDownbeat, tuningNotes } from './chart.js';
@@ -39,31 +39,21 @@ function loadVexFlow() {
 // The song, as both scores write it.
 const song = { chart: null, kind: 'bass', notes: null, bars: [], key: null };
 
-// A score: where it's drawn, how big, and what it shows (staff, tab, names under the notes).
-const score = (el, o) => Object.defineProperties({ el, part: c => el.querySelector(`.nt-${c}`), strip: null, choice: '', L: null },
-  Object.getOwnPropertyDescriptors(o));
-const SCORES = {
-  // The band's tab lines are further apart than VexFlow's 13, so its chips can be read over the highway.
-  // Over the tab view (`over`) it's the standard notation alone, a size up to sit with the
-  // large tab, keeping the tab view's pace and its playhead's place, so each note is right
-  // over its chip.
-  band: score($('notation'), { head: 0.18, gap: 17, over: false,
-    get scale() { return this.over ? 1.5 : 1.1; },
-    get beatW() { return this.over ? (SCORES.tab.beatW * SCORES.tab.scale) / this.scale : 86; },
-    shows() {
-      return this.over ? { staff: true, tab: false, names: prefs.staffNames }
-        : { staff: prefs.notationStaff, tab: prefs.notationTab, names: prefs.notationStaff && prefs.staffNames };
-    },
-    headAt(view) {
-      if (!this.over) return null;
-      const tv = SCORES.tab.part('view'); // both scores start at the same left edge (style.css)
-      return tv.offsetLeft + tv.clientWidth * SCORES.tab.head - view.offsetLeft;
-    } }),
-  // Tab view: the tab alone, a beat narrower (before scale) so the next three seconds or
-  // so are in view, as on the highway; the strings named at the left.
-  tab: score($('tabview'), { scale: 3, beatW: 50, head: 0.2, gap: 13,
-    shows: () => ({ staff: false, tab: true, names: false }), headAt: () => null }),
-};
+// The band: where it's drawn, how big, and what it shows (staff, tab, names under the
+// notes). Its tab lines are further apart than VexFlow's 13, so its chips can be read
+// over the highway.
+const BAND = { el: $('notation'), part: c => BAND.el.querySelector(`.nt-${c}`), scale: 1.1, beatW: 86, head: 0.18, gap: 17,
+  strip: null, choice: '', L: null };
+
+// The tab view: its lines of whole bars, as many as fit, spread to fill the width. A bar
+// takes the room its busiest stretch needs to keep its chips apart, so a bar of 16ths is
+// wide and a bar of quarter notes narrow, and a line holds a few seconds of the song.
+const TAB = { el: $('tabview'), box: $('tabview').querySelector('.tv-lines'), head: $('tabview').querySelector('.nt-head'),
+  scale: 1.7, gap: 13, choice: '', L: null, lines: [], drawn: new Map(), cur: -1, lineH: 0 };
+const CHIP_ROOM = 14;  // from one chip's centre to the next, at least (a chip is 11 wide; 15 for two digits)
+const MIN_BEAT = 24;   // the narrowest a beat may be, before scale
+const NAMES_W = 16;    // the strings' names at the start of each line
+const LINE_GAP = 34;   // px between lines
 
 /* The tab view (V) is on: the player shows it in place of the highway. */
 export const tabView = () => prefs.view === 'tab';
@@ -73,31 +63,34 @@ export function setNotationSong(chart, type) {
   song.chart = chart;
   song.kind = type === 'bass' ? 'bass' : 'guitar';
   song.notes = null; // rebuilt from the highway's notes on the next frame
-  for (const S of Object.values(SCORES)) S.strip = null;
+  BAND.strip = null;
+  BAND.choice = TAB.choice = '';
 }
 
-/* Each frame: show or hide the band and the tab view, draw the next stretch of bars
- * when the playhead nears the end of what's drawn, and slide them under the playhead. */
+/* Each frame: show the band or the tab view (or neither), and move it on to time t. */
 export function updateNotation(t, on) {
   const tab = on && !!song.chart && tabView();
-  const band = on && !!song.chart && prefs.notation && (tab ? prefs.notationStaff : prefs.notationStaff || prefs.notationTab);
-  SCORES.band.over = tab;
-  SCORES.band.el.classList.toggle('hidden', !band);
-  SCORES.tab.el.classList.toggle('hidden', !tab);
+  const band = on && !!song.chart && !tab && prefs.notation && (prefs.notationStaff || prefs.notationTab);
+  BAND.el.classList.toggle('hidden', !band);
+  TAB.el.classList.toggle('hidden', !tab);
   if (!band && !tab) return;
   if (!VF) { loadVexFlow().catch(() => { prefs.notation = false; prefs.view = 'highway'; }); return; }
   if (highway.notes !== song.notes) {
     song.notes = highway.notes;
     song.bars = buildBars(song.chart, song.notes);
     song.key = keyOf(song.chart, song.notes);
-    for (const S of Object.values(SCORES)) S.choice = '';
+    BAND.choice = TAB.choice = '';
   }
-  if (tab) update(SCORES.tab, t); // first, so the band can line up with its playhead
-  if (band) update(SCORES.band, t);
+  if (tab) updateTab(t);
+  else updateBand(t);
 }
 
-function update(S, t) {
-  const shows = S.shows(), choice = `${shows.staff}${shows.tab}${shows.names}${S.scale}`;
+/* The band: draw the next stretch of bars when the playhead nears the end of what's
+ * drawn, and slide it under the playhead. */
+function updateBand(t) {
+  const S = BAND;
+  const shows = { staff: prefs.notationStaff, tab: prefs.notationTab, names: prefs.notationStaff && prefs.staffNames };
+  const choice = `${shows.staff}${shows.tab}${shows.names}`;
   if (choice !== S.choice) {
     S.choice = choice;
     S.L = layoutFor(shows, S.gap);
@@ -109,7 +102,82 @@ function update(S, t) {
   const st = S.strip;
   if (!st || k < st.first + 1 || k >= st.first + AHEAD) drawStrip(S, Math.max(0, k - 2));
   slide(S, t);
-  if (S.L.tab) markChips(S, t);
+  if (S.L.tab) markChips(S.strip.chips, t);
+}
+
+/* The tab view: the line t falls in is the current one, at the top, the next below it.
+ * Moving on a line glides them up; any other jump (a seek, a loop coming round) is
+ * made at once. The playhead runs along the current line. */
+function updateTab(t) {
+  const S = TAB;
+  const width = S.el.clientWidth;
+  if (!width) return;
+  const choice = `${width}`;
+  if (choice !== S.choice) {
+    S.choice = choice;
+    S.L = layoutFor({ staff: false, tab: true, names: false }, S.gap);
+    S.lines = breakLines(width / S.scale);
+    for (const d of S.drawn.values()) d.el.remove();
+    S.drawn.clear();
+    S.cur = -1;
+    S.lineH = S.L.height * S.scale + LINE_GAP;
+    S.el.style.height = `${2 * S.lineH - LINE_GAP}px`;
+    S.head.style.height = `${(S.L.headBottom - S.L.headTop) * S.scale}px`;
+  }
+  if (!S.lines.length) return;
+  let li = 0;
+  while (li + 1 < S.lines.length && S.lines[li + 1].start <= t) li++;
+  if (li !== S.cur) {
+    // what's in view, and what's on its way in or out
+    for (const [i, d] of S.drawn) if (i < li - 1 || i > li + 2) { d.el.remove(); S.drawn.delete(i); }
+    for (let i = Math.max(0, li - 1); i <= Math.min(S.lines.length - 1, li + 2); i++) if (!S.drawn.has(i)) S.drawn.set(i, drawLine(i));
+    S.box.style.transition = li === S.cur + 1 ? '' : 'none';
+    S.box.style.transform = `translateY(${-li * S.lineH}px)`;
+    S.cur = li;
+  }
+  const d = S.drawn.get(li);
+  S.head.style.top = `${li * S.lineH + S.L.headTop * S.scale}px`;
+  S.head.style.left = `${xAt(d.points, t) * S.scale}px`;
+  for (const [i, dl] of S.drawn) if (i <= li + 1) markChips(dl.chips, t);
+}
+
+// The song's bars in lines: as many whole bars as fit at the room each needs, then
+// spread to fill the line. `width` in score units.
+function breakLines(width) {
+  const room = width - NAMES_W - 4, lines = [];
+  const need = song.bars.map(barNeeds);
+  for (let i = 0; i < song.bars.length;) {
+    let j = i, sum = 0, extra = 0;
+    do { sum += need[j]; extra += sigW(j); j++; }
+    while (j < song.bars.length && sum + need[j] + extra + sigW(j) <= room);
+    const k = (room - extra) / sum;
+    lines.push({ first: i, count: j - i, start: song.bars[i].start, widths: need.slice(i, j).map((w, n) => w * k + sigW(i + n)) });
+    i = j;
+  }
+  return lines;
+}
+
+// The room a bar needs: its beats at the width that keeps its closest notes' chips apart.
+function barNeeds(bar) {
+  const at = bar.pieces.filter(pc => pc.parts && !pc.tied);
+  let gap = TPB, wide = false;
+  at.forEach((pc, i) => {
+    if (i) gap = Math.min(gap, pc.start - at[i - 1].start);
+    if (pc.parts.some(p => p.f >= 10)) wide = true;
+  });
+  return bar.n * Math.max(MIN_BEAT, ((wide ? CHIP_ROOM + 2 : CHIP_ROOM) * TPB) / Math.max(1, gap));
+}
+
+// One line of the tab view, drawn and placed in the stack of lines.
+function drawLine(i) {
+  const S = TAB, line = S.lines[i];
+  const el = document.createElement('div');
+  el.className = 'tv-line';
+  el.style.top = `${i * S.lineH}px`;
+  S.box.append(el);
+  const ctx = svgIn(S, el, NAMES_W + line.widths.reduce((a, b) => a + b, 0) + 2);
+  drawStringNames(ctx, S.L, NAMES_W / 2);
+  return { el, ...drawBars(S, el, ctx, line.first, line.count, line.widths, NAMES_W) };
 }
 
 /* ---- from the chart to bars of notatable pieces ---- */
@@ -249,42 +317,53 @@ function drawClef(S) {
   const w = L.staff ? staveAt(L, 0, 400).addClef(clefName()).addKeySignature(song.key.name).getNoteStartX() + 6 : 14;
   const ctx = svgIn(S, S.part('clef'), w);
   if (L.staff) staveAt(L, 0, w).addClef(clefName()).addKeySignature(song.key.name).setContext(ctx).draw();
-  if (L.tab) {
-    // The strings named, each in its colour, top line the highest string (under the
-    // clef, with the staff up).
-    const nStr = song.chart.strings, names = tuningNotes(song.chart.tuning, nStr);
-    ctx.openGroup('ntstrings');
-    ctx.setFont('Saira', L.gap * 0.58, 'bold'); // in points
-    for (let line = 0; line < nStr; line++) {
-      const s = nStr - 1 - line;
-      ctx.setFillStyle(STRING_COLORS[s] || '#999');
-      ctx.fillText(names[s], w / 2, L.tabTop + line * L.gap);
-    }
-    ctx.closeGroup();
-  }
+  if (L.tab) drawStringNames(ctx, L, w / 2); // under the clef, with the staff up
   S.el.style.height = `${L.height * S.scale}px`;
   S.part('view').style.left = `${w * S.scale}px`;
   S.part('head').style.top = `${L.headTop * S.scale}px`;
   S.part('head').style.height = `${(L.headBottom - L.headTop) * S.scale}px`;
 }
 
-// STRIP bars from bar `first`, side by side at a steady width per beat. Records,
-// for each note and rest, its song time and where it sits, for slide().
+// The strings named, each in its colour, centred on x, top line the highest string.
+function drawStringNames(ctx, L, x) {
+  const nStr = song.chart.strings, names = tuningNotes(song.chart.tuning, nStr);
+  ctx.openGroup('ntstrings');
+  ctx.setFont('Saira', L.gap * 0.58, 'bold'); // in points
+  for (let line = 0; line < nStr; line++) {
+    const s = nStr - 1 - line;
+    ctx.setFillStyle(STRING_COLORS[s] || '#999');
+    ctx.fillText(names[s], x, L.tabTop + line * L.gap);
+  }
+  ctx.closeGroup();
+}
+
+// A time signature takes room at the start of its bar: the song's first, and wherever it changes.
+const sigW = bi => (bi === 0 || song.bars[bi - 1].n !== song.bars[bi].n ? 26 : 0);
+
+// STRIP bars from bar `first`, side by side at a steady width per beat, for the band to slide.
 function drawStrip(S, first) {
-  const { StaveNote, TabNote, GhostNote, Voice, Formatter, Beam, Tuplet, StaveTie, Accidental, Dot, Fraction } = VF;
-  const L = S.L;
-  const bars = song.bars.slice(first, first + STRIP);
-  const sig = bi => bi === 0 || song.bars[bi - 1].n !== song.bars[bi].n;
-  const widths = bars.map((b, i) => b.n * S.beatW + (sig(first + i) ? 26 : 0));
+  const count = Math.min(STRIP, song.bars.length - first);
+  const widths = song.bars.slice(first, first + count).map((b, i) => b.n * S.beatW + sigW(first + i));
   const el = S.part('strip');
   const ctx = svgIn(S, el, widths.reduce((a, b) => a + b, 0) + 2);
+  S.strip = { first, ...drawBars(S, el, ctx, first, count, widths, 0) };
+}
+
+// `count` bars from bar `first`, side by side from x0 at the given widths, into el's
+// svg. Returns, for each beat, its song time and where it sits (for the playhead), and
+// the tab's chips with their notes (for markChips).
+function drawBars(S, el, ctx, first, count, widths, x0) {
+  const { StaveNote, TabNote, GhostNote, Voice, Formatter, Beam, Tuplet, StaveTie, Accidental, Dot, Fraction } = VF;
+  const L = S.L;
+  const bars = song.bars.slice(first, first + count);
+  const sig = bi => sigW(bi) > 0;
   const clef = clefName(), nStr = song.chart.strings, flats = song.key.flats;
   const points = [], fretted = [];
   // The staves first, to know where each bar's first beat sits: a bar's beats are
   // spread evenly from its first beat to the next bar's, notes placed by their time
   // in that span, so the score scrolls at a steady pace (VexFlow's own spacing,
   // made for reading on paper, would make it surge and slow).
-  let x = 0;
+  let x = x0;
   const staves = bars.map((bar, i) => {
     const stave = staveAt(L, x, widths[i]);
     if (sig(first + i)) stave.addTimeSignature(`${bar.n}/4`);
@@ -393,7 +472,7 @@ function drawStrip(S, first) {
       chips.push({ g: chip(text, str, L.gap), ev: p && p.ev, state: '' });
     }
   }
-  S.strip = { first, points, chips };
+  return { points, chips };
 }
 
 // Each fret number sits on a chip in its string's colour, as the highway's notes
@@ -418,36 +497,43 @@ function chip(text, s, gap) {
 }
 
 // How each chip's note went, from scoring's verdicts (the highway's): a hit pulses
-// and stays bright as it scrolls away; a miss fades back. A note scoring is still
-// listening for keeps its colour until its verdict, as long as the highway would wait
-// for it; with nothing scored, a note fades as it crosses the line.
+// and stays bright until it's gone from view; a miss fades back. A note scoring is
+// still listening for keeps its colour until its verdict, as long as the highway would
+// wait for it; with nothing scored, a note fades as it crosses the line. A hit stays
+// lit after scoring lets go of its verdict (it keeps only the last few seconds'), and
+// a note is fresh again once play goes back before it.
 const WAIT = 0.6;
-function markChips(S, t) {
-  for (const c of S.strip.chips) {
-    if (!c.ev || c.ev.t > t + 0.05 || c.ev.t < t - 4) continue;
+function markChips(chips, t) {
+  for (const c of chips) {
+    if (!c.ev || (c.ev.t > t + 0.05 && !c.state)) continue;
     const v = highway.verdicts.get(c.ev);
-    const state = v ? (v.hit ? 'hit' : 'missed') : t > c.ev.t + (highway.judging ? WAIT : 0) ? 'missed' : '';
+    const state = c.ev.t > t + 0.05 ? '' : v ? (v.hit ? 'hit' : 'missed') : c.state === 'hit' ? 'hit'
+      : t > c.ev.t + (highway.judging ? WAIT : 0) ? 'missed' : '';
     if (state === c.state) continue;
     c.g.classList.toggle('hit', state === 'hit');
     c.g.classList.toggle('missed', state === 'missed');
-    // a strip drawn afresh doesn't pulse its hits again
-    if (state === 'hit' && performance.now() - v.wall > 450) c.g.classList.add('settled');
+    // a hit drawn afresh (a new strip or line) doesn't pulse again
+    c.g.classList.toggle('settled', state === 'hit' && performance.now() - v.wall > 450);
     c.state = state;
   }
 }
 const shade = (hex, k) => `#${[1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('')}`;
 
+// Where song time t sits, from the beats' places: between two beats, in proportion.
+function xAt(pts, t) {
+  let lo = 0, hi = pts.length - 1;
+  while (lo < hi - 1) { const mid = (lo + hi) >> 1; if (pts[mid][0] <= t) lo = mid; else hi = mid; }
+  const [ta, xa] = pts[lo], [tb, xb] = pts[hi];
+  return xa + (xb - xa) * Math.min(1, Math.max(0, (t - ta) / Math.max(1e-6, tb - ta)));
+}
+
 // Slide the strip so song time t sits under the playhead.
 function slide(S, t) {
   const st = S.strip;
   if (!st) return;
-  const pts = st.points;
-  let lo = 0, hi = pts.length - 1;
-  while (lo < hi - 1) { const mid = (lo + hi) >> 1; if (pts[mid][0] <= t) lo = mid; else hi = mid; }
-  const [ta, xa] = pts[lo], [tb, xb] = pts[hi];
-  const x = xa + (xb - xa) * Math.min(1, Math.max(0, (t - ta) / Math.max(1e-6, tb - ta)));
+  const x = xAt(st.points, t);
   const view = S.part('view');
-  const head = S.headAt(view) ?? view.clientWidth * S.head;
+  const head = view.clientWidth * S.head;
   S.part('strip').style.transform = `translateX(${(head - x * S.scale).toFixed(1)}px)`;
   S.part('head').style.left = `${view.offsetLeft + head}px`;
 }
