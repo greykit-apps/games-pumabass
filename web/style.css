@@ -154,7 +154,8 @@ html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
 .seg { display: flex; align-items: center; gap: var(--s1); }
 .check { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--dim); }
 #count { padding: 0 var(--s5) var(--s2); font-size: 16px; color: var(--dim); white-space: nowrap; }
-.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 96px 90px 168px 52px 76px 60px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
+/* the number columns are wide enough for their heading and its sort arrow */
+.songs-head, .song { display: grid; grid-template-columns: 30px minmax(0, 1fr) 96px 108px 168px 70px 96px 82px; gap: var(--s3); align-items: center; padding: 0 var(--s5); }
 .songs-head { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); padding-top: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--line); }
 /* the headings sort the list: the one in use lit, with an arrow (up: A to Z, least first) */
 .songs-head .sorter { font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; text-align: left; white-space: nowrap;
