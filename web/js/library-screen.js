@@ -198,16 +198,18 @@ export function renderLibrary() {
   const frag = document.createDocumentFragment();
   const head = text => { const h = document.createElement('div'); h.className = 'group'; h.appendChild(document.createElement('span')).textContent = text; frag.appendChild(h); };
   let group = null;
+  const groups = []; // for the index beside the list
   if (shelf.length) head('Recently played');
   [...shelf.map(s => [s, true]), ...list.map(s => [s, false])].forEach(([s, shelved]) => {
     if (!shelved) {
       const g = groupOf ? groupOf(s) : shelf.length ? 'All songs' : null;
-      if (g !== null && g !== group) { group = g; head(g); }
+      if (g !== null && g !== group) { group = g; head(g); groups.push(g); }
     }
     const row = document.createElement('div');
     row.className = 'song' + (s.audio === false ? ' noaudio' : '') + (shelved ? ' shelved' : '');
     row.tabIndex = 0;
     row.dataset.id = s.id;
+    if (!shelved && group !== null) row.dataset.group = group;
     row.setAttribute('role', 'listitem');
     const tn = tuningName(s.tuning, stringsOf(s));
     const st = stats[s.id] || {}, fav = !!favs[s.id];
@@ -228,6 +230,7 @@ export function renderLibrary() {
     frag.appendChild(row);
   });
   el.appendChild(frag);
+  buildIndex(groupOf ? groups : []);
   if (keepId) {
     const back = el.querySelector(`.song${keepShelf ? '.shelved' : ':not(.shelved)'}[data-id="${CSS.escape(keepId)}"]`) || el.querySelector(`.song[data-id="${CSS.escape(keepId)}"]`);
     const to = back || el.querySelector('.song');
@@ -294,6 +297,97 @@ $('library').querySelector('.bar').addEventListener('click', async e => {
   }
 });
 
+/* The heading (title, tabs, search, columns) and the foot (Menu, Rescan...) stay put over the list, but
+ * slide away while you go down it, for more of the list, and come back as soon as you go up, reach the
+ * top, or use them (style.css: .lib-head, .head-away). A group's name stays at the top either way. */
+const libEl = $('library'), libHead = libEl.querySelector('.lib-head'), libFoot = libEl.querySelector('.pb > .bar');
+function headAway(on) { libEl.classList.toggle('head-away', on && libEl.scrollTop > libHead.offsetHeight); }
+// Where the list was when you last scrolled it. Moving to a row scrolls too, but that isn't you
+// scrolling (focusRow resets this), or bringing the foot back would nudge the list down and send it away.
+let libLastY = 0;
+{
+  libEl.addEventListener('scroll', () => {
+    const y = libEl.scrollTop, d = y - libLastY;
+    if (Math.abs(d) < 4) return; // a nudge either way changes nothing
+    headAway(d > 0);
+    libLastY = y;
+  }, { passive: true });
+  // Tabbing to the search box, a tab or a button there: back it comes.
+  libHead.addEventListener('focusin', () => headAway(false));
+  libFoot.addEventListener('focusin', () => headAway(false));
+}
+/* The index beside the list: its groups as sorted (initials, tunings, difficulty), the one you're in lit.
+ * Click one to go there, or press and slide along it to skim. (The keys do the same: Left / Right.) */
+const libIndex = $('lib-index');
+let indexRows = [];
+const indexLabel = g => g.replace(/^Difficulty (\d) of 5$/, '$1').replace(/^No difficulty rating$/, '–').replace(/ Standard$/, ' Std');
+function buildIndex(groups) {
+  libIndex.hidden = groups.length < 2;
+  libIndex.innerHTML = libIndex.hidden ? '' : groups.map(g => `<button tabindex="-1" data-g="${esc(g)}" title="${esc(g)}">${esc(indexLabel(g))}</button>`).join('');
+  indexRows = [...$('song-list').querySelectorAll('.song[data-group]')];
+  markIndex();
+}
+// Where the rows start: under the heading (when it's there) and the group's name pinned below it.
+function rowsTop() {
+  const away = libEl.classList.contains('head-away'), g = $('song-list').querySelector('.group');
+  return (away ? libEl.getBoundingClientRect().top : libHead.getBoundingClientRect().bottom) + (g ? g.getBoundingClientRect().height : 0);
+}
+function markIndex() {
+  if (libIndex.hidden || !indexRows.length) return;
+  const y = rowsTop() + 2;
+  let lo = 0, hi = indexRows.length - 1; // the first row not yet scrolled past
+  while (lo < hi) { const m = (lo + hi) >> 1; if (indexRows[m].getBoundingClientRect().bottom > y) hi = m; else lo = m + 1; }
+  const g = indexRows[lo].dataset.group;
+  for (const b of libIndex.children) b.classList.toggle('on', b.dataset.g === g);
+}
+function jumpToGroup(g) {
+  const row = indexRows.find(r => r.dataset.group === g);
+  if (!row) return;
+  const down = row.getBoundingClientRect().top > rowsTop();
+  libEl.classList.toggle('head-away', down); // going down the heading goes; up, it comes back
+  row.focus({ preventScroll: true });
+  row.scrollIntoView({ block: 'start' });
+  if (libEl.scrollTop <= libHead.offsetHeight) libEl.classList.remove('head-away');
+  libLastY = libEl.scrollTop;
+  markIndex();
+}
+{
+  let ticking = false, scrub = false;
+  libEl.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { ticking = false; markIndex(); });
+  }, { passive: true });
+  const at = e => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.closest && t.closest('#lib-index button'); };
+  libIndex.addEventListener('pointerdown', e => {
+    const b = at(e);
+    if (!b) return;
+    e.preventDefault();
+    scrub = true;
+    libIndex.setPointerCapture(e.pointerId);
+    jumpToGroup(b.dataset.g);
+  });
+  libIndex.addEventListener('pointermove', e => { const b = scrub && at(e); if (b && !b.classList.contains('on')) jumpToGroup(b.dataset.g); });
+  const stop = () => { scrub = false; };
+  libIndex.addEventListener('pointerup', stop);
+  libIndex.addEventListener('pointercancel', stop);
+}
+
+/* Their heights let a row brought into view clear them, and a group's name sit under the heading. */
+{
+  const lib = libEl, head = libHead, foot = libFoot;
+  const measure = () => {
+    const group = $('song-list').querySelector('.group');
+    lib.style.setProperty('--lib-head-h', `${head.offsetHeight}px`);
+    lib.style.setProperty('--lib-foot-h', `${foot.offsetHeight}px`);
+    lib.style.setProperty('--lib-group-h', `${group ? group.offsetHeight : 0}px`); // some sorts have no groups
+  };
+  const seen = new ResizeObserver(measure);
+  seen.observe(head);
+  seen.observe(foot);
+  new MutationObserver(measure).observe($('song-list'), { childList: true });
+}
+
 const SHELF = 4; // songs on the Recently played shelf
 const initial = t => { const c = String(t || '').trim().charAt(0).toUpperCase(); return /[A-Z]/.test(c) ? c : c ? '#' : '#'; };
 const DESC = new Set(['plays', 'finished', 'recent']); // sorts that put the most first
@@ -306,6 +400,7 @@ function focusRow(row) {
   const h = row.previousElementSibling;
   (h && h.classList.contains('group') ? h : row).scrollIntoView({ block: 'nearest' });
   row.scrollIntoView({ block: 'nearest' });
+  libLastY = libEl.scrollTop;
 }
 
 export function libraryKey(e, typing) {
@@ -328,17 +423,20 @@ export function libraryKey(e, typing) {
     const to = nearest($('library').querySelector('.bar'), rows[i], k);
     if (to) { to.focus({ preventScroll: true }); to.scrollIntoView({ block: 'nearest' }); }
   }
-  else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); focusRow(rows[Math.min(rows.length - 1, i + 1)]); }
-  else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); if (i === 0) { $('search').focus(); $('library').scrollTop = 0; } else focusRow(rows[i - 1]); }
-  else if (k === 'PageDown' && rows.length && !typing) { e.preventDefault(); focusRow(rows[Math.min(rows.length - 1, Math.max(0, i) + page())]); }
-  else if (k === 'PageUp' && rows.length && !typing) { e.preventDefault(); focusRow(rows[Math.max(0, i - page())]); }
-  else if (k === 'Home' && rows.length && !typing) { e.preventDefault(); focusRow(rows[0]); $('library').scrollTop = 0; }
-  else if (k === 'End' && rows.length && !typing) { e.preventDefault(); focusRow(rows[rows.length - 1]); }
+  // Going down the list the heading slides away; going up it comes back (headAway), before the row is
+  // brought into view, so the row lands clear of it.
+  else if (k === 'ArrowDown' && rows.length) { e.preventDefault(); headAway(true); focusRow(rows[Math.min(rows.length - 1, i + 1)]); }
+  else if (k === 'ArrowUp' && rows.length && i >= 0) { e.preventDefault(); headAway(false); if (i === 0) { $('search').focus(); $('library').scrollTop = 0; } else focusRow(rows[i - 1]); }
+  else if (k === 'PageDown' && rows.length && !typing) { e.preventDefault(); headAway(true); focusRow(rows[Math.min(rows.length - 1, Math.max(0, i) + page())]); }
+  else if (k === 'PageUp' && rows.length && !typing) { e.preventDefault(); headAway(false); focusRow(rows[Math.max(0, i - page())]); }
+  else if (k === 'Home' && rows.length && !typing) { e.preventDefault(); headAway(false); focusRow(rows[0]); $('library').scrollTop = 0; }
+  else if (k === 'End' && rows.length && !typing) { e.preventDefault(); headAway(true); focusRow(rows[rows.length - 1]); }
   else if ((k === 'ArrowRight' || k === 'ArrowLeft') && rows.length && i >= 0) {
     // The next or previous group: the next initial, tuning or difficulty, as the list is sorted.
     e.preventDefault();
     const st = starts();
     const to = k === 'ArrowRight' ? st.find(r => rows.indexOf(r) > i) : st.filter(r => rows.indexOf(r) < i).pop();
+    headAway(k === 'ArrowRight');
     if (to) { focusRow(to); toast(to.previousElementSibling.textContent); }
   }
   else if ((k === 'o' || k === 'O') && !typing) {

@@ -38,6 +38,8 @@
     <div class="scene under" aria-hidden="true"></div>
     <div class="stage">
       <div class="pb">
+        <!-- Stays at the top while the list scrolls under it (style.css: .lib-head). -->
+        <div class="lib-head">
         <header class="top">
           <h1>Songs</h1>
           <span id="count" class="muted small"></span>
@@ -59,6 +61,7 @@
         </div>
         <!-- The column headings sort the list (again: the other way round). -->
         <div class="songs-head" role="group" aria-label="Sort by (O)"><span aria-hidden="true"><span class="ico heart-ico fill"></span></span><span class="c-song"><button class="sorter" data-sort="title">Song</button><button class="sorter" data-sort="artist">Artist</button></span><button class="sorter" data-sort="part">Part</button><button class="sorter c-diff" data-sort="difficulty" title="Rocksmith's difficulty rating for the part">Difficulty</button><button class="sorter c-tun" data-sort="tuning">Tuning</button><button class="sorter c-num" data-sort="plays" title="Times started">Plays</button><button class="sorter c-num" data-sort="finished" title="Times played to the end">Finished</button><button class="sorter c-len" data-sort="length">Length</button></div>
+        </div>
         <div id="song-list" role="list"></div>
         <nav class="bar">
           <button data-act="menu"><kbd>Esc</kbd>Menu</button>
@@ -70,6 +73,8 @@
         </nav>
       </div>
     </div>
+    <!-- The index beside the list: its groups, the one you're in lit (library-screen.js: buildIndex). -->
+    <nav id="lib-index" class="lib-index" aria-label="Jump to a group (Left / Right)" hidden></nav>
   </section>
 
   <!-- Player -->
