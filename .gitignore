@@ -1,6 +1,9 @@
 # Generated song index and decoded audio
 cache/
 
+# Custom songs you download (not shared)
+cdlc/
+
 # Your own recordings (not shared)
 music/*
 !music/.gitkeep

@@ -67,13 +67,17 @@ const lib = new Library({
   libraryDir: config.libraryDir,
   cacheDir: config.cacheDir || path.join(APP_DIR, 'cache'),
   musicDir: config.musicDir || path.join(APP_DIR, 'music'),
+  cdlcDir: config.cdlcDir || path.join(APP_DIR, 'cdlc'),
 });
 fs.mkdirSync(lib.musicDir, { recursive: true });
 
 function loadLibrary() {
-  if (!lib.root) { console.log('No song library chosen yet: open PumaBass and pick your songs folder in Settings.'); return; }
-  if (!fs.existsSync(lib.root)) { console.log(`The song library folder is missing: ${lib.root}`); }
-  console.log(`Reading songs from ${lib.root} ...`);
+  const custom = fs.existsSync(lib.cdlcDir);
+  if (!lib.root) {
+    console.log('No song library chosen yet: open PumaBass and pick your songs folder in Settings.');
+    if (!custom) return;
+  } else if (!fs.existsSync(lib.root)) console.log(`The song library folder is missing: ${lib.root}`);
+  console.log(`Reading songs from ${[lib.root, custom && lib.cdlcDir].filter(Boolean).join(' and ')} ...`);
   lib.load();
   const mine = lib.songs.filter(s => !s.wem && s.userAudio).length, none = lib.songs.filter(s => !s.wem && !s.userAudio).length;
   console.log(`Found ${lib.songs.length} arrangements in ${lib.archiveCount} song files (${mine} using your own recordings, ${none} without audio).`);
@@ -209,7 +213,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/info') {
       return sendJson(res, {
         libraryDir: lib.root, libraryFound: !!(lib.root && fs.existsSync(lib.root)), archives: lib.archiveCount,
-        musicDir: lib.musicDir, platform: process.platform, vgmstream: !!findVgmstream(),
+        cdlcDir: lib.cdlcDir, musicDir: lib.musicDir, platform: process.platform, vgmstream: !!findVgmstream(),
         stale: codeStamp() !== STARTED_WITH,
         api: API_VERSION,
       });

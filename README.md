@@ -249,6 +249,7 @@ The songs folder you choose is saved in `config.json` beside the app. You can al
 | `libraryDir` | your songs folder | none: chosen in Settings |
 | `port` | the address's port | 8014 |
 | `host` | who may connect: `127.0.0.1` is this computer only; `0.0.0.0` lets other devices on your network in (they can then see your folder names in the picker) | `127.0.0.1` |
+| `cdlcDir` | custom songs you download (.psarc), read alongside your songs folder | `cdlc/` |
 | `musicDir` | recordings for charts without audio | `music/` |
 | `cacheDir` | decoded audio and the song index | `cache/` |
 | `openBrowser` | open a browser on start | `true` |

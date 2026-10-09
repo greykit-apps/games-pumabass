@@ -17,8 +17,9 @@ const LAYOUT = {
 const WEM_RE = /^audio\/(?:windows|mac)\/(\d+)\.wem$/;
 
 class Library {
-  constructor({ libraryDir, cacheDir, musicDir }) {
+  constructor({ libraryDir, cacheDir, musicDir, cdlcDir }) {
     this.root = libraryDir || null;
+    this.cdlcDir = cdlcDir || null; // downloaded custom songs, read alongside the library
     this.musicDir = musicDir;
     this.cacheDir = cacheDir;
     this.indexFile = path.join(cacheDir, 'library.json');
@@ -41,10 +42,10 @@ class Library {
     return p;
   }
 
-  // Every .psarc under the library folder. A Mac copy (_m) is skipped when the
-  // PC copy (_p) sits beside it; on its own it is read like any other.
+  // Every .psarc under the library folder and the custom songs folder. A Mac
+  // copy (_m) is skipped when the PC copy (_p) sits beside it; on its own it is
+  // read like any other.
   archiveFiles() {
-    if (!this.root || !fs.existsSync(this.root)) return [];
     const files = [];
     const walk = dir => {
       let entries;
@@ -59,8 +60,8 @@ class Library {
         files.push(full);
       }
     };
-    walk(this.root);
-    return files.sort();
+    for (const dir of [this.root, this.cdlcDir]) if (dir && fs.existsSync(dir)) walk(dir);
+    return [...new Set(files)].sort(); // the custom folder may sit inside the library
   }
 
   // Every numbered .wem and every sound bank in every archive of the library.
@@ -166,7 +167,7 @@ class Library {
     this._shared = null; // archives may have come or gone since the last scan
     let cached = null;
     try { cached = JSON.parse(fs.readFileSync(this.indexFile, 'utf8')); } catch {}
-    if (cached && (cached.version !== INDEX_VERSION || cached.root !== this.root)) cached = null;
+    if (cached && (cached.version !== INDEX_VERSION || cached.root !== this.root || (cached.cdlcDir || null) !== this.cdlcDir)) cached = null;
     const files = this.archiveFiles();
     // When archives come or go, charts that had no audio get another look:
     // their audio may have just arrived (audio.psarc copied after songs.psarc).
@@ -190,7 +191,7 @@ class Library {
       if (onProgress) onProgress(++i, files.length);
     }
     fs.mkdirSync(this.cacheDir, { recursive: true });
-    fs.writeFileSync(this.indexFile, JSON.stringify({ version: INDEX_VERSION, root: this.root, archives: result }));
+    fs.writeFileSync(this.indexFile, JSON.stringify({ version: INDEX_VERSION, root: this.root, cdlcDir: this.cdlcDir, archives: result }));
     // The same arrangement in a PC and a Mac archive: keep the PC one.
     const seen = new Map();
     for (const s of Object.values(result).flatMap(a => a.songs)) {
