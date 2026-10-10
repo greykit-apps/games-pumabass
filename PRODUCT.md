@@ -8,19 +8,20 @@ web
 
 ## Users
 
-Bass players (and some guitar players) who own Rocksmith 2014 songs and want to play them without
-Steam or Rocksmith itself. They run PumaBass on their own computer and play it on a living-room TV
+Bass players (and some guitar players) who want to learn songs on a note highway: songs they chart
+themselves first, then downloads from CustomsForge, and Rocksmith 2014 songs they already own. They run PumaBass on their own computer and play it on a living-room TV
 from the sofa, about three metres away, bass in hand, with a keyboard (often one hand free at best)
 and the bass plugged into a Real Tone Cable. "Computer, up close" is the second setting.
 
 The first player is the developer, on a Linux set-top PC under the TV; the product is meant, in time,
-for other Rocksmith owners running it on their own PCs and TVs, so a stranger's first visit (no songs
+for other players running it on their own PCs and TVs, so a stranger's first visit (no songs
 folder chosen, no cable picked, no favorites) has to work as well as the developer's hundredth.
 
 ## Product Purpose
 
-A note highway for the Rocksmith 2014 songs the player already owns: point it at a folder of
-`.psarc` files and it plays them, bass first, with lead and rhythm guitar charts too. It is for
+A note highway for songs the player charts themselves (EOF and DLC Builder, free; MAKING-SONGS.md),
+bass first, with lead and rhythm guitar charts too. It also plays CustomsForge downloads, and is
+compatible with Rocksmith 2014's song files: point it at a folder of `.psarc` files and it plays them. It is for
 practice and enjoyment: learning songs, slowing them down, looping the hard part, bringing it back up
 to speed, tuning, and learning to read standard notation and tab as the part scrolls past.
 
@@ -29,10 +30,12 @@ practises the parts that went badly, and can read the music a little better each
 
 ## Positioning
 
-It plays the player's own Rocksmith charts and audio, read straight from their song files, with
-Rocksmith's own difficulty levels, on a highway that keeps Rocksmith's string colours, and adds what
+It plays the player's own charts and audio, read straight from their song files (the `.psarc` format
+the custom-song community already makes, so the free charting tools work unchanged), with each chart's
+difficulty levels, on a highway that keeps Rocksmith's string colours, and adds what
 Rocksmith never had: standard notation over tab, scrolling with the song. Everything runs on the
-player's computer; nothing leaves it. Not affiliated with Ubisoft.
+player's computer; nothing leaves it. When it describes where songs come from, the order is always: make your own, then download from
+CustomsForge, then Rocksmith 2014's own, last. Not affiliated with Ubisoft.
 
 ## Operating Context
 

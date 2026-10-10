@@ -74,5 +74,5 @@ PYEOF
 
 # The share card and the touch icon: the family's layout, from greykit-meta.
 bash "$META/tools/make-assets.sh" "$ROOT" --accent '#54f2ff' --bg '#05070f' --font mono \
-  --wordmark 'Puma[Bass]' --desc 'Play the Rocksmith 2014 songs you own on a note highway, straight from your install.' \
+  --wordmark 'Puma[Bass]' --desc 'Learn songs on a note highway, from charts you make yourself.' \
   --tagline 'Bass first, with slow-down and section loops'

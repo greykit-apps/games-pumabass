@@ -3,7 +3,7 @@
 import { formatTime } from './chart.js';
 import { mountTitle, alertSheet, confirmSheet } from './title.js';
 import { mountScene } from './scene.js';
-import { HELP, ABOUT } from './help.js';
+import { HELP, ABOUT, MAKE } from './help.js';
 import { api, WEB, notInDemo } from './api.js';
 import { $, highway, esc, fmtMs, songs, ownSongs, info, setScreen } from './core.js';
 import { inputStatus, chooseInput, showTuner } from './instrument.js';
@@ -165,7 +165,7 @@ export function settingsHTML() {
   // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols): what
   // PumaBass is set up with, and how you like to play. Forget everything on its own at the foot.
   return `<div class='set-cols'><section class='set-col'><h3>App</h3><div class='set-grid'>
-${row('Songs', `<p class='set-val'>${have}, from the bundles, cdlc and music folders${info.libraryDir ? ' and your Rocksmith folder' : ''}</p><p class='set-val'>${folder}</p><div class='gk-row' title='Song files (.psarc) go in the bundles, cdlc or music folder beside PumaBass. A Rocksmith 2014 folder of your own is optional: its songs get their own tab. Rescan after adding songs.'><button data-set='rescan'>Rescan</button><button data-set='library'>${info.libraryDir ? 'Change Rocksmith folder' : 'Choose Rocksmith folder'}</button>${info.libraryDir ? "<button data-set='unlibrary'>Remove it</button>" : ''}</div>`)}
+${row('Songs', `<p class='set-val'>${have}, from the music, cdlc and bundles folders${info.libraryDir ? ' and your Rocksmith folder' : ''}</p><p class='set-val'>${folder}</p><div class='gk-row' title='Song files (.psarc) you make go in the music folder beside PumaBass, downloads in cdlc. Rocksmith 2014 songs work too: in bundles, or a Rocksmith folder of your own on its own tab. Rescan after adding songs.'><button data-set='make'>Make your own</button><button data-set='rescan'>Rescan</button><button data-set='library'>${info.libraryDir ? 'Change Rocksmith folder' : 'Choose Rocksmith folder'}</button>${info.libraryDir ? "<button data-set='unlibrary'>Remove it</button>" : ''}</div>`)}
 ${row('Input', `<p class='set-val'>${inputStatus()}</p><div class='gk-row'><button data-set='input'>Choose input</button></div>`)}
 ${row('Tuner', `<div class='gk-row'><button data-set='tuner' title='Tune to the song with the Real Tone Cable; it opens by itself when a song needs another tuning'>Open tuner</button></div>`)}
 ${row('Sync', `<div class='gk-row'><button data-set='sync' title='Line up the sound and the picture, and the cable'>Run sync</button><span class='set-val inline'>${
@@ -226,6 +226,10 @@ export async function settingsClick(b, sheet) {
         await loadLibrary();
       } catch (e) { sheet.close(); await alertSheet(e.message, "Can't remove the Rocksmith folder"); return; }
       break;
+    case 'make':
+      sheet.close();
+      openHelp(MAKE);
+      return;
     case 'input':
       sheet.close();
       chooseInput();
@@ -307,8 +311,8 @@ function openSheet(name, draw, onClick) {
 }
 
 /* Help from the song list or the player. */
-export function openHelp() {
-  let tab = 0;
+export function openHelp(start) {
+  let tab = Math.max(0, HELP.findIndex(([t]) => t === start));
   const sheet = openSheet('Help', () => `<div class="gk-tabs" role="tablist">${HELP.map(([t], i) => `<button role="tab" data-tab="${i}" aria-selected="${i === tab}" aria-pressed="${i === tab}">${esc(t)}</button>`).join('')}</div>
       <div class="gk-body">${HELP[tab][1]}</div>`, (b, sh) => {
     if (b.dataset.tab !== undefined) { tab = Number(b.dataset.tab); sh.refresh(); sh.el.querySelector(`[data-tab="${tab}"]`).focus(); }

@@ -5,6 +5,16 @@ const keys = rows => `<table class="keys">${rows.map(([k, v]) => `<tr><td>${k}</
 // Each tab fits the TV without scrolling: two columns in a wide box (style.css: .help-cols).
 const cols = (left, right) => `<div class="help-cols"><div>${left}</div><div>${right}</div></div>`;
 
+// Making your own songs is what PumaBass is for; downloads come next, Rocksmith's own songs last.
+// The song list and Settings open Help at this tab (openHelp(MAKE)).
+export const MAKE = 'Make your own';
+const LINKS = {
+  eof: 'https://ignition4.customsforge.com/eof',
+  dlcBuilder: 'https://github.com/iminashi/Rocksmith2014.NET/releases',
+  wwise: 'https://www.audiokinetic.com/download/',
+  customsforge: 'https://customsforge.com/',
+};
+
 export const HELP = [
   ['Playing', cols(`
 <h3>Getting going</h3>
@@ -156,18 +166,39 @@ ${keys([
 zigzags for tremolo. A box round notes: play them together; an empty box, the same chord again (a bow tie or
 cross in it: palm-muted or fret-hand-muted). A faint tunnel behind a chord: keep holding its shape; brackets on
 the strings: an arpeggio, that shape picked a note at a time.</p>`)],
+  [MAKE, cols(`
+<p>The best songs to learn from are the ones you chart yourself: any song you have a recording of, written down
+the way you play it. Two free programs turn it into a song file (<code>.psarc</code>) for PumaBass.</p>
+<h3>1. Chart it: Editor on Fire</h3>
+<p><a href="${LINKS.eof}" target="_blank" rel="noopener">EOF</a> (Windows and Mac). Load your recording, line the
+beat up with it, and put the bass notes on the <b>PART REAL_BASS</b> track, by hand or from a Guitar Pro tab. In
+its preferences, turn on <b>Save separate Rocksmith 2 files</b>: saving then writes the part as an XML file.</p>
+<h3>2. Pack it: DLC Builder</h3>
+<p><a href="${LINKS.dlcBuilder}" target="_blank" rel="noopener">DLC Builder</a> (Windows, Mac and Linux). Give it
+the XML, your recording, a cover picture, the title and artist, and build: out comes the <code>.psarc</code>.
+It makes the simpler versions of each phrase that <b>Notes</b> plays, too.</p>`, `
+<h3>Before you pack: Wwise</h3>
+<p>DLC Builder converts your recording with <a href="${LINKS.wwise}" target="_blank" rel="noopener">Wwise</a>,
+free from Audiokinetic (versions 2019 to 2023). Install only its <b>Authoring</b> package, and run it once.</p>
+<h3>3. Play it</h3>
+<p>Put the <code>.psarc</code> in PumaBass's <code>music</code> folder and press <b>Rescan</b>: it's on the
+<b>Music</b> tab. Notes early or late against the record? Fix the beat in EOF and pack it again.</p>
+<h3>Or download songs</h3>
+<p>Short of time? <a href="${LINKS.customsforge}" target="_blank" rel="noopener">CustomsForge</a> has songs other
+people charted: they go in the <code>cdlc</code> folder. PumaBass is also compatible with Rocksmith 2014's own song
+files (<b>Your songs</b>).</p>`)],
   ['Your songs', cols(`
 <h3>Three folders, three libraries</h3>
-<p>PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>) from three folders beside it, each a tab on
-the song list:</p>
+<p>PumaBass plays song files (<code>.psarc</code>) from three folders beside it, each a tab on the song
+list:</p>
 ${keys([
-    ['bundles', 'Rocksmith\'s own song sets: the disc songs, the Rocksmith 1 packs'],
-    ['cdlc', 'custom songs you download, from CustomsForge say'],
-    ['music', 'songs you made, and recordings for charts with no audio'],
+    ['music', 'songs you made (<b>Make your own</b>), and recordings for charts with no audio'],
+    ['cdlc', 'songs you download, from CustomsForge say'],
+    ['bundles', 'Rocksmith 2014\'s own song sets: the disc songs, the Rocksmith 1 packs'],
   ])}
 <p>Folders inside them are read too. Press <b>Rescan</b> (under the song list, or in Settings) after adding
 songs. A song in two places is listed once.</p>
-<p>The disc songs need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code> (their
+<p>Rocksmith's disc songs need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code> (their
 audio).</p>
 <h3>The demo song</h3>
 <p><b>Prowl</b>, on the <b>Demo</b> tab, comes with PumaBass: a riff written for it, to play before your own
@@ -186,6 +217,7 @@ then; the button at its foot shows them.</p>`)],
 
 export const ABOUT = `
 <p><b>PumaBass</b> is a RockSmith-style tabulature player. At its core, it takes tab notation, turns it sideways,
-and synchronizes it to the music. You can use CustomsForge PSARC files or make your own using a simple synchronizer.
+and synchronizes it to the music. Make your own PSARC files (<b>Help &rarr; Make your own</b>) or download them
+from CustomsForge; it's also compatible with Rocksmith 2014's.
 It can also "score" your playing, if you really like being judged by a machine.</p>
 <p class="gk-credit">Developed entirely with Claude Code. Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;

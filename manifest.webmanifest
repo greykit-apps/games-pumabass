@@ -1,7 +1,7 @@
 {
   "name": "PumaBass",
   "short_name": "PumaBass",
-  "description": "Play the Rocksmith 2014 songs you own on a note highway, straight from your install: bass first, with slow-down, section loops and Rocksmith's own difficulty levels.",
+  "description": "Learn songs on a note highway, from charts you make yourself: bass first, with slow-down, section loops and difficulty levels. Also plays CustomsForge and Rocksmith 2014 song files.",
   "start_url": ".",
   "scope": "./",
   "display": "standalone",

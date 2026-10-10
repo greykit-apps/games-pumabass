@@ -24,6 +24,17 @@
       "port": 8016
     },
     {
+      "name": "pumabass-3",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server/server.js",
+        "--no-open",
+        "--port",
+        "8018"
+      ],
+      "port": 8018
+    },
+    {
       "name": "pumabass-web",
       "runtimeExecutable": "python",
       "runtimeArgs": [
