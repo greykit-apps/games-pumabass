@@ -25,7 +25,7 @@ function loadVexFlow() {
   if (VF) return Promise.resolve(VF);
   return loading ||= new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'web/vendor/vexflow/vexflow-bravura.js';
+    s.src = new URL('../vendor/vexflow/vexflow-bravura.js', import.meta.url).href; // beside this file, wherever the page is
     s.onload = async () => {
       try { await document.fonts.ready; } catch (e) { /* draw anyway */ }
       VF = window.VexFlow;
