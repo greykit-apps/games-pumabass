@@ -8,7 +8,7 @@ import { alertSheet } from './title.js';
  * (notInDemo); Quit isn't there at all. */
 export const WEB = typeof document !== 'undefined' && document.documentElement.dataset.edition === 'web';
 export function notInDemo(what) {
-  return alertSheet(`${what} isn't in the web demo. PumaBass on your own computer plays the Rocksmith 2014 songs you own.`, 'Not available in the demo');
+  return alertSheet(`${what} isn't in the web demo. On your own computer, PumaBass plays PSARC song packages that you make or provide, and can be pointed at your Rocksmith 2014 folder.`, 'Not available in the demo');
 }
 
 

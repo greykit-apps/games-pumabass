@@ -238,7 +238,7 @@ export function renderLibrary() {
     const hint = document.createElement('div');
     hint.className = 'empty';
     hint.innerHTML = WEB
-      ? `<p>This is PumaBass's web demo, with one song written for it. On your own computer, PumaBass plays the Rocksmith 2014 songs you own.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`
+      ? `<p>This is PumaBass's web demo, with one song written for it. On your own computer, PumaBass plays PSARC song packages that you make or provide, and can be pointed at your Rocksmith 2014 folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`
       : `<p>That's the demo song, to play while you set up. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>) too: put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`;
     frag.appendChild(hint);
   }
