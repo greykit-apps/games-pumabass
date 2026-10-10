@@ -130,12 +130,18 @@ Don't edit the canon copies here; change them in games-meta and copy them back.
 ## The web demo
 
 greykit.com/games/pumabass/ runs PumaBass with no server: the page alone, playing the demo song.
-`tools/build-web.sh` copies the page, its icons and manifest, and `web/` into `public/`, and marks the page
+`tools/build-web.sh` copies the page, its icons and manifest, and `web/` (as `web-<commit>/`) into `public/`, and marks the page
 `<html data-edition="web">`. With that mark (`WEB` in `web/js/api.js`) the page never asks the server
 for anything: the library is the demo song alone, and what needs the server (your songs, choosing a
 folder, Rescan, saving a take) opens a "Not available in the demo" popup (`notInDemo`). Quit isn't
 offered, and opening the song doesn't look for the Real Tone Cable (which asks to use the microphone)
 until you've chosen an input. Everything the page loads is by relative path, so it works from a subfolder.
+
+`web/` goes up as `web-<commit>/`. greykit.com sits behind Cloudflare, which keeps scripts and styles for a
+month: a deploy that reused the same addresses would leave visitors on the old scripts (or a new page with
+old scripts). Each deploy's files get addresses Cloudflare has never seen, and the page itself is only kept
+a minute. So inside `web/`, find files relative to the script (`new URL('…', import.meta.url)`), never by a
+path from the page.
 
 CI's deploy stage builds it and rsyncs `public/` to greykit.com/games/pumabass/ on every main commit, as
 the other greykit.games deploy, with the group's DreamHost CI variables. Only the build goes up: never
