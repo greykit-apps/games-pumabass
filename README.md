@@ -39,6 +39,10 @@ You can also point PumaBass at a Rocksmith folder of your own (a whole Rocksmith
 in more than one place is listed once. Folders inside these folders are read too. Press **Rescan**
 after adding songs. git ignores all three folders.
 
+`node tools/cdlc-index.mjs` writes `cdlc/index.html`, a page listing every song file there (parts,
+bass difficulty, tuning, length) with a link to each file; open it from disk. Run it again after adding
+songs. Give it another folder to list that one instead: `node tools/cdlc-index.mjs bundles`.
+
 - PC (`_p.psarc`) and Mac (`_m.psarc`) files both work; when both are there, the PC one is used.
 - The songs on the Rocksmith disc keep their charts in `songs.psarc` and their audio in
   `audio.psarc`. Copy both, anywhere in the folder.

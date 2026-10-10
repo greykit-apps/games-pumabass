@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PumaBass songs: __FOLDER__</title>
+<!-- Written by tools/cdlc-index.mjs. Edit that template (tools/cdlc-index.html), not this copy: the next run replaces it. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;800&family=Saira:wght@500;700&display=swap">
+<style>
+:root {
+  --stage: #05070f; --panel: #0a0e1a; --rule: #1b2540; --hover: #0f1628;
+  --head: #dbe4fb; --ink: #a9b4d2; --dim: #7d8aa8; --cyan: #54f2ff; --amber: #ffb000; --red: #ff5266;
+  --display: "Saira Condensed", "Arial Narrow", sans-serif;
+  --body: "Saira", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--stage); color: var(--ink); font: 500 15px/1.45 var(--body); }
+.wrap { max-width: 1200px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; }
+h1 { font: 800 clamp(2rem, 5vw, 3.2rem)/1 var(--display); color: var(--head); margin: 0; letter-spacing: -.01em; }
+h1 span { color: var(--cyan); }
+.sub { margin: 8px 0 0; color: var(--dim); }
+.sub b { color: var(--head); font-variant-numeric: tabular-nums; }
+
+.bar { position: sticky; top: 0; z-index: 2; background: var(--stage); border-bottom: 1px solid var(--rule);
+  margin-top: 18px; padding-block: 12px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+#q { flex: 1 1 240px; min-width: 0; font: 500 15px var(--body); color: var(--head); background: var(--panel);
+  border: 1px solid var(--rule); border-radius: 4px; padding: 9px 12px; }
+#q::placeholder { color: var(--dim); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.seg button { font: 700 13px var(--body); letter-spacing: .04em; color: var(--ink); background: var(--panel); border: 0; padding: 8px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--cyan); color: var(--stage); }
+.toggle { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.toggle input { accent-color: var(--cyan); margin: 0; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+#count { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 860px; }
+th { font: 700 12px var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); text-align: left;
+  padding: 10px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th button { all: unset; cursor: pointer; }
+th button::after { content: ""; margin-left: 6px; color: var(--cyan); }
+th[aria-sort="ascending"] button::after { content: "▲"; }
+th[aria-sort="descending"] button::after { content: "▼"; }
+th[aria-sort] button { color: var(--head); }
+td { padding: 9px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:hover td { background: var(--hover); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.t { color: var(--head); font-weight: 700; }
+.alb { display: block; color: var(--dim); font-size: 13px; }
+.parts { white-space: nowrap; font-size: 13px; }
+.parts span { display: inline-block; padding: 1px 6px; border: 1px solid var(--rule); border-radius: 2px; margin-right: 4px; }
+.parts .bass { border-color: var(--cyan); color: var(--cyan); }
+.pips { display: inline-flex; gap: 3px; vertical-align: middle; }
+.pips i { width: 8px; height: 14px; border-radius: 2px; background: var(--rule); }
+.pips i.on { background: var(--cyan); }
+.tun { white-space: nowrap; }
+.tun.off { color: var(--amber); }
+.noaudio { color: var(--red); font-size: 12px; display: block; }
+a { color: var(--cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.file { font-size: 13px; word-break: break-all; }
+.cf { display: block; font-size: 12px; }
+.empty { padding: 30px 8px; color: var(--dim); }
+.foot { margin-top: 28px; color: var(--dim); font-size: 13px; max-width: 72ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Songs in <span>__FOLDER__</span></h1>
+  <p class="sub"><b id="nAll">0</b> songs, <b id="nBass">0</b> with a bass part. Listed __WHEN__. Click a file name to open it; click a heading to sort.</p>
+
+  <div class="bar">
+    <input id="q" type="search" placeholder="Search title, artist or album" aria-label="Search title, artist or album">
+    <span class="seg" role="group" aria-label="Parts">
+      <button type="button" data-p="bass" aria-pressed="true">With bass</button>
+      <button type="button" data-p="all" aria-pressed="false">All songs</button>
+    </span>
+    <label class="toggle"><input type="checkbox" id="std"> E Standard only</label>
+    <span id="count"></span>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th data-k="title"><button type="button">Song</button></th>
+        <th data-k="artist"><button type="button">Artist</button></th>
+        <th data-k="year" class="num"><button type="button">Year</button></th>
+        <th>Parts</th>
+        <th data-k="level"><button type="button">Difficulty</button></th>
+        <th data-k="tuning"><button type="button">Tuning</button></th>
+        <th data-k="length" class="num"><button type="button">Length</button></th>
+        <th data-k="file"><button type="button">File</button></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="foot">Difficulty and tuning are for the bass part when the song has one, otherwise for its first part. Tunings in amber need retuning; a number like −50¢ means the recording sits that far off standard pitch. Rebuild this page after adding songs: <code>node tools/cdlc-index.mjs</code>.</p>
+</div>
+
+<script>
+const SONGS = /*__SONGS__*/[];
+const state = { q: '', parts: 'bass', std: false, key: 'artist', dir: 1 };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const time = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const mb = b => (b / 1048576).toFixed(1) + ' MB';
+const href = f => f.split('/').map(encodeURIComponent).join('/');
+
+const cmp = {
+  title: (a, b) => a.title.localeCompare(b.title),
+  artist: (a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
+  year: (a, b) => (a.year || 0) - (b.year || 0),
+  level: (a, b) => (a.level || 9) - (b.level || 9),
+  tuning: (a, b) => a.tuning.localeCompare(b.tuning),
+  length: (a, b) => a.length - b.length,
+  file: (a, b) => a.file.localeCompare(b.file),
+};
+
+function render() {
+  const q = state.q.toLowerCase();
+  const list = SONGS.filter(s => (state.parts === 'all' || s.bass)
+    && (!state.std || s.tuning === 'E Standard')
+    && (!q || `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q)))
+    .sort((a, b) => state.dir * (cmp[state.key](a, b) || a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title)));
+  $('rows').innerHTML = list.length ? list.map(s => `<tr>
+    <td><span class="t">${esc(s.title)}</span>${s.album ? `<span class="alb">${esc(s.album)}</span>` : ''}</td>
+    <td>${esc(s.artist)}</td>
+    <td class="num">${s.year || ''}</td>
+    <td class="parts">${s.kinds.map(k => `<span class="${k}">${k}</span>`).join('')}</td>
+    <td>${s.level ? `<span class="pips" role="img" aria-label="Difficulty ${s.level} of 5">${[1, 2, 3, 4, 5].map(n => `<i${n <= s.level ? ' class="on"' : ''}></i>`).join('')}</span>` : '–'}</td>
+    <td class="tun${s.tuning === 'E Standard' && !s.cents ? '' : ' off'}">${esc(s.tuning)}${s.cents ? ` ${s.cents > 0 ? '+' : '−'}${Math.abs(s.cents)}¢` : ''}</td>
+    <td class="num">${time(s.length)}</td>
+    <td class="file"><a href="${href(s.file)}" title="${mb(s.size)}">${esc(s.file)}</a>${s.audio ? '' : '<span class="noaudio">no audio in this file</span>'}${s.cf ? `<a class="cf" href="https://ignition4.customsforge.com/cdlc/${encodeURIComponent(s.cf)}" target="_blank" rel="noopener">CustomsForge page ↗</a>` : ''}</td>
+  </tr>`).join('') : '<tr><td colspan="8" class="empty">No songs match.</td></tr>';
+  $('count').textContent = `${list.length} shown`;
+  for (const th of document.querySelectorAll('th[data-k]')) {
+    if (th.dataset.k === state.key) th.setAttribute('aria-sort', state.dir > 0 ? 'ascending' : 'descending');
+    else th.removeAttribute('aria-sort');
+  }
+}
+
+$('nAll').textContent = SONGS.length;
+$('nBass').textContent = SONGS.filter(s => s.bass).length;
+$('q').addEventListener('input', e => { state.q = e.target.value.trim(); render(); });
+$('std').addEventListener('change', e => { state.std = e.target.checked; render(); });
+document.querySelector('.seg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  state.parts = b.dataset.p;
+  for (const x of document.querySelectorAll('.seg button')) x.setAttribute('aria-pressed', String(x === b));
+  render();
+});
+document.querySelector('thead').addEventListener('click', e => {
+  const th = e.target.closest('th[data-k]');
+  if (!th) return;
+  if (state.key === th.dataset.k) state.dir = -state.dir; else { state.key = th.dataset.k; state.dir = 1; }
+  render();
+});
+render();
+</script>
+</body>
+</html>
