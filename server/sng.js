@@ -12,12 +12,14 @@ function decryptSng(buf, platform = 'pc') {
   if (buf.readUInt32LE(0) !== 0x4a) throw new Error('Bad SNG magic');
   const flags = buf.readUInt32LE(4);
   const iv = buf.subarray(8, 24);
-  const payload = buf.subarray(24, buf.length - 56); // last 56 bytes are a signature
+  // The last 56 bytes are usually a signature, but early DLC Builder releases leave it off,
+  // and cutting them then cuts into the chart. Decrypt everything after the header (AES-CTR,
+  // so the chart decrypts the same either way) and let the zlib stream end where it ends.
   const d = crypto.createDecipheriv('aes-256-ctr', SNG_KEYS[platform], iv);
-  const plain = Buffer.concat([d.update(payload), d.final()]);
+  const plain = Buffer.concat([d.update(buf.subarray(24)), d.final()]);
   if (flags & 1) {
-    // Compressed: uint32 uncompressed length, then zlib stream.
-    return zlib.inflateSync(plain.subarray(4));
+    // Compressed: uint32 uncompressed length, then zlib stream (a signature may follow it).
+    return zlib.inflateSync(plain.subarray(4), { finishFlush: zlib.constants.Z_SYNC_FLUSH });
   }
   return plain;
 }
