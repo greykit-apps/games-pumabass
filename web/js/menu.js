@@ -141,6 +141,15 @@ const PICS = {
     : y === 17 ? `<line x1='4' y1='${y}' x2='42' y2='${y}' stroke='currentColor' stroke-opacity='.6'/><line x1='54' y1='${y}' x2='68' y2='${y}' stroke='currentColor' stroke-opacity='.6'/>`
     : `<line x1='4' y1='${y}' x2='68' y2='${y}' stroke='currentColor' stroke-opacity='.6'/>`).join('') + tabNum(5, 26, 25) + tabNum(7, 48, 17)),
   staffNames: SVG(staff(4, 4.5) + head(36, 15.25, 13) + `<text x='36' y='37' text-anchor='middle' font-size='11' font-weight='700' fill='currentColor' font-family='Saira, system-ui, sans-serif'>D</text>`),
+  // the view: the highway (a lane running away, notes coming down it to the strings)...
+  highway: SVG(`<polygon points='6,26 66,26 42,3 30,3' fill='currentColor' fill-opacity='.1'/>${
+    [[6, 30], [26, 34], [46, 38], [66, 42]].map(([b, t]) => `<line x1='${b}' y1='26' x2='${t}' y2='3' stroke='currentColor' stroke-opacity='.3'/>`).join('')
+  }${[0, 1, 2, 3].map(st => `<line x1='2' y1='${28 + st * 3}' x2='70' y2='${28 + st * 3}' stroke='${SC[st]}' stroke-width='2'/>`).join('')
+  }${[[38, 4, 5, 3, 0], [28, 9, 8, 5, 2], [41, 16, 13, 7, 1]].map(([x, y, w, h, st]) => `<rect x='${x}' y='${y}' width='${w}' height='${h}' rx='${h / 3}' fill='${SC[st]}' fill-opacity='.45' stroke='${SC[st]}' stroke-width='1.4'/>`).join('')}`),
+  // ...or tab in its place: two lines of it, chips in the strings' colours, the playhead on the top line
+  tab: SVG(`${[5, 9, 13, 17, 23, 27, 31, 35].map(y => `<line x1='4' y1='${y}' x2='68' y2='${y}' stroke='currentColor' stroke-opacity='.5'/>`).join('')
+  }${[[12, 13, 1], [24, 17, 0], [44, 9, 2], [56, 13, 1], [12, 31, 1], [24, 35, 0], [38, 27, 2], [52, 23, 3]].map(([x, y, st]) => `<rect x='${x - 3.5}' y='${y - 2.5}' width='7' height='5' rx='1.5' fill='${SC[st]}'/>`).join('')
+  }<line x1='34' y1='2' x2='34' y2='20' stroke='currentColor' stroke-width='1.6'/>`),
 };
 const picBtn = (attrs, label, pic) => `<button class='pic' ${attrs} title='${label}' aria-label='${label}'>${pic}</button>`;
 
@@ -163,7 +172,7 @@ ${row('Sync', `<div class='gk-row'><button data-set='sync' title='Line up the so
   prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : 'not run yet'}</span></div>`)}
 ${row('Screen', pick('screen', [['couch', 'TV'], ['desk', 'Computer']], prefs.screen, 'TV draws everything larger, to read from across the room'))}
 </div></section><section class='set-col'><h3>Playing</h3><div class='set-grid'>
-${row('View', pick('view', [['highway', 'Highway'], ['tab', 'Tab']], prefs.view, 'Play from the note highway, or from tab in its place (V while you play)'))}
+${row('View', pick('view', [['highway', 'Highway', PICS.highway], ['tab', 'Tab', PICS.tab]], prefs.view, 'Play from the note highway, or from tab in its place (V while you play)'))}
 ${row('Look ahead', pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead, 'How far ahead the highway shows the notes'))}
 ${row('Strings', pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert))}
 ${row('Notes', pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels))}
