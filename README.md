@@ -1,9 +1,11 @@
 # PumaBass
 
-Play the Rocksmith 2014 songs you already own on a note highway, without Steam or Rocksmith. Bass
-first; lead and rhythm guitar parts play too. You give PumaBass your own song files (`.psarc`) and it
-plays them in your browser; until then, there's a demo song written for it to play. Runs on Windows
-and Linux, from a desk or from the couch on a TV. Built by [greykit.com](https://greykit.com).
+Learn songs on a note highway, from charts you make yourself. Bass first; lead and rhythm guitar parts
+play too. Chart any song you have a recording of with free tools, and PumaBass plays it in your browser,
+in time with the music ([Making your own songs](MAKING-SONGS.md)); until then, there's a demo song
+written for it to play. It also plays songs downloaded from CustomsForge, and is compatible with
+Rocksmith 2014's song files. Runs on Windows and Linux, from a desk or from the couch on a TV. Built by
+[greykit.com](https://greykit.com).
 
 **Try the demo in your browser** at [greykit.com/games/pumabass](https://greykit.com/games/pumabass/),
 with nothing to install.
@@ -54,12 +56,16 @@ below 50% it's quarter notes, for a first go.
 
 ![The song list sorted by plays: All, Bundles and CDLC tabs, the Bass part chosen, each song with its difficulty bars, tuning, plays, times finished and length, and a heart on the favorites](screenshots/songs.png)
 
-Put your Rocksmith 2014 song files in these folders beside PumaBass. Each gets its own tab on the song
-list once it has songs:
+**Make your own.** Chart a song in Editor on Fire and pack it with DLC Builder, both free:
+[MAKING-SONGS.md](MAKING-SONGS.md) walks through it. In the game, **Help → Make your own** has the short
+version.
 
-- `bundles/`: Rocksmith's own song sets, such as the on-disc songs and the Rocksmith 1 import packs.
-- `cdlc/`: custom songs you download, such as from CustomsForge.
+Song files (`.psarc`) go in these folders beside PumaBass. Each gets its own tab on the song list once
+it has songs:
+
 - `music/`: songs you made, and recordings for charts that have no audio (below).
+- `cdlc/`: songs you download, such as from CustomsForge.
+- `bundles/`: Rocksmith 2014's own song sets, such as the on-disc songs and the Rocksmith 1 import packs.
 
 Or point PumaBass at a Rocksmith folder you already have (a whole Rocksmith install, a copied `dlc`
 folder, a USB stick) in **Settings → Songs**; it gets a tab of its own, and nothing in it is changed.
@@ -67,7 +73,7 @@ Folders inside these folders are read too, and a song in more than one place is 
 **Rescan** after adding songs.
 
 - PC (`_p.psarc`) and Mac (`_m.psarc`) files both work.
-- The songs on the Rocksmith disc keep their charts in `songs.psarc` and their audio in
+- Rocksmith's disc songs keep their charts in `songs.psarc` and their audio in
   `audio.psarc`: copy both.
 - The Rocksmith 1 DLC import pack (`rs1compatibilitydlc_p.psarc`) keeps its audio in the disc's
   `songs.psarc`: copy that too, or its songs have no audio.

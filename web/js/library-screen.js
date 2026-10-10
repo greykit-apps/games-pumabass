@@ -5,6 +5,7 @@ import { alertSheet } from './title.js';
 import { api, WEB, SERVER_API, notInDemo } from './api.js';
 import { $, esc, toast, screen, songs, info, setScreen, setLibrary, ownSongs } from './core.js';
 import { DEMO } from './demo.js';
+import { MAKE } from './help.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
 import { openSong, scoreMode } from './player.js';
@@ -131,9 +132,9 @@ export function showSongInList(id) {
  * tab (your own Rocksmith folder: none until you choose one); All always does. */
 export const LIBRARIES = [
   ['all', 'All'],
-  ['bundles', 'Bundles', 'Rocksmith song sets'],
-  ['cdlc', 'CDLC', 'custom songs you download'],
   ['music', 'Music', 'songs you made, and your recordings'],
+  ['cdlc', 'CDLC', 'custom songs you download'],
+  ['bundles', 'Bundles', 'Rocksmith 2014 song sets'],
   ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
   ['demo', 'Demo', 'the song that comes with PumaBass'],
 ];
@@ -194,7 +195,7 @@ export function renderLibrary() {
   const keepId = keep && keep.dataset.id, keepShelf = keep && keep.classList.contains('shelved');
   const lib = LIBRARIES.find(([k]) => k === prefs.library);
   el.innerHTML = list.length ? '' : !songs.length
-    ? `<div class="empty"><p>No songs yet. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>). Put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button></div>`
+    ? `<div class="empty"><p>No songs yet. Make your own song files (<code>.psarc</code>) and put them in PumaBass's <code>music</code> folder, or download some into <code>cdlc</code>, then Rescan. It's also compatible with Rocksmith 2014's: put them in <code>bundles</code>, or show it a Rocksmith folder.</p><button class="primary" data-act="make">Make your own songs</button> <button data-act="choose">Choose a Rocksmith folder</button></div>`
     : `<div class="empty">${q ? 'No songs match that search.' : prefs.favOnly ? 'No favorites here yet. Press <kbd>F</kbd> on a song, or its heart, to add it.'
       : prefs.library !== 'all' && !ofType.length
         ? `None of the songs in ${esc(lib[1])} have ${esc(prefs.type)} parts. Choose All parts above, or another library.`
@@ -238,8 +239,8 @@ export function renderLibrary() {
     const hint = document.createElement('div');
     hint.className = 'empty';
     hint.innerHTML = WEB
-      ? `<p>This is PumaBass's web demo, with one song written for it. On your own computer, PumaBass plays PSARC song packages that you make or provide, and can be pointed at your Rocksmith 2014 folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`
-      : `<p>That's the demo song, to play while you set up. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>) too: put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`;
+      ? `<p>This is PumaBass's web demo, with one song written for it. On your own computer, PumaBass plays song files (<code>.psarc</code>) that you make yourself, and is also compatible with CustomsForge and Rocksmith 2014 songs.</p><button class="primary" data-act="make">Make your own songs</button>`
+      : `<p>That's the demo song, to play while you set up. Make your own song files (<code>.psarc</code>) and put them in PumaBass's <code>music</code> folder, or download some into <code>cdlc</code>, then Rescan. It's also compatible with Rocksmith 2014's: put them in <code>bundles</code>, or show it a Rocksmith folder.</p><button class="primary" data-act="make">Make your own songs</button> <button data-act="choose">Choose a Rocksmith folder</button>`;
     frag.appendChild(hint);
   }
   el.appendChild(frag);
@@ -266,6 +267,7 @@ export function heartRow(row) {
 }
 
 $('song-list').addEventListener('click', e => {
+  if (e.target.closest('[data-act=make]')) return openHelp(MAKE);
   if (e.target.closest('[data-act=choose]')) return pickLibrary();
   if (e.target.closest('[data-fav]')) { heartRow(e.target.closest('.song')); return; }
   const row = e.target.closest('.song');
