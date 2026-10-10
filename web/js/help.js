@@ -42,11 +42,11 @@ ${keys([
   ])}`)],
   ['Song list', cols(`
 <h3>The list</h3>
-<p>The songs you played last wait at the top, under <b>Recently played</b>. Below, every song, grouped by what
+<p>The songs you played last wait at the top, under <b>Recently played</b> (on a list too long to see at once). Below, every song, grouped by what
 the list is sorted on. Click a column heading to sort by it; again to reverse. Beside the list, an index of
 the groups: click one to jump there, or slide along it to skim.</p>
 <p>The tabs over the list are your libraries (<b>Your songs</b>): <b>All</b>, then one for each folder with
-songs in it. Going down the list, the heading and the buttons slide away to show more; going up brings them
+songs in it, and <b>Demo</b>. Going down the list, the heading and the buttons slide away to show more; going up brings them
 back.</p>
 <h3>Favorites</h3>
 <p>Heart a song (its heart, or <kbd>F</kbd> in the list or in the song). <b>Favorites</b> shows only those: your
@@ -168,7 +168,11 @@ ${keys([
 <p>Folders inside them are read too. Press <b>Rescan</b> (under the song list, or in Settings) after adding
 songs. A song in two places is listed once.</p>
 <p>The disc songs need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code> (their
-audio).</p>`, `
+audio).</p>
+<h3>The demo song</h3>
+<p><b>Prowl</b>, on the <b>Demo</b> tab, comes with PumaBass: a riff written for it, to play before your own
+songs are in. It starts low, moves up the neck for the chorus, and climbs to the 12th fret in the solo, with a
+slide, bends and a harmonic. Below 50% <b>Notes</b> it's quarter notes.</p>`, `
 <h3>A Rocksmith folder of your own</h3>
 <p>Songs can stay where they are, too: <b>Settings &rarr; Songs &rarr; Choose Rocksmith folder</b> reads a whole
 Rocksmith install, a copied <code>dlc</code> folder or a USB stick, and gives it a <b>Rocksmith folder</b> tab.

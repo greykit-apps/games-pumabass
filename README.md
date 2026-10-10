@@ -1,11 +1,14 @@
 # PumaBass
 
 Play the Rocksmith 2014 songs you already own on a note highway, without Steam or Rocksmith. Bass
-first; lead and rhythm guitar parts play too. PumaBass ships with no songs: you give it your own song
-files (`.psarc`) and it plays them in your browser. Runs on Windows and Linux, from a desk or from the
-couch on a TV. Built by [greykit.com](https://greykit.com).
+first; lead and rhythm guitar parts play too. You give PumaBass your own song files (`.psarc`) and it
+plays them in your browser; until then, there's a demo song written for it to play. Runs on Windows
+and Linux, from a desk or from the couch on a TV. Built by [greykit.com](https://greykit.com).
 
-![Led Zeppelin's Heartbreaker on the highway: the camera sits close over frets 1 to 5 while open strings and a bent 5 come down, then pulls back to the whole neck as the verse's slides and A5 chords arrive](screenshots/highway.webp)
+**Try the demo in your browser** at [greykit.com/games/pumabass](https://greykit.com/games/pumabass/),
+with nothing to install.
+
+![Prowl, the demo song, on the highway: the camera sits close over frets 1 to 4 for the verse riff and its slide, then pulls back and pans up the neck as the chorus moves to frets 7 to 12, where a bent 9 comes down](screenshots/highway.webp)
 
 ## What you get
 
@@ -20,6 +23,8 @@ couch on a TV. Built by [greykit.com](https://greykit.com).
 - **Scoring (beta).** Each note you play is judged as it lands, with a score at the end.
 - **Your library.** Search, sort by difficulty or plays, heart your favorites, and see how often you've
   finished each song.
+- **A demo song.** *Prowl*, an original riff written for PumaBass, is ready to play from the first run
+  (below).
 
 ## Install
 
@@ -39,6 +44,11 @@ then double-click **start.bat**.
 
 PumaBass opens in your browser at http://localhost:8014/ (without a desktop, open that address
 yourself). Close the window it started in, or press Ctrl+C there, to stop it.
+
+**Try it straight away** with the demo song: **Learn a song**, then *Prowl* on the **Demo** tab. It's
+a minute-long riff in E minor at 112 BPM. It starts low around the open E, moves up the neck for the
+chorus, and climbs to the 12th fret in the solo, with a slide, bends and a harmonic. With **Notes**
+below 50% it's quarter notes, for a first go.
 
 ## Add your songs
 
@@ -115,7 +125,7 @@ In a song:
 
 ## Reading music
 
-![Heartbreaker with the notation band over the highway: the riff in bass clef with note names under it, its tab below, and the blue playhead a little in from the left](screenshots/notation.png)
+![Prowl's solo with the notation band over the highway: the line in bass clef with note names under it, its tab below, the blue playhead a little in from the left, and notes on frets 9 to 12 coming down](screenshots/notation.png)
 
 Over the highway, the part scrolls by in **standard notation over tab**, as a printed bass chart has it.
 Notes cross the blue playhead as you play them. `N` steps through notation, tab, both and off;
@@ -126,7 +136,7 @@ The tab's notes are chips in their strings' colours, as on the highway, with the
 bends and other techniques, and chord names over the tab where the chord changes. With a capo, the tab
 counts frets from the capo.
 
-![Tab view on the same riff: two lines of bars, the cyan line running along the top one, bends marked over their notes, and the A5 chord named where it starts](screenshots/tab.webp)
+![Tab view of Prowl: two lines of bars, the cyan line running along the chorus on top while the verse riff waits below, with its pull-off, slide and bend marked](screenshots/tab.webp)
 
 **Tab view** (`V`, or Settings → View) puts the tab, large, in the highway's place, laid out like a page:
 the current line on top, the next below it. The cyan line runs along as you play, drops to the next line

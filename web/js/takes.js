@@ -2,7 +2,7 @@
 
 import { arrangementLabel } from './chart.js';
 import { alertSheet } from './title.js';
-import { SERVER_DOWN, SERVER_OLD } from './api.js';
+import { SERVER_DOWN, SERVER_OLD, WEB, notInDemo } from './api.js';
 import { $, highway, input, toast } from './core.js';
 import { chart, song, offsetMs, scorer, sync } from './player.js';
 import { prefs } from './store.js';
@@ -25,6 +25,7 @@ export function startTake() {
 /* Save the take so far to the PumaBass folder (takes/): the playing, the song's
  * notes and how each was judged, to study and tune scoring with. */
 export async function saveTake() {
+  if (WEB) { notInDemo('Saving a take'); return false; }
   const tape = input.tape;
   if (!tape || !tape.samples || !take || !chart) { toast('Nothing recorded yet: tick Record a take, then play.'); return false; }
   const { levels, ...songChart } = chart;

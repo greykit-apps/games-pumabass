@@ -4,8 +4,8 @@ import { formatTime } from './chart.js';
 import { mountTitle, alertSheet, confirmSheet } from './title.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT } from './help.js';
-import { api } from './api.js';
-import { $, highway, esc, fmtMs, songs, info, setScreen } from './core.js';
+import { api, WEB, notInDemo } from './api.js';
+import { $, highway, esc, fmtMs, songs, ownSongs, info, setScreen } from './core.js';
 import { inputStatus, chooseInput, showTuner } from './instrument.js';
 import { pickLibrary, loadLibrary, showLibrary } from './library-screen.js';
 import { openSong, syncPlayerPrefs, setScoreMode } from './player.js';
@@ -23,7 +23,7 @@ export function titleCfg() {
     name: 'PumaBass',
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
-      { act: 'new', label: 'Learn a song', key: 'N', meta: songs.length ? partsLabel(parts) : 'choose your songs folder' },
+      { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'the demo song' : 'the demo song, then yours' },
       { act: 'score', label: 'Score a song', key: 'C', meta: 'beta' },
       { act: 'tuner', label: 'Tuner', key: 'T' },
       { act: 'sync', label: 'Sync', key: 'Y', meta: prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : '' },
@@ -44,8 +44,7 @@ export function titleCfg() {
       // Learn a song plays along; Score a song scores (beta). The song list is the same.
       if (act === 'new' || act === 'score') {
         setScoreMode(act === 'score');
-        if (!songs.length) pickLibrary();
-        else { leaveTitle(); showLibrary(); }
+        leaveTitle(); showLibrary(); // with no songs of your own, the demo, and where yours go
       }
     },
   };
@@ -56,6 +55,7 @@ export function titleCfg() {
  * page says it has stopped instead). */
 let quitAsked = 0;
 export function titleEscape() {
+  if (WEB) return; // a web page: nothing to quit
   const now = performance.now();
   if (now - quitAsked < 3000) { quitAsked = 0; quitGame(); return; }
   quitAsked = now;
@@ -106,10 +106,10 @@ export function leaveTitle() {
 export function partsLabel(n) {
   return `${n} ${prefs.type === 'all' ? '' : prefs.type + ' '}${n === 1 ? 'part' : 'parts'}`;
 }
-const playableParts = () => songs.filter(s => (prefs.type === 'all' || s.type === prefs.type) && s.audio !== false);
+const playableParts = () => ownSongs().filter(s => (prefs.type === 'all' || s.type === prefs.type) && s.audio !== false);
 /* "299 songs, 315 bass parts": the boot and Settings. */
 export function libraryLabel() {
-  const playable = songs.filter(s => s.audio !== false);
+  const playable = ownSongs().filter(s => s.audio !== false);
   return `${new Set(playable.map(s => s.songKey)).size} songs, ${partsLabel(playableParts().length)}`;
 }
 
@@ -150,7 +150,7 @@ export function settingsHTML() {
     : `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const row = (label, body) => `<span class='set-label'>${label}</span><div class='set-cell'>${body}</div>`;
   // The libraries: PumaBass's own folders, and a Rocksmith folder of your choice (optional).
-  const have = songs.length ? libraryLabel() : 'No songs yet';
+  const have = WEB ? 'The web demo: the demo song only' : ownSongs().length ? libraryLabel() : 'No songs yet';
   const folder = !info.libraryDir ? 'Rocksmith folder: none chosen'
     : `Rocksmith folder: <code>${esc(info.libraryDir)}</code>${info.libraryFound ? '' : ' · that folder is missing'}`;
   // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols): what
@@ -178,6 +178,11 @@ ${row('Start speed', pick('speed', [[50, '50%'], [70, '70%'], [80, '80%'], [90, 
 
 export async function settingsClick(b, sheet) {
   const v = b.dataset.v;
+  if (WEB && ['rescan', 'library', 'unlibrary'].includes(b.dataset.set)) {
+    sheet.close();
+    notInDemo(b.dataset.set === 'rescan' ? 'Rescan' : 'Choosing a Rocksmith folder');
+    return;
+  }
   switch (b.dataset.set) {
     case 'lookahead': prefs.lookahead = Number(v); highway.lookahead = prefs.lookahead; break;
     case 'invert': prefs.invert = v === 'true'; highway.invert = prefs.invert; break;

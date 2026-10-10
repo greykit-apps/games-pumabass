@@ -1,5 +1,16 @@
 // Talking to the PumaBass server (server/server.js).
 
+import { alertSheet } from './title.js';
+
+/* The web demo (greykit.com/games/pumabass) has no server: the deploy marks its page
+ * <html data-edition="web">, and the page plays the demo song alone. What needs the
+ * server (your songs, choosing a folder, Rescan, takes) says so when it's asked for
+ * (notInDemo); Quit isn't there at all. */
+export const WEB = typeof document !== 'undefined' && document.documentElement.dataset.edition === 'web';
+export function notInDemo(what) {
+  return alertSheet(`${what} isn't in the web demo. PumaBass on your own computer plays the Rocksmith 2014 songs you own.`, 'Not available in the demo');
+}
+
 
 
 /* Every request to the PumaBass server goes through api(). When one fails it

@@ -4,14 +4,36 @@
     {
       "name": "pumabass",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server/server.js", "--no-open", "--port", "8015"],
+      "runtimeArgs": [
+        "server/server.js",
+        "--no-open",
+        "--port",
+        "8015"
+      ],
       "port": 8015
     },
     {
       "name": "pumabass-2",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server/server.js", "--no-open", "--port", "8016"],
+      "runtimeArgs": [
+        "server/server.js",
+        "--no-open",
+        "--port",
+        "8016"
+      ],
       "port": 8016
+    },
+    {
+      "name": "pumabass-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8017",
+        "--directory",
+        ".web-preview"
+      ],
+      "port": 8017
     }
   ]
 }

@@ -15,8 +15,8 @@
 
 import { runBoot, injectTitleCSS, alertSheet } from './title.js';
 import { mountScene } from './scene.js';
-import { SERVER_API, SERVER_OLD } from './api.js';
-import { $, mixer, highway, input, screen, songs, info } from './core.js';
+import { SERVER_API, SERVER_OLD, WEB } from './api.js';
+import { $, mixer, highway, input, screen, songs, ownSongs, info } from './core.js';
 import { applyMix } from './instrument.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
 import { title, showTitle, libraryLabel, sheetKeys, titleEscape } from './menu.js';
@@ -124,7 +124,8 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   if (!startProblem && (info.stale || !(info.api >= SERVER_API))) startProblem = SERVER_OLD;
   showTitle();
   const lines = startProblem ? ['server: needs attention']
-    : !songs.length ? ['no songs yet']
+    : WEB ? ['the web demo', 'one song, written for PumaBass']
+    : !ownSongs().length ? ['no songs yet: the demo song is ready']
     : [libraryLabel(), info.libraryDir && !info.libraryFound ? 'your Rocksmith folder is missing'
       : waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
   if (!startProblem && !info.vgmstream) lines.push('vgmstream missing: no song audio');

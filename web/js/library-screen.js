@@ -2,8 +2,9 @@
 
 import { tuningName, formatTime, arrangementLabel, difficultyLevel, numberAlternates } from './chart.js';
 import { alertSheet } from './title.js';
-import { api } from './api.js';
-import { $, esc, toast, screen, songs, info, setScreen, setLibrary } from './core.js';
+import { api, WEB, SERVER_API, notInDemo } from './api.js';
+import { $, esc, toast, screen, songs, info, setScreen, setLibrary, ownSongs } from './core.js';
+import { DEMO } from './demo.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
 import { openSong, scoreMode } from './player.js';
@@ -13,6 +14,7 @@ import { KEY_RECENT, KEY_FAVS, KEY_STATS, load, prefs, savePrefs, toggleFav } fr
 /* The songs folder, picked from this computer's folders through the server,
  * then scanned. From Settings, the title (with no songs yet) or the empty list. */
 export async function pickLibrary() {
+  if (WEB) return notInDemo('Choosing a Rocksmith folder');
   let chosen;
   try {
     chosen = await chooseFolder();
@@ -99,9 +101,10 @@ export function chooseFolder() {
 
 /* ---- the song list ---- */
 export async function loadLibrary() {
-  const [list, about] = await Promise.all([api('/api/songs'), api('/api/info')]);
+  const [list, about] = WEB ? [[], { api: SERVER_API, vgmstream: true, libraries: [] }]
+    : await Promise.all([api('/api/songs'), api('/api/info')]);
   numberAlternates(list);
-  setLibrary(list, about);
+  setLibrary([...list, DEMO], about); // the demo song comes with PumaBass: always there
   if (screen === 'library') renderLibrary();
 }
 
@@ -132,6 +135,7 @@ export const LIBRARIES = [
   ['cdlc', 'CDLC', 'custom songs you download'],
   ['music', 'Music', 'songs you made, and your recordings'],
   ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
+  ['demo', 'Demo', 'the song that comes with PumaBass'],
 ];
 const inLibrary = (s, key) => key === 'all' || (s.sources || ['folder']).includes(key);
 const shownLibraries = () => LIBRARIES.filter(([k]) => k === 'all' || songs.some(s => inLibrary(s, k)));
@@ -177,7 +181,8 @@ export function renderLibrary() {
 
   // From the couch, the list is long: the songs played last come first, on a shelf of their own, and the
   // rest is split into groups by what it's sorted on (initials, tunings, difficulty), to jump between.
-  const shelf = !q && !prefs.favOnly && prefs.sort !== 'recent'
+  // A list that fits on the screen needs no shelf.
+  const shelf = !q && !prefs.favOnly && prefs.sort !== 'recent' && list.length > 2 * SHELF
     ? list.filter(s => s.audio !== false && recent[s.id]).sort((a, b) => recent[b.id] - recent[a.id]).slice(0, SHELF) : [];
   const groupOf = {
     artist: s => initial(s.artist), title: s => initial(s.title), tuning: s => tuningName(s.tuning, stringsOf(s)),
@@ -228,6 +233,15 @@ export function renderLibrary() {
     if (s.audio === false) row.title = 'No audio for this song yet. Put a recording named like "Artist - Title.mp3" in the music folder, then Rescan.';
     frag.appendChild(row);
   });
+  // Only the demo so far: say where your own songs go, under it.
+  if (list.length && !ownSongs().length && !q && !prefs.favOnly) {
+    const hint = document.createElement('div');
+    hint.className = 'empty';
+    hint.innerHTML = WEB
+      ? `<p>This is PumaBass's web demo, with one song written for it. On your own computer, PumaBass plays the Rocksmith 2014 songs you own.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`
+      : `<p>That's the demo song, to play while you set up. PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>) too: put them in its <code>bundles</code>, <code>cdlc</code> or <code>music</code> folder and Rescan, or show it a Rocksmith folder.</p><button class="primary" data-act="choose">Choose a Rocksmith folder</button>`;
+    frag.appendChild(hint);
+  }
   el.appendChild(frag);
   buildIndex(groupOf ? groups : []);
   if (keepId) {
@@ -288,6 +302,7 @@ $('library').querySelector('.bar').addEventListener('click', async e => {
   if (b.dataset.act === 'menu') { showTitle().reveal(); }
   else if (b.dataset.act === 'help') openHelp();
   else if (b.dataset.act === 'settings') openSettings();
+  else if (b.dataset.act === 'rescan' && WEB) notInDemo('Rescan');
   else if (b.dataset.act === 'rescan') {
     b.textContent = 'Scanning';
     try { await api('/api/rescan'); await loadLibrary(); }
