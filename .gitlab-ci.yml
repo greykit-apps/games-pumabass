@@ -1,9 +1,12 @@
 stages:
   - validate
+  - deploy
 
-# PumaBass runs on your own computer (a small Node server reads your Rocksmith
-# install), so there is nothing to deploy yet: only the validate stage, which
-# every greykit.games Tactical game runs (games-meta STANDARD.md §10).
+# PumaBass itself runs on your own computer (a small Node server reads your
+# Rocksmith songs). What deploys is the web demo: the page alone, playing the
+# demo song with no server (tools/build-web.sh, web/js/api.js: WEB). The checks
+# run on every branch and merge request, and on main ahead of deploy, so a
+# broken check stops the deploy (games-meta STANDARD.md §10).
 validate:
   stage: validate
   image: node:20-alpine
@@ -13,3 +16,48 @@ validate:
     - node tools/check-pitch.mjs
     - node tools/check-sync.mjs
     - node tools/check-plucks.mjs
+    - node tools/check-demo.mjs
+
+# Deploys the web demo to greykit.com/games/pumabass/ on every main commit, as
+# the other greykit.games do (the DreamHost settings are the group's CI variables).
+deploy:
+  stage: deploy
+  image: debian:bookworm-slim
+  only:
+    - main
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq openssh-client rsync > /dev/null 2>&1
+    - mkdir -p ~/.ssh
+    - cp "$DREAMHOST_SSH_KEY" ~/.ssh/id_rsa
+    - echo "" >> ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    # Host key is PINNED rather than scanned: a bare ssh-keyscan opens a burst of
+    # connections that trips an SSH-scan detector on the runner's network path and
+    # gets port 22 blackholed for minutes. If DreamHost rebuilds the VPS, re-pin it:
+    # the job then fails loudly on a host key mismatch instead of trusting a new key.
+    - echo "$DREAMHOST_HOST ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEtxw582rJAeTpXMTRJeGJ6GHis19hHmWWBwEL1bCbYd" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    # A blocked port fails in 15 s instead of 133; rsync's own ssh picks this up too.
+    - printf 'Host *\n  ConnectTimeout 15\n  BatchMode yes\n' > ~/.ssh/config
+    - chmod 600 ~/.ssh/config
+    # Too many SSH connections to the host in a short window get port 22 blocked for
+    # minutes: retry with long gaps so a queued deploy rides it out.
+    - |
+      puma_rsync() {
+        attempt=1
+        until rsync "$@"; do
+          if [ "$attempt" -ge 3 ]; then
+            echo "rsync failed after $attempt attempts" >&2
+            return 1
+          fi
+          echo "attempt $attempt failed; waiting 200s for any port-22 block to clear"
+          attempt=$((attempt + 1))
+          sleep 200
+        done
+      }
+  script:
+    # Only the built demo goes up (the page, its icons and manifest, web/): never the
+    # server, the tools, the screenshots or anyone's songs. One destination, so this
+    # job costs exactly one SSH connection; --delete keeps the live copy exactly the build.
+    - bash tools/build-web.sh public
+    - puma_rsync -avz --delete public/ ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/pumabass/

@@ -19,3 +19,7 @@ node_modules/
 
 # Takes saved for tuning the scoring (your playing)
 takes/
+
+# The web demo, built by tools/build-web.sh
+public/
+.web-preview/

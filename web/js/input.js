@@ -103,7 +103,7 @@ export class InstrumentInput {
   async startCapture() {
     const source = this.source;
     try {
-      if (!InstrumentInput.workletReady) InstrumentInput.workletReady = this.ctx.audioWorklet.addModule('/web/js/capture-worklet.js');
+      if (!InstrumentInput.workletReady) InstrumentInput.workletReady = this.ctx.audioWorklet.addModule(new URL('./capture-worklet.js', import.meta.url).href);
       await InstrumentInput.workletReady;
     } catch (e) { console.warn('No input capture for scoring:', e); return; }
     if (this.source !== source || !source) return; // closed or replaced meanwhile

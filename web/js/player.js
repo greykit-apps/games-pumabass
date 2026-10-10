@@ -5,7 +5,7 @@ import { buildPlayable, tuningName, tuningNotes, formatTime, arrangementLabel, s
 import { alertSheet } from './title.js';
 import { RECORDED_BASS } from './mixer.js';
 import { Scorer } from './scoring.js';
-import { api } from './api.js';
+import { api, WEB } from './api.js';
 import { $, audio, mixer, highway, input, fmtMs, toast, screen, info, setScreen, setInfo } from './core.js';
 import { endScreen, showEndScreen, closeEndScreen } from './end-screen.js';
 import { setNotationSong, updateNotation, tabView } from './notation.js';
@@ -16,6 +16,7 @@ import { repeater, stopRepeater, toggleRepeater, repeaterPass } from './repeater
 import { KEY_OFFSETS, KEY_RECENT, KEY_RESUME, load, save, prefs, savePrefs, isFav, toggleFav, bumpStat } from './store.js';
 import { calib, playAlongDone, endSync, syncFrame } from './sync-test.js';
 import { clearTake, logTakeSync, logTakeVerdict, startTake } from './takes.js';
+import { demoChart, demoTrack } from './demo.js';
 
 /* Each time a loop comes round. */
 export function loopCameRound() {
@@ -55,7 +56,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
   try {
-    chart = await api(`/api/chart/${encodeURIComponent(s.id)}`);
+    chart = s.demo ? demoChart() : await api(`/api/chart/${encodeURIComponent(s.id)}`);
   } catch (e) {
     $('loading').classList.add('hidden');
     showLibrary();
@@ -79,7 +80,8 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   buildSectionBar();
   setNotationSong(chart, s.type);
 
-  audio.src = `/api/audio/${encodeURIComponent(s.id)}`;
+  if (s.demo) await new Promise(r => setTimeout(r, 50)); // Loading shows while its audio is made, the first time
+  audio.src = s.demo ? demoTrack() : `/api/audio/${encodeURIComponent(s.id)}`; // the demo's is made here (demo.js)
   audio.preservesPitch = true;
   // A song's first play decodes its audio on the server, which takes a few seconds; after that it's kept.
   const slow = setTimeout(() => { if (song === s) showLoading(`Loading ${s.title}`, 'Decoding its audio: the first play of a song takes a few seconds'); }, 1200);
@@ -108,7 +110,8 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   // Open the input now, quietly: the one chosen before, or the Real Tone Cable if it's
   // plugged in. Scoring needs it; playing along, it's heard (unless the Mix says not), so
   // you hear yourself with the song from the first note.
-  if (!input.open && (scoreMode || prefs.hear)) await ensureInput({ ask: false });
+  // (On the web demo, only once you've chosen one: looking for the cable asks to use the microphone.)
+  if (!input.open && (scoreMode || prefs.hear) && (!WEB || prefs.input)) await ensureInput({ ask: false });
   startScoring();
   // Straight into it: every song has ten seconds or so before its first note.
   // (Resume game counts back in, as a play after a pause does.)

@@ -21,6 +21,10 @@ look, [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about i
 - `web/js/notation.js`: the notation band and tab view, drawn by [VexFlow](https://www.vexflow.com/) 5.0.0
   (MIT), kept in `web/vendor/vexflow/` so it works without the internet
 - `web/js/chart.js`: difficulty levels, tuning names
+- `web/js/demo.js`: the demo song, *Prowl*: its chart, written note by note, and its audio, synthesized
+  in plain JavaScript (a plucked-string bass, drums, a doubled rhythm guitar), so it belongs to nobody
+  else and the notes and sound line up exactly. It's on the song list's Demo tab, and the player makes
+  its chart and audio in the browser instead of asking the server.
 - `web/js/input.js`, `web/js/tuner.js`, `web/js/pitch.js`: the instrument input, the tuner, and its
   pitch detection
 - `web/js/scoring.js`, `web/js/capture-worklet.js`: scoring, and the input recorded for it
@@ -29,6 +33,7 @@ look, [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about i
 - `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion, audio lookup and decoding
 - `server/server.js`: the local web server, settings, the folder picker, takes. It only hands the browser
   `index.html`, its icons and manifest, and `web/`, and only answers to `localhost` unless `host` says otherwise.
+- `tools/build-web.sh`: builds the web demo (below)
 - `start.sh`, `start.bat`; `tools/get-vgmstream.sh` (the vgmstream release is pinned there; its Linux
   build is x86-64, so on ARM build vgmstream from source); `tools/pumabass.service`
 - `screenshots/`: the README's pictures (the two `.webp`s are animated)
@@ -43,12 +48,16 @@ node tools/check-syntax.mjs
 node tools/check-pitch.mjs
 node tools/check-sync.mjs
 node tools/check-plucks.mjs
+node tools/check-demo.mjs
 ```
 
 - `check-pitch.mjs` tests the pitch detector on 2,597 synthesized bass and guitar notes (stiff strings,
   weak fundamentals, noise, fading plucks): every reading the tuner shows is within 2 cents, nearly all
   within 1.
 - `check-sync.mjs` tests the sync test (`web/js/calibrate.js`).
+- `check-demo.mjs` checks the demo song: its chart is shaped as the player needs (every note in its
+  phrase and under the hand's position, an easy level below 50% Notes), and its synthesized bass plays
+  what the chart says (in tune, picks on time, slides and bends arriving at their notes, no clipping).
 - `check-plucks.mjs` checks that a low note's waveform, which spikes once a period, never counts as a
   pluck, from a 5-string's low B to the 12th fret.
 
@@ -112,12 +121,35 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
 - §9 page metadata and icons, §10 `tools/check-assets.js` byte for byte, run by CI's validate stage;
 - §11 no native dialogs.
 
-The deliberate gaps: CI has no deploy stage, because PumaBass runs on your own computer; and from the
-title on, PumaBass has its own look rather than the Tactical one: heavy condensed caps (Saira Condensed,
+The deliberate gap: from the title on, PumaBass has its own look rather than the Tactical one: heavy condensed caps (Saira Condensed,
 leaning), glossy navy tiles, and a cyan selection bar for whatever you're on, in the greykit palette.
 It restyles the canon title and sheets from `web/style.css` (selectors start with `html` to win over the
 canon's injected CSS) without touching their copies.
 Don't edit the canon copies here; change them in games-meta and copy them back.
+
+## The web demo
+
+greykit.com/games/pumabass/ runs PumaBass with no server: the page alone, playing the demo song.
+`tools/build-web.sh` copies the page, its icons and manifest, and `web/` into `public/`, and marks the page
+`<html data-edition="web">`. With that mark (`WEB` in `web/js/api.js`) the page never asks the server
+for anything: the library is the demo song alone, and what needs the server (your songs, choosing a
+folder, Rescan, saving a take) opens a "Not available in the demo" popup (`notInDemo`). Quit isn't
+offered, and opening the song doesn't look for the Real Tone Cable (which asks to use the microphone)
+until you've chosen an input. Everything the page loads is by relative path, so it works from a subfolder.
+
+CI's deploy stage builds it and rsyncs `public/` to greykit.com/games/pumabass/ on every main commit, as
+the other greykit.games deploy, with the group's DreamHost CI variables. Only the build goes up: never
+the server, the tools, the screenshots or any songs.
+
+To try it locally, build it into a subfolder and serve that with any static server:
+
+```bash
+bash tools/build-web.sh .web-preview/games/pumabass
+python -m http.server 8017 --directory .web-preview
+```
+
+then open http://localhost:8017/games/pumabass/ (the `pumabass-web` preview in `.claude/launch.json` does
+the second step).
 
 ## Icon and share card
 
