@@ -53,7 +53,7 @@ export const prefs = Object.assign({
   soundcheck: null, // the sync test's soundcheck: { device, energy, diff, db, pluckDb }, the input's noise floor for scoring
   screen: 'couch',  // 'couch': drawn bigger on a TV, to read from across the room; 'desk': as is
   noteLabels: 'fret', // on the highway's notes: 'fret' numbers, note 'name's, or 'off'
-  notation: true,   // the notation band: standard notation over tab, above the highway
+  notation: false,  // the notation band (N): standard notation over tab, above the highway; off to start with
   notationStaff: true, // the notation band's standard notation...
   notationTab: true,   // ...and its tab, each on or off
   staffNames: true, // note names under the notes in the notation band
@@ -77,6 +77,9 @@ if (!prefs.lowOnTopDefault) { prefs.invert = true; prefs.lowOnTopDefault = true;
 // Scoring became a mode of its own ("Score a song"), and playing along you hear the cable:
 // everyone moves over to hearing it once, and the Mix decides after that.
 if (!prefs.hearDefault) { prefs.hear = true; prefs.hearDefault = true; }
+// The notation band became off to start with: the highway alone, as in Rocksmith.
+// Everyone moves over once (N or Settings turns it back on), and that choice stays.
+if (!prefs.notationOffDefault) { prefs.notation = false; prefs.notationOffDefault = true; }
 export const savePrefs = () => save(KEY_PREFS, prefs);
 
 /* The couch scale (style.css): a class on the page, the sizes in the stylesheet. */
