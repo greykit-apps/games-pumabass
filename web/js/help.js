@@ -43,7 +43,11 @@ ${keys([
   ['Song list', cols(`
 <h3>The list</h3>
 <p>The songs you played last wait at the top, under <b>Recently played</b>. Below, every song, grouped by what
-the list is sorted on. Click a column heading to sort by it; again to reverse.</p>
+the list is sorted on. Click a column heading to sort by it; again to reverse. Beside the list, an index of
+the groups: click one to jump there, or slide along it to skim.</p>
+<p>The tabs over the list are your libraries (<b>Your songs</b>): <b>All</b>, then one for each folder with
+songs in it. Going down the list, the heading and the buttons slide away to show more; going up brings them
+back.</p>
 <h3>Favorites</h3>
 <p>Heart a song (its heart, or <kbd>F</kbd> in the list or in the song). <b>Favorites</b> shows only those: your
 own library.</p>
@@ -64,7 +68,7 @@ ${keys([
     ['Shift+F', 'favorites only, or every song'],
     ['O', 'the next sort'],
     ['P', 'parts: bass, lead, rhythm, all'],
-    ['L', 'libraries: all, bundles, cdlc, music'],
+    ['L', 'the next library tab'],
     ['T', 'tuner'],
     ['S', 'Settings'],
     ['Esc', 'the menu'],
@@ -153,17 +157,27 @@ zigzags for tremolo. A box round notes: play them together; an empty box, the sa
 cross in it: palm-muted or fret-hand-muted). A faint tunnel behind a chord: keep holding its shape; brackets on
 the strings: an arpeggio, that shape picked a note at a time.</p>`)],
   ['Your songs', cols(`
-<h3>Your song files</h3>
-<p>PumaBass plays your own Rocksmith 2014 song files (<code>.psarc</code>). Choose their folder in <b>Settings</b>;
-the folders inside it are searched too, and nothing is copied or changed. Press <b>Rescan</b> after adding
-songs.</p>
-<p>The songs from the Rocksmith disc need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code>
-(their audio).</p>`, `
+<h3>Three folders, three libraries</h3>
+<p>PumaBass plays Rocksmith 2014 song files (<code>.psarc</code>) from three folders beside it, each a tab on
+the song list:</p>
+${keys([
+    ['bundles', 'Rocksmith\'s own song sets: the disc songs, the Rocksmith 1 packs'],
+    ['cdlc', 'custom songs you download, from CustomsForge say'],
+    ['music', 'songs you made, and recordings for charts with no audio'],
+  ])}
+<p>Folders inside them are read too. Press <b>Rescan</b> (under the song list, or in Settings) after adding
+songs. A song in two places is listed once.</p>
+<p>The disc songs need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code> (their
+audio).</p>`, `
+<h3>A Rocksmith folder of your own</h3>
+<p>Songs can stay where they are, too: <b>Settings &rarr; Songs &rarr; Choose Rocksmith folder</b> reads a whole
+Rocksmith install, a copied <code>dlc</code> folder or a USB stick, and gives it a <b>Rocksmith folder</b> tab.
+Nothing in it is copied or changed; <b>Remove it</b> stops reading it.</p>
 <h3>Charts without audio</h3>
-<p>Some charts arrive without audio (the Rocksmith 1 DLC pack, for one). Put your own recording in the PumaBass
-<code>music</code> folder, named like <code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press
-<b>Rescan</b>. Line it up with the song's audio offset in the Mix (<kbd>M</kbd>), up to 15 seconds either way.</p>
-<p>The song list hides the charts still waiting for audio; the button at its foot shows them.</p>`)],
+<p>Some charts arrive without audio. Put your own recording in the <code>music</code> folder, named like
+<code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press <b>Rescan</b>. Line it up with the song's
+audio offset in the Mix (<kbd>M</kbd>), up to 15 seconds either way. The song list hides these charts until
+then; the button at its foot shows them.</p>`)],
 ];
 
 export const ABOUT = `
