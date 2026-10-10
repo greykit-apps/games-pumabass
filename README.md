@@ -15,8 +15,8 @@ with nothing to install.
 - **The note highway.** Notes come down the strings towards you and land when it's time to play them.
   The camera follows your hand up and down the neck, closing in on low positions and pulling back for
   big moves. Slides, bends, hammer-ons, mutes and chords are marked the way Rocksmith marks them.
-- **Notation or tab.** Standard notation and tab scroll over the highway so you can learn to read while
-  you play, or swap the highway for a full page of tab.
+- **Notation or tab.** Turn on standard notation and tab to scroll over the highway and learn to read
+  while you play, or swap the highway for a full page of tab.
 - **Practice tools.** Slow a song down without changing its pitch, loop a section, let the riff repeater
   speed a loop up each time round, and pick an easier level of the chart.
 - **A tuner** that knows each song's tuning, and the Real Tone Cable plays your bass through the game.
@@ -127,10 +127,10 @@ In a song:
 
 ![Prowl's solo with the notation band over the highway: the line in bass clef with note names under it, its tab below, the blue playhead a little in from the left, and notes on frets 9 to 12 coming down](screenshots/notation.png)
 
-Over the highway, the part scrolls by in **standard notation over tab**, as a printed bass chart has it.
-Notes cross the blue playhead as you play them. `N` steps through notation, tab, both and off;
-Settings → Notation also turns the note names under the notes on and off, and Settings → Highway can put
-note names on the highway's notes instead of fret numbers.
+It starts off: press `N` and the part scrolls by over the highway in **standard notation over tab**, as a
+printed bass chart has it, with notes crossing the blue playhead as you play them. `N` steps through
+notation, tab, both and off. Settings → Notation also turns the note names under the notes on and off, and
+Settings → Highway can put note names on the highway's notes instead of fret numbers.
 
 The tab's notes are chips in their strings' colours, as on the highway, with the same marks for slides,
 bends and other techniques, and chord names over the tab where the chord changes. With a capo, the tab
