@@ -82,6 +82,12 @@ re-plucked often keeps step with only a few dB more, so at least twice the energ
 counts too: a string left alone gained that 3 times in 200. It only counts with the note steady on both
 sides (20 ms clear of the finger coming down) and the level not dropping.
 
+**The benefit of the doubt (2026-10-11):** a fast run of one note (eighths 0.24 s apart) leaves no room
+for that test, and on a real take half its re-plucks made no click. So a plucked note with no pluck heard
+now counts when its pitch is there at the end of its window, re-plucked or left ringing: it would take a
+cleverer detector to call it wrong, and that's close enough to right. Judged at the end of the window, not
+anywhere in it, so a soft wrong note after the same one still ringing isn't credited off the old one.
+
 ## Ideas not yet done
 
 - A **level-up/down per phrase** (Dynamic Difficulty) using the thresholds above.

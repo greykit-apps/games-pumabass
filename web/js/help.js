@@ -130,6 +130,7 @@ whether you play early or late, and where to practise.</p>
 <h3>What counts</h3>
 <p>The right note, within about a sixth of a second. It's forgiving of a muddy sound (the last note still
 ringing, a string you didn't mute): a note only counts as wrong when it clearly was another one.
+The same note again counts while it's sounding, as a soft re-pluck can't be told from it ringing on.
 Hammer-ons and pull-offs need the new pitch, no pluck; muted notes and harmonics just the pluck; chords
 count on the pluck alone, as one cable can't tell a chord's shape. Tune first: within half a semitone.</p>`, `
 <h3>Unmarked, or many misses?</h3>

@@ -299,7 +299,9 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
   const xp = pluck !== null ? highpass(x, sr, freq * 2 ** (-BELOW / 12)) : x;
   const starts = pluck !== null ? [pluck + 0.015] : [];
   let last = null, unclear = false;
-  if (pluck === null) {
+  // A plucked note with no pluck heard, its pitch there anyway, is the benefit of the doubt:
+  // a re-pluck of a note still ringing can be too soft to tell from it ringing on.
+  if (pluck === null && !needsPluck) {
     // A hammer-on or pull-off is a change of pitch: if the expected pitch was
     // already ringing just before the note (an earlier note at that pitch),
     // finding it now proves nothing.
@@ -309,7 +311,11 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     const i = Math.round(start * sr), j = Math.round(end * sr);
     if (i >= 0 && j <= x.length && end - start >= 1.5 / freq + lagRoom && pitchPresent(x.subarray(i, j), sr, freq).match) return { hit: false, offset: null, pluck: null, why: 'already sounding' };
   }
-  if (pluck === null) for (let s = at - early; s <= at + late; s += 0.02) starts.push(s);
+  // A plucked note with no pluck heard: the pitch at the end of its window, when whatever was
+  // played has taken over from what rang before it. Legato notes: anywhere in the window.
+  if (pluck === null && needsPluck) {
+    for (let s = at + late; s >= at; s -= 0.02) if (room(s) >= 1.5 / freq) { starts.push(s); break; }
+  } else if (pluck === null) for (let s = at - early; s <= at + late; s += 0.02) starts.push(s);
   for (const s of starts) {
     const look = room(s);
     if (look < 1.5 / freq) continue;
