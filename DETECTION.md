@@ -65,7 +65,7 @@ volume changes, and says that setting the gain by hand, or playing out of tune, 
 | Calibration | strum loud, then mute | **Sync's soundcheck:** quiet through the count-in (noise + 2 dB), level from the play-along; advice if too loud, too quiet or noisy |
 | Noise floor | gates detection | nothing within 10 dB of it is a note, and no pluck is near it (mains hum can't pass for a low B) |
 | Gain | set by the game, on the cable | can't be set from a browser: the soundcheck says what to turn instead |
-| Pitch check | "is the expected note there?" | the same: the expected period and its octave, not a blind pitch guess (`web/js/scoring.js`) |
+| Pitch check | "is the expected note there?" | the same: the expected period and its octave, not a blind pitch guess (`web/js/scoring.js`); after a pluck, with the strings ringing below the note filtered out |
 | Pitch tolerance | 30 cents in the tuner; play unknown | 50 cents in play; the tuner 3 cents |
 
 **Tried and dropped (2026-10-09):** a second pluck detector listening for the volume jumping, for soft
@@ -73,6 +73,12 @@ finger plucks with no click. A re-pluck of a note still ringing is only a ~3 dB 
 tried either missed those or found plucks that weren't there; a false pluck is worse than a missed one, as
 it lets skipped notes through. A real fix needs real takes from the cable, or a detector for the
 waveform's phase breaking at the expected period.
+
+**Re-plucks, from real takes (2026-10-11):** the second, for the same note again only (`rePluck` in
+`web/js/scoring.js`). On two takes from the cable, a string left ringing carries on in step with itself
+two periods back (rarely under 0.7, as nsdf); a re-pluck breaks that, mostly under 0.4, as much by its
+jump in level as by starting out of step (bass re-plucks often restart nearly in step). It only counts
+with the note steady on both sides (20 ms clear of the finger coming down) and the level not dropping.
 
 ## Ideas not yet done
 
