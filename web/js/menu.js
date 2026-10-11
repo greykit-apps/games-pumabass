@@ -173,6 +173,7 @@ ${row('Sync', `<div class='gk-row'><button data-set='sync' title='Line up the so
 ${row('Screen', pick('screen', [['couch', 'TV'], ['desk', 'Computer']], prefs.screen, 'TV draws everything larger, to read from across the room'))}
 </div></section><section class='set-col'><h3>Playing</h3><div class='set-grid'>
 ${row('View', pick('view', [['highway', 'Highway', PICS.highway], ['tab', 'Tab', PICS.tab]], prefs.view, 'Play from the note highway, or from tab in its place (V while you play)'))}
+${row('Lyrics', pick('lyrics', [['true', 'On'], ['false', 'Off']], prefs.lyrics, 'The words at the top, a line at a time, for songs that have them (Y while you play)'))}
 ${row('Look ahead', pick('lookahead', [[2, '2s'], [3, '3s'], [4, '4s'], [5, '5s']], prefs.lookahead, 'How far ahead the highway shows the notes'))}
 ${row('Strings', pick('invert', [['true', 'Low string on top', PICS.lowTop], ['false', 'Low string at the bottom', PICS.lowBottom]], prefs.invert))}
 ${row('Notes', pick('labels', [['off', 'Plain notes', PICS.off], ['fret', 'Fret numbers', PICS.fret], ['name', 'Note names', PICS.name]], prefs.noteLabels))}
@@ -198,6 +199,7 @@ export async function settingsClick(b, sheet) {
     case 'lefty': prefs.lefty = v === 'true'; highway.lefty = prefs.lefty; break;
     case 'labels': prefs.noteLabels = v; highway.labels = prefs.noteLabels; break;
     case 'view': prefs.view = v; break;
+    case 'lyrics': prefs.lyrics = v === 'true'; break;
     case 'staffNames': prefs.staffNames = !prefs.staffNames; break;
     case 'notationStaff': case 'notationTab': {
       // One toggle each; the band shows while either is on (N may have turned the band off with both set).

@@ -59,6 +59,7 @@ export const prefs = Object.assign({
   staffNames: true, // note names under the notes in the notation band
   lefty: false,     // left-handed: the highway mirrored, the nut on the right (tab and notation are the same either way)
   view: 'highway',  // what the song is played from: the 'highway', or the 'tab' view in its place (V)
+  lyrics: true,     // the song's words at the top while it plays, when it has them (Y)
 }, load(KEY_PREFS, {}));
 if (typeof prefs.hear === 'number') prefs.hear = prefs.hear > 0; // was a volume
 // Settings that are gone: the tuner always offers itself, the riff repeater has

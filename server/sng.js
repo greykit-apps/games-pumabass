@@ -127,7 +127,9 @@ function parseSng(raw, platform = 'pc') {
   meta.firstNoteTime = r.f32(); r.f32(); meta.maxDifficulty = r.i32();
   meta.trailingBytes = r.b.length - r.o;
 
-  return { beats, phrases, chordTemplates, chordNotes, phraseIterations, events, tones, sections, levels, meta };
+  // A vocals arrangement's words, a syllable each (Japanese ones start with a byte-order mark).
+  const lyrics = vocals.map(v => ({ time: v.time, length: v.length, lyric: v.lyric.replace(/^\uFEFF/, '') }));
+  return { beats, phrases, chordTemplates, chordNotes, vocals: lyrics, phraseIterations, events, tones, sections, levels, meta };
 }
 
 module.exports = { parseSng, decryptSng };

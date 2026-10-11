@@ -46,6 +46,7 @@ ${keys([
     ['T', 'tuner'],
     ['V', 'view: highway or tab'],
     ['N', 'notation over the highway: standard, tab, both, off'],
+    ['Y', 'lyrics at the top: on / off'],
     ['S', 'Settings'],
     ['?', 'this help'],
     ['Esc', 'pause; again, the song list'],
