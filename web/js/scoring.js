@@ -165,16 +165,19 @@ export function pitchCheck(x, sr, freq) {
 /**
  * A re-pluck of a note still ringing, between from and to (s into x), when
  * its click was too soft to hear: the note is steady at freq before the
- * finger came down (GAP before) and after the pluck's click, yet what follows
- * doesn't carry on what came before. The measure (as nsdf) drops both when
- * the string starts over out of step and when it jumps in level. A string
- * left ringing stays near 1 (on real takes, rarely under 0.7); a re-pluck
- * mostly falls under 0.4. Damping only takes level away, so the level after
- * must be at least half what it was. A change of note never counts: it isn't
- * steady at freq on both sides.
+ * finger came down (GAP before) and after the pluck's click, but what follows
+ * doesn't carry on what came before. Either it breaks step: the measure (as
+ * nsdf) drops both when the string starts over out of step and when it jumps
+ * in level; a string left ringing stays near 1 (on real takes, rarely under
+ * 0.7), a re-pluck mostly falls under 0.4. Or it gains energy: an open string
+ * re-plucked often carries on nearly in step, a little louder, and a string
+ * left alone only loses energy (on real takes, doubled 3 times in 200).
+ * Damping only takes level away, so the level after must be at least half
+ * what it was. A change of note never counts: it isn't steady at freq on
+ * both sides.
  * Returns where it starts over (s into x), or null.
  */
-const STEADY = 0.8, BREAK = 0.4, GAP = 0.02, KEPT = 0.5;
+const STEADY = 0.8, BREAK = 0.4, GAP = 0.02, KEPT = 0.5, GAINED = 2;
 export function rePluck(x, sr, from, to, freq) {
   const step = Math.max(1, Math.floor(sr / (freq * 100)));
   const n0 = Math.floor(x.length / step), y = new Float32Array(n0);
@@ -193,12 +196,13 @@ export function rePluck(x, sr, from, to, freq) {
   };
   const energy = (s, e) => { let m = 0; for (let j = s; j < e; j++) m += y[j] * y[j]; return m / (e - s); };
   const first = Math.max(Math.ceil(from * rate), gap + W + 2 * P), last = Math.min(Math.floor(to * rate), n0 - click - W - P - 1);
-  let best = null, lowest = BREAK;
+  let best = null, lowest = Infinity;
   for (let i = first; i <= last; i += Math.max(1, Math.round(0.005 * rate))) {
     const across = near(i, P, P); // the two periods after i, against the two before
     if (across >= lowest) continue;
+    const kept = energy(i + click, i + click + W + P) / energy(i - gap - W - P, i - gap);
+    if (kept < KEPT || (across >= BREAK && kept < GAINED)) continue;
     if (near(i - gap - P, T, P) < STEADY || near(i + click + W, T, P) < STEADY) continue;
-    if (energy(i + click, i + click + W + P) < KEPT * energy(i - gap - W - P, i - gap)) continue;
     lowest = across; best = i / rate;
   }
   return best;
