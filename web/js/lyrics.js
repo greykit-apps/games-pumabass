@@ -20,7 +20,7 @@ const els = new Map(); // line index -> its element, while it's in a slot
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-/** The words for the song now up: chart.lyrics, or nothing (no vocals, the demo, the sync test). */
+/** The words for the song now up: chart.lyrics, or nothing (no vocals, the sync test). */
 export function setLyrics(words) {
   lines = [];
   let line = null, chars = 0, ended = true;

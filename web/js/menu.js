@@ -23,7 +23,7 @@ export function titleCfg() {
     name: 'PumaBass',
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
-      { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'the demo song' : 'the demo song, then yours' },
+      { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'the demo songs' : 'the demo songs, then yours' },
       { act: 'score', label: 'Score a song', key: 'C', meta: 'beta' },
       { act: 'tuner', label: 'Tuner', key: 'T' },
       { act: 'sync', label: 'Sync', key: 'Y', meta: prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : '' },
@@ -159,7 +159,7 @@ export function settingsHTML() {
     : `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const row = (label, body) => `<span class='set-label'>${label}</span><div class='set-cell'>${body}</div>`;
   // The libraries: PumaBass's own folders, and a Rocksmith folder of your choice (optional).
-  const have = WEB ? 'The web demo: the demo song only' : ownSongs().length ? libraryLabel() : 'No songs yet';
+  const have = WEB ? 'The web demo: the demo songs only' : ownSongs().length ? libraryLabel() : 'No songs yet';
   const folder = !info.libraryDir ? 'Rocksmith folder: none chosen'
     : `Rocksmith folder: <code>${esc(info.libraryDir)}</code>${info.libraryFound ? '' : ' · that folder is missing'}`;
   // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols): what

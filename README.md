@@ -2,15 +2,15 @@
 
 Learn songs on a note highway, from charts you make yourself. Bass first; lead and rhythm guitar parts
 play too. Chart any song you have a recording of with free tools, and PumaBass plays it in your browser,
-in time with the music ([Making your own songs](MAKING-SONGS.md)); until then, there's a demo song
-written for it to play. It also plays songs downloaded from CustomsForge, and is compatible with
+in time with the music ([Making your own songs](MAKING-SONGS.md)); until then, there are two demo
+songs to play. It also plays songs downloaded from CustomsForge, and is compatible with
 Rocksmith 2014's song files. Runs on Windows and Linux, from a desk or from the couch on a TV. Built by
 [greykit.com](https://greykit.com).
 
 **Try the demo in your browser** at [greykit.com/games/pumabass](https://greykit.com/games/pumabass/),
 with nothing to install.
 
-![Prowl, the demo song, on the highway: the camera sits close over frets 1 to 4 for the verse riff and its slide, then pulls back and pans up the neck as the chorus moves to frets 7 to 12, where a bent 9 comes down](screenshots/highway.webp)
+![Prowl, a demo song, on the highway: the camera sits close over frets 1 to 4 for the verse riff and its slide, then pulls back and pans up the neck as the chorus moves to frets 7 to 12, where a bent 9 comes down](screenshots/highway.webp)
 
 ## What you get
 
@@ -25,8 +25,8 @@ with nothing to install.
 - **Scoring (beta).** Each note you play is judged as it lands, with a score at the end.
 - **Your library.** Search, sort by difficulty or plays, heart your favorites, and see how often you've
   finished each song.
-- **A demo song.** *Prowl*, an original riff written for PumaBass, is ready to play from the first run
-  (below).
+- **Two demo songs.** *Prowl*, an original riff written for PumaBass, and Grieg's *In the Hall of the
+  Mountain King*, arranged for it, are ready to play from the first run (below).
 
 ## Install
 
@@ -47,10 +47,13 @@ then double-click **start.bat**.
 PumaBass opens in your browser at http://localhost:8014/ (without a desktop, open that address
 yourself). Close the window it started in, or press Ctrl+C there, to stop it.
 
-**Try it straight away** with the demo song: **Learn a song**, then *Prowl* on the **Demo** tab. It's
+**Try it straight away** with the demo songs: **Learn a song**, then the **Demo** tab. *Prowl* is
 a minute-long riff in E minor at 112 BPM. It starts low around the open E, moves up the neck for the
 chorus, and climbs to the 12th fret in the solo, with a slide, bends and a harmonic. With **Notes**
-below 50% it's quarter notes, for a first go.
+below 50% it's quarter notes, for a first go. *In the Hall of the Mountain King* is Grieg's tune from
+*Peer Gynt* (1875), long out of copyright, arranged for bass and a band: the theme goes round low by the
+open E, then a step up the neck, then an octave up, and speeds up all the way from 76 BPM to 168. Both
+are PumaBass's own, chart and audio, with nothing in them from anyone else's recording.
 
 ## Add your songs
 

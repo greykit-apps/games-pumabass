@@ -16,7 +16,7 @@ import { repeater, stopRepeater, toggleRepeater, repeaterPass } from './repeater
 import { KEY_OFFSETS, KEY_RECENT, KEY_RESUME, load, save, prefs, savePrefs, isFav, toggleFav, bumpStat } from './store.js';
 import { calib, playAlongDone, endSync, syncFrame } from './sync-test.js';
 import { clearTake, logTakeSync, logTakeVerdict, startTake } from './takes.js';
-import { demoChart, demoTrack } from './demo.js';
+import { demoChart, demoTrack } from './demos.js';
 import { setLyrics, hasLyrics, renderLyrics } from './lyrics.js';
 
 /* Each time a loop comes round. */
@@ -57,7 +57,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   const recent = load(KEY_RECENT, {}); recent[s.id] = Date.now(); save(KEY_RECENT, recent);
 
   try {
-    chart = s.demo ? demoChart() : await api(`/api/chart/${encodeURIComponent(s.id)}`);
+    chart = s.demo ? demoChart(s.id) : await api(`/api/chart/${encodeURIComponent(s.id)}`);
   } catch (e) {
     $('loading').classList.add('hidden');
     showLibrary();
@@ -83,7 +83,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   setNotationSong(chart, s.type);
 
   if (s.demo) await new Promise(r => setTimeout(r, 50)); // Loading shows while its audio is made, the first time
-  audio.src = s.demo ? demoTrack() : `/api/audio/${encodeURIComponent(s.id)}`; // the demo's is made here (demo.js)
+  audio.src = s.demo ? demoTrack(s.id) : `/api/audio/${encodeURIComponent(s.id)}`; // a demo's is made here (demos.js)
   audio.preservesPitch = true;
   // A song's first play decodes its audio on the server, which takes a few seconds; after that it's kept.
   const slow = setTimeout(() => { if (song === s) showLoading(`Loading ${s.title}`, 'Decoding its audio: the first play of a song takes a few seconds'); }, 1200);
