@@ -284,14 +284,21 @@ button.wordmark:hover:not(:disabled) b { color: #8af6ff; }
 button.wordmark:focus-visible { transform: var(--lean) scale(1.04); }
 button.wordmark:focus-visible b { color: inherit; }
 /* the song's words (web/js/lyrics.js): centred in the top bar, between the wordmark and the score;
-   the line being sung, read upright, each syllable lit as it's sung, the next line small under it */
-#lyrics { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(56%, 920px); text-align: center; pointer-events: none;
+   the line being sung, read upright, each syllable lit as it's sung, the next line under it.
+   They advance like a scroll, all one size: sung, a line moves up and fades ('gone'), the next moves
+   up into its place ('next' to 'now'), and the one after fades in under it ('below' to 'next'). */
+#lyrics { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(56%, 920px); height: 66px; pointer-events: none;
   text-shadow: 0 0 8px rgba(var(--bg-rgb), .95), 0 1px 2px rgba(var(--bg-rgb), .9); }
-#lyrics > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ly-now { font-size: 26px; font-weight: 700; line-height: 1.25; color: var(--ink); }
-.ly-now .sung { color: var(--text); }
-.ly-now .now { color: var(--accent); }
-.ly-next { font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.ly-line { position: absolute; top: 0; left: 0; right: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 26px; font-weight: 700; line-height: 1.25; color: var(--ink);
+  transition: transform .4s ease-out, opacity .4s ease-out; }
+.ly-line.now { transform: none; opacity: 1; }
+.ly-line.next { transform: translateY(34px); opacity: 1; }
+.ly-line.below { transform: translateY(68px); opacity: 0; }
+.ly-line.gone { transform: translateY(-34px); opacity: 0; }
+.ly-line .sung { color: var(--text); }
+.ly-line.now .singing { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .ly-line { transition: opacity .3s; } }
 #player.syncing #lyrics { display: none; }
 /* PAUSED and the countdown: big, over the upper highway, never in the way of a click */
 #overlay { position: absolute; left: 0; right: 0; top: 24%; text-align: center; pointer-events: none; }
