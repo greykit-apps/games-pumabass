@@ -129,17 +129,23 @@ export function showSongInList(id) {
 
 /* The libraries, each a tab on the song list and a folder the server reads
  * (server/library.js: SOURCES). A library with no songs in its folder has no
- * tab (your own Rocksmith folder: none until you choose one); All always does. */
+ * tab (your own Rocksmith folder: none until you choose one); All always does.
+ * New isn't a folder: the songs whose files arrived in any of them lately, the newest first. */
+const NEW_DAYS = 30;
 export const LIBRARIES = [
   ['all', 'All'],
+  ['new', 'New', `songs added in the last ${NEW_DAYS} days, the newest first`],
   ['music', 'Music', 'songs you made, and your recordings'],
   ['cdlc', 'CDLC', 'custom songs you download'],
   ['bundles', 'Bundles', 'Rocksmith 2014 song sets'],
   ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
   ['demo', 'Demo', 'the song that comes with PumaBass'],
 ];
-const inLibrary = (s, key) => key === 'all' || (s.sources || ['folder']).includes(key);
-const shownLibraries = () => LIBRARIES.filter(([k]) => k === 'all' || songs.some(s => inLibrary(s, k)));
+// The demo (its tab, and in All) only until there are songs of your own.
+const hasOwn = () => songs.some(s => !s.demo);
+const inLibrary = (s, key) => (key === 'all' ? !s.demo || !hasOwn()
+  : key === 'new' ? s.added > Date.now() - NEW_DAYS * 864e5 : (s.sources || ['folder']).includes(key));
+const shownLibraries = () => LIBRARIES.filter(([k]) => k === 'all' || (k === 'demo' ? !hasOwn() : songs.some(s => inLibrary(s, k))));
 
 export const stringsOf = s => (s.type === 'bass' ? 4 : 6);
 export function renderLibrary() {
@@ -158,6 +164,7 @@ export function renderLibrary() {
   }).join('');
   let list = ofType.filter(s => (prefs.showMissing || s.audio !== false) && (!prefs.favOnly || favs[s.id]));
   if (q) list = list.filter(s => `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q));
+  const fresh = prefs.library === 'new', sort = fresh ? 'added' : prefs.sort; // New: always the newest first
   const cmp = {
     artist: (a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
     title: (a, b) => a.title.localeCompare(b.title),
@@ -168,27 +175,29 @@ export function renderLibrary() {
     finished: (a, b) => ((stats[b.id] || {}).finished || 0) - ((stats[a.id] || {}).finished || 0) || ((stats[b.id] || {}).plays || 0) - ((stats[a.id] || {}).plays || 0) || a.artist.localeCompare(b.artist),
     part: (a, b) => arrangementLabel(a).localeCompare(arrangementLabel(b)) || a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
     length: (a, b) => (a.length || 0) - (b.length || 0) || a.artist.localeCompare(b.artist),
-  }[prefs.sort] || (() => 0);
-  const dir = prefs.sortRev ? -1 : 1; // a second click on a heading: the other way round
+    added: (a, b) => b.added - a.added || a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
+  }[sort] || (() => 0);
+  const dir = prefs.sortRev && !fresh ? -1 : 1; // a second click on a heading: the other way round
   list.sort((a, b) => dir * (cmp(a, b) || arrangementLabel(a).localeCompare(arrangementLabel(b))));
 
   for (const b of document.querySelectorAll('#type-filter button')) b.setAttribute('aria-pressed', String(b.dataset.type === prefs.type));
   for (const b of document.querySelectorAll('.songs-head .sorter')) {
-    const on = b.dataset.sort === prefs.sort, up = !DESC.has(b.dataset.sort) !== prefs.sortRev; // up: A to Z, least first
+    const on = b.dataset.sort === sort, up = !DESC.has(b.dataset.sort) !== prefs.sortRev; // up: A to Z, least first
     b.dataset.dir = on ? (up ? 'up' : 'down') : '';
     b.setAttribute('aria-pressed', String(on));
+    b.disabled = fresh;
   }
   $('fav-filter').setAttribute('aria-pressed', String(prefs.favOnly));
 
   // From the couch, the list is long: the songs played last come first, on a shelf of their own, and the
   // rest is split into groups by what it's sorted on (initials, tunings, difficulty), to jump between.
   // A list that fits on the screen needs no shelf.
-  const shelf = !q && !prefs.favOnly && prefs.sort !== 'recent' && list.length > 2 * SHELF
+  const shelf = !q && !prefs.favOnly && !fresh && prefs.sort !== 'recent' && list.length > 2 * SHELF
     ? list.filter(s => s.audio !== false && recent[s.id]).sort((a, b) => recent[b.id] - recent[a.id]).slice(0, SHELF) : [];
   const groupOf = {
     artist: s => initial(s.artist), title: s => initial(s.title), tuning: s => tuningName(s.tuning, stringsOf(s)),
     difficulty: s => (difficultyLevel(s.difficulty) ? `Difficulty ${difficultyLevel(s.difficulty)} of 5` : 'No difficulty rating'),
-  }[prefs.sort];
+  }[sort];
 
   const el = $('song-list');
   const keep = document.activeElement && document.activeElement.closest && document.activeElement.closest('#song-list .song');
@@ -455,7 +464,7 @@ export function libraryKey(e, typing) {
     headAway(k === 'ArrowRight');
     if (to) { focusRow(to); toast(to.previousElementSibling.textContent); }
   }
-  else if ((k === 'o' || k === 'O') && !typing) {
+  else if ((k === 'o' || k === 'O') && !typing && prefs.library !== 'new') { // New stays newest first
     e.preventDefault();
     const n = SORTS[(SORTS.findIndex(([v]) => v === prefs.sort) + 1) % SORTS.length];
     prefs.sort = n[0]; prefs.sortRev = false; savePrefs(); renderLibrary(); toast(`Sorted by ${n[1]}`);
