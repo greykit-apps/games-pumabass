@@ -1,0 +1,8 @@
+# The web demo listens to your bass: Settings -> Choose input asks the browser for an
+# audio input. greykit.com's own .htaccess turns the microphone off for the whole site
+# (Permissions-Policy: microphone=()), and a browser then refuses without ever asking.
+# Here the page itself may ask (self); the camera and location stay off, and nothing
+# else on the site changes. tools/build-web.sh puts this beside the page.
+<IfModule mod_headers.c>
+  Header always set Permissions-Policy "camera=(), microphone=(self), geolocation=()"
+</IfModule>

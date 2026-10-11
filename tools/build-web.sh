@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-web.sh -- the web demo, for greykit.com/games/pumabass/: the page, its icons
+# build-web.sh -- the web demo, for greykit.com/games/pumabass/: the page, its .htaccess, its icons
 # and manifest, and web/, with the page marked as the web edition (web/js/api.js: WEB),
 # so it plays the demo song without a server. CI's deploy stage runs it; run it
 # yourself to try the demo locally.
@@ -19,6 +19,7 @@ rm -rf "$OUT"
 mkdir -p "$OUT"
 cd "$ROOT"
 cp index.html manifest.webmanifest icon.svg favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png og.png "$OUT/"
+cp .htaccess "$OUT/" # lets the page ask for an audio input (greykit.com turns the microphone off)
 V="${CI_COMMIT_SHORT_SHA:-$(git rev-parse --short HEAD 2>/dev/null || date +%s)}" # GitLab CI names the commit (its image has no git)
 cp -r web "$OUT/web-$V"
 sed -i -e 's/<html lang="en" dir="ltr">/<html lang="en" dir="ltr" data-edition="web">/'   -e "s#href=\"web/style.css\"#href=\"web-$V/style.css\"#" -e "s#src=\"web/js/app.js\"#src=\"web-$V/js/app.js\"#" "$OUT/index.html"
