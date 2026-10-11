@@ -191,9 +191,12 @@ class Library {
     // their audio may have just arrived (audio.psarc copied after songs.psarc).
     const sameSet = cached && Object.keys(cached.archives).sort().join('\n') === files.join('\n');
     const result = {};
+    const added = new Map(); // song file -> when it arrived in its folder
     let i = 0;
     for (const file of files) {
       const st = fs.statSync(file);
+      // Created, here: a copy or a download is new when it lands, though it keeps its old modified time.
+      added.set(file, Math.round(st.birthtimeMs || st.mtimeMs));
       const stamp = `${st.size}:${st.mtimeMs}`;
       const prev = cached && cached.archives[file];
       if (prev && prev.stamp === stamp && (sameSet || prev.songs.every(s => s.wem))) {
@@ -215,7 +218,7 @@ class Library {
     const seen = new Map(), rank = s => SOURCES.indexOf(s.source);
     for (const [file, a] of Object.entries(result)) {
       for (const song of a.songs) {
-        const s = { ...song, source: this.sourceOf.get(file) || 'folder' };
+        const s = { ...song, source: this.sourceOf.get(file) || 'folder', added: added.get(file) };
         const key = s.id.replace(/_[pm]:/, ':');
         const prev = seen.get(key);
         const better = !prev || (prev.platform === 'mac' && s.platform === 'pc')
