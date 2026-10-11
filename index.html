@@ -86,6 +86,8 @@
       <span id="score-hud" class="chip hidden" aria-live="off" title="Accuracy so far, and your current streak"></span>
       <button id="no-score" class="hidden" title="Scoring is on, but no instrument input is open: choose one">Not scoring: no input</button>
     </div>
+    <!-- The song's words, a line at a time (web/js/lyrics.js). -->
+    <div id="lyrics" class="hidden" aria-hidden="true"><div class="ly-now"></div><div class="ly-next"></div></div>
     <!-- The notation band: standard notation over tab, scrolling over the top of the highway (web/js/notation.js). -->
     <div id="notation" class="score hidden" aria-hidden="true"><div class="nt-clef"></div><div class="nt-view"><div class="nt-strip"></div></div><i class="nt-head"></i></div>
     <!-- The tab view (V): the tab, large, in place of the highway, a page of lines with the playhead running along them (web/js/notation.js). -->

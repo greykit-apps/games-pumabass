@@ -17,6 +17,7 @@ import { KEY_OFFSETS, KEY_RECENT, KEY_RESUME, load, save, prefs, savePrefs, isFa
 import { calib, playAlongDone, endSync, syncFrame } from './sync-test.js';
 import { clearTake, logTakeSync, logTakeVerdict, startTake } from './takes.js';
 import { demoChart, demoTrack } from './demo.js';
+import { setLyrics, hasLyrics, renderLyrics } from './lyrics.js';
 
 /* Each time a loop comes round. */
 export function loopCameRound() {
@@ -63,6 +64,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
     await alertSheet(e.message, `Can't open "${s.title}"`);
     return;
   }
+  setLyrics(chart.lyrics);
   const tn = tuningName(chart.tuning, chart.strings);
   const notes = tuningNotes(chart.tuning, chart.strings).join(' ');
   $('p-tuning').textContent = (tn.includes(' ') && !tn.startsWith('Drop') && !tn.endsWith('Standard') ? tn : `${tn} · ${notes}`)
@@ -184,6 +186,7 @@ export async function openTestSong(test) {
   closeEndScreen();
   song = { id: test.chart.id, title: 'Sync', artist: 'PumaBass', type: 'bass', calib: true };
   chart = test.chart;
+  setLyrics(null);
   setScreen('player');
   stopRepeater();
   $('library').classList.add('hidden');
@@ -353,7 +356,7 @@ export function togglePlay() {
 }
 
 /* While paused, the keys worth knowing, so none has to be remembered. */
-const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['N', 'notation'], ['V', 'view'], ['T', 'tuner'], ['M', 'mix'], ['?', 'help'], ['Esc', 'song list']]
+const PAUSED_KEYS = `<span class="ov-keys">${[['L', 'loop section'], ['R', 'riff repeater'], ['N', 'notation'], ['V', 'view'], ['Y', 'lyrics'], ['T', 'tuner'], ['M', 'mix'], ['?', 'help'], ['Esc', 'song list']]
   .map(([k, v]) => `<span><kbd>${k}</kbd>${v}</span>`).join('')}</span>`;
 
 /* PAUSED while paused; while counting back in, the seconds to go, then LIVE. */
@@ -600,6 +603,14 @@ export function setOffset(ms) {
 for (const b of document.querySelectorAll('[data-nudge]')) b.addEventListener('click', () => setOffset(offsetMs + Number(b.dataset.nudge)));
 $('offset').addEventListener('input', () => setOffset(Number($('offset').value)));
 
+/* Y: the song's words at the top, on or off (Settings has it too). */
+function toggleLyrics() {
+  if (!hasLyrics()) { toast('No lyrics in this song'); return; }
+  prefs.lyrics = !prefs.lyrics;
+  savePrefs();
+  toast(prefs.lyrics ? 'Lyrics on' : 'Lyrics off');
+}
+
 export function playerKey(e) {
   const k = e.key;
   if (k === ' ') { e.preventDefault(); togglePlay(); }
@@ -616,6 +627,7 @@ export function playerKey(e) {
   else if (k === 't' || k === 'T') showTuner();
   else if (k === 'n' || k === 'N') cycleNotation();
   else if (k === 'v' || k === 'V') cycleView();
+  else if (k === 'y' || k === 'Y') toggleLyrics();
   else if (k === 'f' || k === 'F') { toggleFav(song.id); toast(isFav(song.id) ? 'Favorite' : 'Not a favorite'); }
   else if (k === 'b' || k === 'B') {
     const modes = Object.keys(RECORDED_BASS);
@@ -665,6 +677,7 @@ export function frame() {
     const sec = currentSection(t), secName = sec ? sectionName(sec.name) : '';
     if ($('section-name').textContent !== secName) $('section-name').textContent = secName;
     renderOverlay();
+    renderLyrics(t, prefs.lyrics && !calib && !endScreen && $('loading').classList.contains('hidden'));
     // How much of the song was actually played: each step forward, measured
     // against the clock, so a jump (far more song than time passed) counts for
     // nothing, while a slow or throttled frame still counts in full.

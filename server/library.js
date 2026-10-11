@@ -265,8 +265,21 @@ class Library {
   chart(id) {
     const entry = this.get(id);
     if (!entry) return null;
-    const sng = parseSng(this.open(entry.file).extract(entry.sng), entry.platform);
-    return buildChart(entry, sng);
+    const archive = this.open(entry.file);
+    const sng = parseSng(archive.extract(entry.sng), entry.platform);
+    return buildChart(entry, sng, this.lyrics(archive, entry));
+  }
+
+  /* The song's words: its vocals arrangement, beside this one in the archive (<key>_vocals.sng
+   * next to <key>_bass.sng), a syllable each. Null when it has none: not every song does. */
+  lyrics(archive, entry) {
+    const vocals = entry.sng.replace(/_[^_/]*\.sng$/, '_vocals.sng');
+    if (vocals === entry.sng || !archive.has(vocals)) return null;
+    try {
+      const r3 = x => Math.round(x * 1000) / 1000;
+      const words = parseSng(archive.extract(vocals), entry.platform).vocals;
+      return words.length ? words.map(w => ({ t: r3(w.time), d: r3(w.length), w: w.lyric })) : null;
+    } catch (e) { return null; } // words that won't read: the song plays without them
   }
 
   // Writes the decoded audio to the cache (if needed) and returns the WAV path.
@@ -357,7 +370,7 @@ function bendCurve(points, t0) {
 
 // Converts a parsed SNG into the compact form the web player uses.
 // Notes are kept per difficulty level so the player can pick a level per phrase.
-function buildChart(entry, sng) {
+function buildChart(entry, sng, lyrics = null) {
   const strings = entry.type === 'bass' ? 4 : 6;
   const r3 = x => Math.round(x * 1000) / 1000;
   const levels = sng.levels.map(level => ({
@@ -422,6 +435,7 @@ function buildChart(entry, sng) {
     chordTemplates: sng.chordTemplates.map(c => ({ name: c.name, frets: c.frets.slice(0, strings) })),
     maxDifficulty: sng.meta.maxDifficulty,
     levels,
+    lyrics, // the words, [{ t, d, w }], a syllable each ('-' runs into the next, '+' ends a line), or null
   };
 }
 

@@ -14,7 +14,8 @@ look, [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about i
   - `store.js`: what is kept in the browser; `api.js`: the server;
   - `menu.js`: the title, Settings and Help; `library-screen.js`: the song list and songs folder;
   - `player.js`: the player and its frame loop, with `repeater.js` (the riff repeater),
-    `end-screen.js`, `takes.js` and `sync-test.js` (the sync test's flow);
+    `end-screen.js`, `takes.js`, `lyrics.js` (the words at the top, a line at a time) and
+    `sync-test.js` (the sync test's flow);
   - `instrument.js`: choosing the input, hearing it, the mix and the tuner
 - `web/js/calibrate.js`: the sync test itself
 - `web/js/highway.js`: the 3D note highway, and the camera path planned for each song
@@ -30,7 +31,8 @@ look, [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about i
 - `web/js/scoring.js`, `web/js/capture-worklet.js`: scoring, and the input recorded for it
 - `web/js/title.js`: the canon boot and title screen; `scene.js` is its stage backdrop; `help.js` holds Help and About
 - `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
-- `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion, audio lookup and decoding
+- `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion (with the song's
+  lyrics, from the vocals arrangement beside it in the archive), audio lookup and decoding
 - `server/server.js`: the local web server, settings, the folder picker, takes. It only hands the browser
   `index.html`, its icons and manifest, and `web/`, and only answers to `localhost` unless `host` says otherwise.
 - `tools/build-web.sh`: builds the web demo (below)

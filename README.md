@@ -114,6 +114,7 @@ In a song:
 | T | The tuner |
 | V | The view: the highway, or tab in its place |
 | N | The notation over the highway: standard notation, tab, both, off |
+| Y | The lyrics at the top, for songs that have them: on / off |
 | B | The record's own bass: full, reduced, cut |
 | F | Make the song a favorite |
 | Mouse wheel (paused) | Scrub |
