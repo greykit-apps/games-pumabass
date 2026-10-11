@@ -180,8 +180,6 @@ html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
   box-shadow: 0 40px 120px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .05); }
 .top { display: flex; align-items: baseline; gap: var(--s4); padding: var(--s4) var(--s5) var(--s3); }
 .top h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 40px; text-transform: uppercase; color: var(--text); transform: var(--lean); }
-.top h1 .beta { display: inline-block; margin-left: 10px; padding: 2px 8px; border: 1px solid var(--accent); border-radius: 6px;
-  font-family: var(--ui); font-size: 14px; font-weight: 700; letter-spacing: .08em; color: var(--accent); vertical-align: middle; transform: none; }
 /* takes are for tuning scoring: the Mix shows them only in score mode */
 #settings:not(.scoring) .takes { display: none; }
 .top .brand { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: .02em; text-transform: uppercase; color: var(--text); transform: var(--lean); }

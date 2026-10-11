@@ -3,7 +3,7 @@
 import { alertSheet } from './title.js';
 
 /* The web demo (greykit.com/games/pumabass) has no server: the deploy marks its page
- * <html data-edition="web">, and the page plays the demo songs alone. What needs the
+ * <html data-edition="web">, and the page plays the demo song alone. What needs the
  * server (your songs, choosing a folder, Rescan, takes) says so when it's asked for
  * (notInDemo); Quit isn't there at all. */
 export const WEB = typeof document !== 'undefined' && document.documentElement.dataset.edition === 'web';

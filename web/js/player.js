@@ -261,7 +261,7 @@ export function applyDifficulty() {
 }
 
 /* ---- scoring ---- */
-// Scoring is a mode of its own, in beta: "Score a song" on the menu. "Learn a song" is
+// Scoring is a mode of its own: "Score a song" on the menu. "Learn a song" is
 // play-along: nothing is judged, and the Real Tone Cable, when it's there, is heard.
 export let scoreMode = false;
 export function setScoreMode(on) {

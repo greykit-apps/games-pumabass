@@ -15,6 +15,18 @@ import { STRING_COLORS } from './highway.js';
 
 export let title = null; // the title screen, while it is up
 
+/* Score a song's note on the menu: scoring listens to your bass, so until an input is chosen
+ * it says so (and choosing Score a song opens Settings instead). */
+const scoreMeta = () => (prefs.input ? '' : 'Choose input');
+function refreshScoreMeta() {
+  const b = $('title-host') && $('title-host').querySelector('.gk-menu [data-act="score"]');
+  if (!b) return;
+  let m = b.querySelector('.gk-meta');
+  if (!scoreMeta()) { if (m) m.remove(); return; }
+  if (!m) { m = document.createElement('span'); m.className = 'gk-meta'; b.appendChild(m); }
+  m.textContent = scoreMeta();
+}
+
 export function titleCfg() {
   const resume = load(KEY_RESUME, null);
   const rs = resume && songs.find(s => s.id === resume.id && s.audio !== false);
@@ -23,8 +35,8 @@ export function titleCfg() {
     name: 'PumaBass',
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
-      { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'the demo songs' : 'the demo songs, then yours' },
-      { act: 'score', label: 'Score a song', key: 'C', meta: 'beta' },
+      { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'demo' : 'demo library' },
+      { act: 'score', label: 'Score a song', key: 'C', meta: scoreMeta() },
       { act: 'tuner', label: 'Tuner', key: 'T' },
       { act: 'sync', label: 'Sync', key: 'Y', meta: prefs.avOffset || prefs.inputOffset ? `notes ${fmtMs(prefs.avOffset)}${prefs.inputOffset ? ` \u00b7 cable ${fmtMs(prefs.inputOffset)}` : ''}` : '' },
       'gap',
@@ -41,7 +53,13 @@ export function titleCfg() {
       if (act === 'resume' && rs) { setScoreMode(resume.scored); leaveTitle(); openSong(rs, resume.t, { resumed: true }); }
       if (act === 'tuner') showTuner();
       if (act === 'sync') runCalibration();
-      // Learn a song plays along; Score a song scores (beta). The song list is the same.
+      // No input to score from yet: Settings, with Choose input to hand.
+      if (act === 'score' && !prefs.input) {
+        const b = $('title-host').querySelector('.gk-menu [data-act="settings"]');
+        if (b) { b.click(); const c = document.querySelector('.gk-sheet [data-set="input"]'); if (c) c.focus(); }
+        return;
+      }
+      // Learn a song plays along; Score a song scores. The song list is the same.
       if (act === 'new' || act === 'score') {
         setScoreMode(act === 'score');
         leaveTitle(); showLibrary(); // with no songs of your own, the demo, and where yours go
@@ -159,7 +177,7 @@ export function settingsHTML() {
     : `<button data-set='${set}' data-v='${v}' aria-pressed='${String(cur) === String(v)}'>${l}</button>`).join('')}</div>`;
   const row = (label, body) => `<span class='set-label'>${label}</span><div class='set-cell'>${body}</div>`;
   // The libraries: PumaBass's own folders, and a Rocksmith folder of your choice (optional).
-  const have = WEB ? 'The web demo: the demo songs only' : ownSongs().length ? libraryLabel() : 'No songs yet';
+  const have = WEB ? 'The web demo: the demo song only' : ownSongs().length ? libraryLabel() : 'No songs yet';
   const folder = !info.libraryDir ? 'Rocksmith folder: none chosen'
     : `Rocksmith folder: <code>${esc(info.libraryDir)}</code>${info.libraryFound ? '' : ' · that folder is missing'}`;
   // Two columns, so it all fits on the TV without scrolling (style.css: .set-cols): what
@@ -234,7 +252,7 @@ export async function settingsClick(b, sheet) {
       return;
     case 'input':
       sheet.close();
-      chooseInput();
+      chooseInput().then(refreshScoreMeta);
       return;
     case 'tuner':
       sheet.close();

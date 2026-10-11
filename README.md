@@ -2,15 +2,15 @@
 
 Learn songs on a note highway, from charts you make yourself. Bass first; lead and rhythm guitar parts
 play too. Chart any song you have a recording of with free tools, and PumaBass plays it in your browser,
-in time with the music ([Making your own songs](MAKING-SONGS.md)); until then, there are two demo
-songs to play. It also plays songs downloaded from CustomsForge, and is compatible with
+in time with the music ([Making your own songs](MAKING-SONGS.md)); until then, there's a demo
+song to play. It also plays songs downloaded from CustomsForge, and is compatible with
 Rocksmith 2014's song files. Runs on Windows and Linux, from a desk or from the couch on a TV. Built by
 [greykit.com](https://greykit.com).
 
 **Try the demo in your browser** at [greykit.com/games/pumabass](https://greykit.com/games/pumabass/),
 with nothing to install.
 
-![Prowl, a demo song, on the highway: the camera sits close over frets 1 to 4 for the verse riff and its slide, then pulls back and pans up the neck as the chorus moves to frets 7 to 12, where a bent 9 comes down](screenshots/highway.webp)
+![The note highway: the camera sits close over frets 1 to 4 for the verse riff and its slide, then pulls back and pans up the neck as the chorus moves to frets 7 to 12, where a bent 9 comes down](screenshots/highway.webp)
 
 ## What you get
 
@@ -22,11 +22,11 @@ with nothing to install.
 - **Practice tools.** Slow a song down without changing its pitch, loop a section, let the riff repeater
   speed a loop up each time round, and pick an easier level of the chart.
 - **A tuner** that knows each song's tuning, and the Real Tone Cable plays your bass through the game.
-- **Scoring (beta).** Each note you play is judged as it lands, with a score at the end.
+- **Scoring.** Each note you play is judged as it lands, with a score at the end.
 - **Your library.** Search, sort by difficulty or plays, heart your favorites, and see how often you've
   finished each song.
-- **Two demo songs.** *Prowl*, an original riff written for PumaBass, and Grieg's *In the Hall of the
-  Mountain King*, arranged for it, are ready to play from the first run (below).
+- **A demo song.** *Gods of the Copybook Headings*, Suno AI's setting of Kipling's poem, is ready to
+  play from the first run (below).
 
 ## Install
 
@@ -47,13 +47,11 @@ then double-click **start.bat**.
 PumaBass opens in your browser at http://localhost:8014/ (without a desktop, open that address
 yourself). Close the window it started in, or press Ctrl+C there, to stop it.
 
-**Try it straight away** with the demo songs: **Learn a song**, then the **Demo** tab. *Prowl* is
-a minute-long riff in E minor at 112 BPM. It starts low around the open E, moves up the neck for the
-chorus, and climbs to the 12th fret in the solo, with a slide, bends and a harmonic. With **Notes**
-below 50% it's quarter notes, for a first go. *In the Hall of the Mountain King* is Grieg's tune from
-*Peer Gynt* (1875), long out of copyright, arranged for bass and a band: the theme goes round low by the
-open E, then a step up the neck, then an octave up, and speeds up all the way from 76 BPM to 168. Both
-are PumaBass's own, chart and audio, with nothing in them from anyone else's recording.
+**Try it straight away** with the demo song: **Learn a song**, then *Gods of the Copybook Headings* on
+the **Demo** tab. It's Kipling's poem (1919) set to music by Suno AI, played from its own recording, with
+the bass part transcribed from it and the poem's words on screen as they're sung: seven minutes of
+simple roots in first position, A minor at about 137 BPM. With **Notes** below 50% it's just the notes
+on the beat, for a first go.
 
 ## Add your songs
 
@@ -93,7 +91,7 @@ to list another one: `node tools/cdlc-index.mjs bundles`.
 
 ## Playing
 
-![The title menu: Learn a song (631 bass parts), Score a song (beta), Tuner, Sync, Settings, Help and About, on a stage between two amps](screenshots/title.png)
+![The title menu: Learn a song (631 bass parts), Score a song, Tuner, Sync, Settings, Help and About, on a stage between two amps](screenshots/title.png)
 
 **Learn a song** plays along: nothing is marked, and if the Real Tone Cable is plugged in you hear
 yourself with the song. **Score a song** is the same list, scored (see Scoring).
@@ -135,7 +133,7 @@ In a song:
 
 ## Reading music
 
-![Prowl's solo with the notation band over the highway: the line in bass clef with note names under it, its tab below, the blue playhead a little in from the left, and notes on frets 9 to 12 coming down](screenshots/notation.png)
+![The notation band over the highway: the line in bass clef with note names under it, its tab below, the blue playhead a little in from the left, and notes on frets 9 to 12 coming down](screenshots/notation.png)
 
 It starts off: press `N` and the part scrolls by over the highway in **standard notation over tab**, as a
 printed bass chart has it, with notes crossing the blue playhead as you play them. `N` steps through
@@ -146,7 +144,7 @@ The tab's notes are chips in their strings' colours, as on the highway, with the
 bends and other techniques, and chord names over the tab where the chord changes. With a capo, the tab
 counts frets from the capo.
 
-![Tab view of Prowl: two lines of bars, the cyan line running along the chorus on top while the verse riff waits below, with its pull-off, slide and bend marked](screenshots/tab.webp)
+![Tab view: two lines of bars, the cyan line running along the chorus on top while the verse riff waits below, with its pull-off, slide and bend marked](screenshots/tab.webp)
 
 **Tab view** (`V`, or Settings → View) puts the tab, large, in the highway's place, laid out like a page:
 the current line on top, the next below it. The cyan line runs along as you play, drops to the next line
@@ -185,7 +183,7 @@ you change speakers, headphones or screen (Bluetooth and TVs add delay).
 
 `Esc` at any point leaves without changing anything. Each song also has its own audio offset (in the mix, `M`) on top.
 
-## Scoring (beta)
+## Scoring
 
 **Score a song** (`C`) judges each note as it lands, through the cable: a ring in the string's colour
 for a hit, a red cross for a miss, with accuracy and streak at the top. The end screen gives the score,

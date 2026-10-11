@@ -277,6 +277,9 @@ const server = http.createServer(async (req, res) => {
     if (!allowed || !file.startsWith(APP_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.writeHead(404); return res.end('Not found');
     }
+    // A recording (a demo song's): in ranges, so the player can seek in it.
+    const audioType = AUDIO_MIME[path.extname(file).toLowerCase()];
+    if (audioType) return sendFileRange(req, res, file, audioType);
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     fs.createReadStream(file).pipe(res);
   } catch (e) {

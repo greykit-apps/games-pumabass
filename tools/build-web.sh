@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build-web.sh -- the web demo, for greykit.com/games/pumabass/: the page, its icons
 # and manifest, and web/, with the page marked as the web edition (web/js/api.js: WEB),
-# so it plays the demo songs without a server. CI's deploy stage runs it; run it
+# so it plays the demo song without a server. CI's deploy stage runs it; run it
 # yourself to try the demo locally.
 #
 # web/ goes up as web-<commit>/: greykit.com sits behind Cloudflare, which keeps
