@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // check-pitch.mjs -- the tuner's pitch detector against synthesized notes:
 // bass and guitar open strings in every Rocksmith tuning range, detuned,
-// with a weak fundamental, with noise, and as a decaying pluck.
+// with a weak fundamental, with noise, as a decaying pluck, and drifting.
 //   node tools/check-pitch.mjs
 // Fails on any displayed reading more than 2 cents off (the tuner calls
 // +/-3 cents in tune; ears can't tell under ~5), any octave mistake, or a
@@ -16,7 +16,9 @@ let seed = 1;
 const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
 
 // inharm: real strings are stiff, so overtone h sits at h*f*sqrt(1 + B*h^2), a little sharp (B ~ 1e-4 on a bass)
-function note(f, { weakFund = false, noise = 0, decay = 0, phase = 0, inharm = 0 } = {}) {
+// drift: an offset dying away under the note, this many times the fundamental's level (a
+// plucked string synthesized by Karplus-Strong keeps its burst's offset going round; rumble)
+function note(f, { weakFund = false, noise = 0, decay = 0, phase = 0, inharm = 0, drift = 0 } = {}) {
   const buf = new Float32Array(N);
   // a plucked string: harmonics falling off, the 2nd stronger than the 1st on a weak fundamental
   const amps = weakFund ? [0.25, 1, 0.6, 0.4, 0.25, 0.15] : [1, 0.6, 0.35, 0.2, 0.12, 0.08];
@@ -25,14 +27,14 @@ function note(f, { weakFund = false, noise = 0, decay = 0, phase = 0, inharm = 0
     let v = 0;
     amps.forEach((a, h) => { const k = h + 1; v += a * Math.sin(2 * Math.PI * f * k * Math.sqrt(1 + inharm * k * k) * t + phase * k); });
     v *= 0.3 * Math.exp(-decay * t);
-    buf[i] = v + noise * rand();
+    buf[i] = v + 0.3 * drift * amps[0] * Math.exp(-2 * t) + noise * rand();
   }
   return buf;
 }
 
 const cases = [];
-// bass open strings from B0 (5-string / deep drop) to a raised G2, guitar to E4
-for (let m = 23; m <= 46; m++) cases.push({ m, range: { minFreq: 25, maxFreq: 150 }, kind: 'bass' });
+// bass open strings from A0 (a 5-string dropped a tone) to a raised G2, guitar to E4
+for (let m = 21; m <= 46; m++) cases.push({ m, range: { minFreq: 25, maxFreq: 150 }, kind: 'bass' });
 for (let m = 38; m <= 66; m++) cases.push({ m, range: { minFreq: 60, maxFreq: 400 }, kind: 'guitar' });
 
 // The tuner shows the median of its last 5 readings (web/js/tuner.js), so
@@ -44,7 +46,7 @@ let worst = 0, worstSingle = 0, fails = 0, checked = 0, overOne = 0;
 for (const c of cases) {
   N = c.kind === 'bass' ? 16384 : 8192;
   for (const detune of [-37, -12, -3, 0, 4, 19, 45]) {
-    for (const opts of [{}, { weakFund: true }, { noise: 0.02 }, { decay: 3, phase: 1.3 }, { weakFund: true, noise: 0.03, decay: 2 }, { inharm: 0.0002 }, { weakFund: true, inharm: 0.0004, noise: 0.02 }]) {
+    for (const opts of [{}, { weakFund: true }, { noise: 0.02 }, { decay: 3, phase: 1.3 }, { weakFund: true, noise: 0.03, decay: 2 }, { inharm: 0.0002 }, { weakFund: true, inharm: 0.0004, noise: 0.02 }, { weakFund: true, drift: 5 }, { drift: -3, decay: 2 }]) {
       const f = midiToFreq(c.m) * 2 ** (detune / 1200);
       const errs = [];
       for (let k = 0; k < READINGS; k++) {

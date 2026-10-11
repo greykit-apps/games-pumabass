@@ -22,12 +22,31 @@ export function tunerPitch(buf, sampleRate, range = {}) {
   // second pass with enough periods left to measure: on a short window it
   // would be worse than the first.
   const period = sampleRate / rough.freq;
-  const settle = Math.floor(period * 3);
-  if ((y.length - settle) / period < 6) return rough;
+  const settle = Math.floor(period * 3), span = Math.round(period);
+  if ((y.length - settle - span) / period < 5) return rough;
+  // The low-pass keeps whatever is slower than the pitch too: an offset dying
+  // away, rumble. Under a quiet fundamental that drift can be the bigger part,
+  // and the period found leans on it, up to 40 cents sharp on a low string.
+  // Taking away the average over one period removes it and leaves the pitch
+  // alone. (A high-pass filter would ring on for periods, and misread itself.)
+  y = withoutDrift(y.subarray(settle), span);
   // The search is narrow now, so it can afford many more samples per period:
   // that is what reads to a fraction of a cent.
-  const fine = detectPitch(y.subarray(settle), sampleRate, { minFreq: rough.freq / 1.12, maxFreq: rough.freq * 1.12, threshold: 0.2, perPeriod: 150 });
+  const fine = detectPitch(y, sampleRate, { minFreq: rough.freq / 1.12, maxFreq: rough.freq * 1.12, threshold: 0.2, perPeriod: 150 });
   return fine && Math.abs(1200 * Math.log2(fine.freq / rough.freq)) < 50 ? { freq: fine.freq, clarity: rough.clarity } : rough;
+}
+
+// x less its moving average over span samples, each sample against the span
+// around it: span - 1 samples shorter than x.
+function withoutDrift(x, span) {
+  const y = new Float32Array(x.length - span + 1), mid = span >> 1;
+  let sum = 0;
+  for (let i = 0; i < span; i++) sum += x[i];
+  for (let i = 0; i < y.length; i++) {
+    y[i] = x[i + mid] - sum / span;
+    if (i + span < x.length) sum += x[i + span] - x[i];
+  }
+  return y;
 }
 
 // One second-order Butterworth low-pass stage (RBJ biquad).
