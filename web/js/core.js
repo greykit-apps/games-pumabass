@@ -39,6 +39,6 @@ export let songs = [];
 export let info = {};
 export function setScreen(s) { screen = s; }
 export function setLibrary(list, about) { songs = list; info = about; }
-/* The songs that are yours: all but the demos that come with PumaBass (demos.js). */
+/* The songs that are yours: all but the demo that comes with PumaBass (demos.js). */
 export const ownSongs = () => songs.filter(s => !s.demo);
 export function setInfo(about) { info = about; }
