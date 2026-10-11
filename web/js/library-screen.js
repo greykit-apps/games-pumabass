@@ -4,7 +4,7 @@ import { tuningName, formatTime, arrangementLabel, difficultyLevel, numberAltern
 import { alertSheet } from './title.js';
 import { api, WEB, SERVER_API, notInDemo } from './api.js';
 import { $, esc, toast, screen, songs, info, setScreen, setLibrary, ownSongs } from './core.js';
-import { DEMO } from './demo.js';
+import { DEMOS } from './demos.js';
 import { MAKE } from './help.js';
 import { showTuner } from './instrument.js';
 import { showTitle, leaveTitle, openHelp, openSettings, partsLabel } from './menu.js';
@@ -105,7 +105,7 @@ export async function loadLibrary() {
   const [list, about] = WEB ? [[], { api: SERVER_API, vgmstream: true, libraries: [] }]
     : await Promise.all([api('/api/songs'), api('/api/info')]);
   numberAlternates(list);
-  setLibrary([...list, DEMO], about); // the demo song comes with PumaBass: always there
+  setLibrary([...list, ...DEMOS], about); // the demo songs come with PumaBass: always there
   if (screen === 'library') renderLibrary();
 }
 
@@ -139,9 +139,9 @@ export const LIBRARIES = [
   ['cdlc', 'CDLC', 'custom songs you download'],
   ['bundles', 'Bundles', 'Rocksmith 2014 song sets'],
   ['folder', 'Rocksmith folder', 'the Rocksmith folder chosen in Settings'],
-  ['demo', 'Demo', 'the song that comes with PumaBass'],
+  ['demo', 'Demo', 'the songs that come with PumaBass'],
 ];
-// The demo (its tab, and in All) only until there are songs of your own.
+// The demos (their tab, and in All) only until there are songs of your own.
 const hasOwn = () => songs.some(s => !s.demo);
 const inLibrary = (s, key) => (key === 'all' ? !s.demo || !hasOwn()
   : key === 'new' ? s.added > Date.now() - NEW_DAYS * 864e5 : (s.sources || ['folder']).includes(key));
@@ -248,8 +248,8 @@ export function renderLibrary() {
     const hint = document.createElement('div');
     hint.className = 'empty';
     hint.innerHTML = WEB
-      ? `<p>This is PumaBass's web demo, with one song written for it. On your own computer, PumaBass plays song files (<code>.psarc</code>) that you make yourself, and is also compatible with CustomsForge and Rocksmith 2014 songs.</p><button class="primary" data-act="make">Make your own songs</button>`
-      : `<p>That's the demo song, to play while you set up. Make your own song files (<code>.psarc</code>) and put them in PumaBass's <code>music</code> folder, or download some into <code>cdlc</code>, then Rescan. It's also compatible with Rocksmith 2014's: put them in <code>bundles</code>, or show it a Rocksmith folder.</p><button class="primary" data-act="make">Make your own songs</button> <button data-act="choose">Choose a Rocksmith folder</button>`;
+      ? `<p>This is PumaBass's web demo, with two songs to play: <i>Prowl</i>, written for it, and Grieg's <i>In the Hall of the Mountain King</i>, arranged for it. On your own computer, PumaBass plays song files (<code>.psarc</code>) that you make yourself, and is also compatible with CustomsForge and Rocksmith 2014 songs.</p><button class="primary" data-act="make">Make your own songs</button>`
+      : `<p>Those are the demo songs, to play while you set up. Make your own song files (<code>.psarc</code>) and put them in PumaBass's <code>music</code> folder, or download some into <code>cdlc</code>, then Rescan. It's also compatible with Rocksmith 2014's: put them in <code>bundles</code>, or show it a Rocksmith folder.</p><button class="primary" data-act="make">Make your own songs</button> <button data-act="choose">Choose a Rocksmith folder</button>`;
     frag.appendChild(hint);
   }
   el.appendChild(frag);

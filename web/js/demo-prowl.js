@@ -1,13 +1,14 @@
-// The demo song: "Prowl", written for PumaBass, so there's a song to play before
-// you've added any of your own (and one to show PumaBass with that is nobody
-// else's). Its chart is written here note by note, and its audio is made here
-// too: a plucked-string bass, drums and a rhythm guitar, synthesized, so the
-// notes and the sound line up exactly. Plain JavaScript, no Web Audio, so Node
-// can check it and render it (tools/check-demo.mjs).
+// A demo song (demos.js): "Prowl", written for PumaBass, so there's a song to play
+// before you've added any of your own (and one to show PumaBass with that is nobody
+// else's). Its chart is written here note by note, and its audio is made here too:
+// a plucked-string bass, drums and a rhythm guitar (synth.js), so the notes and the
+// sound line up exactly.
 //
 // E minor, 112 BPM. Riff A sits low (open E, frets 0 to 5); the chorus, Riff B,
 // moves up the neck in octave jumps (C, D, E); the solo climbs to the 12th fret
 // with a slide, a bend and a harmonic. Below 50% Notes it's quarter notes.
+
+import { hz, pluck, lowpass, kick, snare, metal } from './synth.js';
 
 const BPM = 112, BEAT = 60 / BPM, BAR = 4 * BEAT, SLOT = BEAT / 4; // SLOT: a 16th
 const E = 0, A = 1, D = 2, G = 3; // strings, low to high
@@ -68,7 +69,6 @@ const FORM = [
 ];
 
 const r3 = x => Math.round(x * 1000) / 1000;
-const hz = midi => 440 * 2 ** ((midi - 69) / 12);
 
 /* Every riff laid out in time: { riff, t, section, last } (last: the section's last riff). */
 function layout() {
@@ -84,8 +84,8 @@ function layout() {
 const { blocks: BLOCKS, bars: BARS } = layout();
 const SONG_LENGTH = r3(BARS * BAR + TAIL);
 
-/** The demo's row in the song list, shaped like the server's. */
-export const DEMO = {
+/** Its row in the song list, shaped like the server's. */
+export const SONG = {
   id: 'demo:prowl', songKey: 'PumaBassProwl', title: 'Prowl', artist: 'PumaBass', album: 'Demo', year: 2026,
   length: SONG_LENGTH, arrangement: 'Bass', type: 'bass', represent: true, bonus: false,
   tuning: [0, 0, 0, 0, 0, 0], centOffset: 0, capo: 0, difficulty: 0.15, platform: 'pc',
@@ -104,7 +104,7 @@ function chartNote([slot, s, f, x = {}], t0, pi) {
 }
 
 /** The chart, shaped like the server's (server/library.js: buildChart). */
-export function demoChart() {
+export function chart() {
   const phrases = [{ name: 'COUNT', maxDifficulty: 0 }];
   const phraseOf = new Map();
   for (const sec of FORM) if (!phraseOf.has(sec.name)) { phraseOf.set(sec.name, phrases.length); phrases.push({ name: sec.name, maxDifficulty: 1 }); }
@@ -138,7 +138,7 @@ export function demoChart() {
   const beats = [];
   for (let k = 0; k * BEAT < SONG_LENGTH; k++) beats.push({ t: r3(k * BEAT), m: k % 4 === 0 ? k / 4 : null });
   return {
-    id: DEMO.id, title: DEMO.title, artist: DEMO.artist, album: DEMO.album, year: DEMO.year,
+    id: SONG.id, title: SONG.title, artist: SONG.artist, album: SONG.album, year: SONG.year,
     arrangement: 'Bass', type: 'bass', strings: 4, tuning: [0, 0, 0, 0], centOffset: 0, capo: 0,
     songLength: SONG_LENGTH, beats, sections, phrases, phraseIterations, chordTemplates: [], maxDifficulty: 1,
     levels: [level(0, r => r.easy), level(1, r => r.notes)],
@@ -147,76 +147,11 @@ export function demoChart() {
 
 /* ---- the sound ---- */
 
-/* The same noise every time, so the demo always sounds the same. */
-function noise(seed) {
-  let s = seed >>> 0;
-  return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296) * 2 - 1;
-}
-
-/*
- * A plucked string (Karplus-Strong): a burst of noise going round a delay line one
- * period long, a little duller each time round. The period follows freqAt(seconds
- * since the pluck), so slides and bends glide. It rings for dur, then fades in release.
- */
-function pluck(out, sr, t0, dur, freqAt, { amp = 0.5, bright = 0.5, t60 = 3, seed = 1, release = 0.04 } = {}) {
-  const N = 1 << Math.ceil(Math.log2(sr / 25 + 4)), mask = N - 1;
-  const ring = new Float32Array(N), rand = noise(seed);
-  const burst = sr / freqAt(0), smooth = 0.08 + 0.85 * bright;
-  const i0 = Math.round(t0 * sr), held = Math.round(dur * sr), n = held + Math.round(release * sr);
-  let lp = 0;
-  for (let i = 0, w = N; i < n && i0 + i < out.length; i++, w++) {
-    const f = freqAt(i / sr), rp = w - (sr / f - 0.5); // the loop's averaging adds half a sample
-    const k = Math.floor(rp), fr = rp - k;
-    const a = ring[(k - 1) & mask], b = ring[k & mask], c = ring[(k + 1) & mask];
-    let x = 0;
-    if (i < burst) { lp += smooth * (rand() - lp); x = lp; }
-    const y = x + 10 ** (-3 / (f * t60)) * 0.5 * (a + (b - a) * fr + b + (c - b) * fr);
-    ring[w & mask] = y;
-    const env = i < held ? 1 : 1 - (i - held) / (n - held);
-    out[i0 + i] += amp * y * env;
-  }
-}
-
-/* A one-pole low-pass, in place. */
-function lowpass(buf, sr, cutoff) {
-  const k = 1 - Math.exp((-2 * Math.PI * cutoff) / sr);
-  let y = 0;
-  for (let i = 0; i < buf.length; i++) buf[i] = y += k * (buf[i] - y);
-}
-
-/* Drums, each written into out at t. */
-function kick(out, sr, t, amp) {
-  const rand = noise(7);
-  let ph = 0;
-  for (let i = 0, n = 0.45 * sr, i0 = Math.round(t * sr); i < n && i0 + i < out.length; i++) {
-    const tr = i / sr;
-    ph += (2 * Math.PI * (44 + 90 * Math.exp(-tr / 0.035))) / sr;
-    out[i0 + i] += amp * (Math.sin(ph) * Math.exp(-tr / 0.2) + 0.25 * rand() * Math.exp(-tr / 0.004));
-  }
-}
-function snare(out, sr, t, amp, seed) {
-  const rand = noise(seed);
-  let prev = 0;
-  for (let i = 0, n = 0.3 * sr, i0 = Math.round(t * sr); i < n && i0 + i < out.length; i++) {
-    const tr = i / sr, r = rand(), hp = r - prev; prev = r;
-    out[i0 + i] += amp * (0.5 * Math.sin(2 * Math.PI * 185 * tr) * Math.exp(-tr / 0.06) + 0.7 * hp * Math.exp(-tr / 0.11));
-  }
-}
-function metal(out, sr, t, amp, decay, seed) { // hi-hat (short decay), crash (long), sticks
-  const rand = noise(seed);
-  let p1 = 0, p2 = 0;
-  for (let i = 0, n = Math.min(6 * decay, 3) * sr, i0 = Math.round(t * sr); i < n && i0 + i < out.length; i++) {
-    const r = rand(), h1 = r - p1; p1 = r;
-    const h2 = h1 - p2; p2 = h1;
-    out[i0 + i] += amp * h2 * Math.exp(-i / sr / decay);
-  }
-}
-
 /** The bass alone: every note of the full chart, each ringing until the next (or for its sustain). */
-export function renderDemoBass(sr = 32000) {
+export function renderBass(sr = 32000) {
   const len = Math.ceil(SONG_LENGTH * sr), bass = new Float32Array(len);
   let seed = 11;
-  const notes = demoChart().levels[1].notes;
+  const notes = chart().levels[1].notes;
   notes.forEach((n, i) => {
     const next = notes[i + 1], gap = next ? next.t - n.t : 2;
     const dur = n.sus ? n.sus : Math.min(gap - 0.012, 0.9);
@@ -237,10 +172,10 @@ export function renderDemoBass(sr = 32000) {
   return bass;
 }
 
-/** The demo's audio: { sr, left, right }, about a minute and a quarter. */
-export function renderDemo(sr = 32000) {
+/** Its audio: { sr, left, right }, about a minute and a quarter. */
+export function render(sr = 32000) {
   const len = Math.ceil(SONG_LENGTH * sr);
-  const bass = renderDemoBass(sr), drums = new Float32Array(len), hats = new Float32Array(len);
+  const bass = renderBass(sr), drums = new Float32Array(len), hats = new Float32Array(len);
   const crash = new Float32Array(len), gl = new Float32Array(len), gr = new Float32Array(len);
   let seed = 1000;
 
@@ -290,26 +225,4 @@ export function renderDemo(sr = 32000) {
   const g = 0.89 / (peak || 1);
   for (let i = 0; i < len; i++) { left[i] *= g; right[i] *= g; }
   return { sr, left, right };
-}
-
-/** The audio as a 16-bit stereo WAV file. */
-export function demoWav({ sr, left, right }) {
-  const n = left.length, buf = new ArrayBuffer(44 + n * 4), v = new DataView(buf);
-  const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-  str(0, 'RIFF'); v.setUint32(4, 36 + n * 4, true); str(8, 'WAVE'); str(12, 'fmt ');
-  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
-  v.setUint32(24, sr, true); v.setUint32(28, sr * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true);
-  str(36, 'data'); v.setUint32(40, n * 4, true);
-  for (let i = 0; i < n; i++) {
-    v.setInt16(44 + i * 4, Math.round(Math.max(-1, Math.min(1, left[i])) * 32767), true);
-    v.setInt16(46 + i * 4, Math.round(Math.max(-1, Math.min(1, right[i])) * 32767), true);
-  }
-  return buf;
-}
-
-let url = null;
-/** The demo's audio as a blob URL, made the first time it's asked for. */
-export function demoTrack() {
-  if (!url) url = URL.createObjectURL(new Blob([demoWav(renderDemo())], { type: 'audio/wav' }));
-  return url;
 }

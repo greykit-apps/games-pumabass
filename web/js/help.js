@@ -202,10 +202,14 @@ ${keys([
 songs. A song in two places is listed once.</p>
 <p>Rocksmith's disc songs need both <code>songs.psarc</code> (their charts) and <code>audio.psarc</code> (their
 audio).</p>
-<h3>The demo song</h3>
-<p><b>Prowl</b>, on the <b>Demo</b> tab, comes with PumaBass: a riff written for it, to play before your own
-songs are in. It starts low, moves up the neck for the chorus, and climbs to the 12th fret in the solo, with a
-slide, bends and a harmonic. Below 50% <b>Notes</b> it's quarter notes.</p>`, `
+<h3>The demo songs</h3>
+<p>Two songs on the <b>Demo</b> tab come with PumaBass, to play before your own songs are in. Below 50%
+<b>Notes</b> both are quarter notes.</p>
+<p><b>Prowl</b>, a riff written for PumaBass, starts low, moves up the neck for the chorus, and climbs to the
+12th fret in the solo, with a slide, bends and a harmonic.</p>
+<p><b>In the Hall of the Mountain King</b> is Grieg's tune from <i>Peer Gynt</i> (1875), arranged for bass and
+a band. The theme goes round low by the open E, then a step up the neck, then an octave up, and like Grieg's it
+speeds up all the way, from 76 BPM to 168. Loop a section and slow it down to learn the fast end.</p>`, `
 <h3>A Rocksmith folder of your own</h3>
 <p>Songs can stay where they are, too: <b>Settings &rarr; Songs &rarr; Choose Rocksmith folder</b> reads a whole
 Rocksmith install, a copied <code>dlc</code> folder or a USB stick, and gives it a <b>Rocksmith folder</b> tab.

@@ -22,10 +22,12 @@ look, [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about i
 - `web/js/notation.js`: the notation band and tab view, drawn by [VexFlow](https://www.vexflow.com/) 5.0.0
   (MIT), kept in `web/vendor/vexflow/` so it works without the internet
 - `web/js/chart.js`: difficulty levels, tuning names
-- `web/js/demo.js`: the demo song, *Prowl*: its chart, written note by note, and its audio, synthesized
-  in plain JavaScript (a plucked-string bass, drums, a doubled rhythm guitar), so it belongs to nobody
-  else and the notes and sound line up exactly. It's on the song list's Demo tab, and the player makes
-  its chart and audio in the browser instead of asking the server.
+- `web/js/demos.js`: the demo songs, each in its own module: `demo-prowl.js` (*Prowl*, written for
+  PumaBass) and `demo-king.js` (Grieg's *In the Hall of the Mountain King*, out of copyright, arranged
+  here, speeding up from 76 to 168 BPM). Each writes its chart note by note and synthesizes its audio in
+  plain JavaScript (`synth.js`: a plucked-string bass, drums, a doubled rhythm guitar), so no part of
+  either belongs to anyone else and the notes and sound line up exactly. They're on the song list's Demo
+  tab, and the player makes their charts and audio in the browser instead of asking the server.
 - `web/js/input.js`, `web/js/tuner.js`, `web/js/pitch.js`: the instrument input, the tuner, and its
   pitch detection
 - `web/js/scoring.js`, `web/js/capture-worklet.js`: scoring, and the input recorded for it
@@ -57,8 +59,8 @@ node tools/check-demo.mjs
   weak fundamentals, noise, fading plucks): every reading the tuner shows is within 2 cents, nearly all
   within 1.
 - `check-sync.mjs` tests the sync test (`web/js/calibrate.js`).
-- `check-demo.mjs` checks the demo song: its chart is shaped as the player needs (every note in its
-  phrase and under the hand's position, an easy level below 50% Notes), and its synthesized bass plays
+- `check-demo.mjs` checks the demo songs: each chart is shaped as the player needs (every note in its
+  phrase and under the hand's position, an easy level below 50% Notes), and each synthesized bass plays
   what the chart says (in tune, picks on time, slides and bends arriving at their notes, no clipping).
 - `check-plucks.mjs` checks that a low note's waveform, which spikes once a period, never counts as a
   pluck, from a 5-string's low B to the 12th fret.
@@ -146,10 +148,10 @@ Don't edit the canon copies here; change them in games-meta and copy them back.
 
 ## The web demo
 
-greykit.com/games/pumabass/ runs PumaBass with no server: the page alone, playing the demo song.
+greykit.com/games/pumabass/ runs PumaBass with no server: the page alone, playing the demo songs.
 `tools/build-web.sh` copies the page, its icons and manifest, and `web/` (as `web-<commit>/`) into `public/`, and marks the page
 `<html data-edition="web">`. With that mark (`WEB` in `web/js/api.js`) the page never asks the server
-for anything: the library is the demo song alone, and what needs the server (your songs, choosing a
+for anything: the library is the demo songs alone, and what needs the server (your songs, choosing a
 folder, Rescan, saving a take) opens a "Not available in the demo" popup (`notInDemo`). Quit isn't
 offered, and opening the song doesn't look for the Real Tone Cable (which asks to use the microphone)
 until you've chosen an input. Everything the page loads is by relative path, so it works from a subfolder.

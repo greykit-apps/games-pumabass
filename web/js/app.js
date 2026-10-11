@@ -124,8 +124,8 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   if (!startProblem && (info.stale || !(info.api >= SERVER_API))) startProblem = SERVER_OLD;
   showTitle();
   const lines = startProblem ? ['server: needs attention']
-    : WEB ? ['the web demo', 'one song, written for PumaBass']
-    : !ownSongs().length ? ['no songs yet: the demo song is ready']
+    : WEB ? ['the web demo', 'two songs, made for PumaBass']
+    : !ownSongs().length ? ['no songs yet: the demo songs are ready']
     : [libraryLabel(), info.libraryDir && !info.libraryFound ? 'your Rocksmith folder is missing'
       : waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
   if (!startProblem && !info.vgmstream) lines.push('vgmstream missing: no song audio');
