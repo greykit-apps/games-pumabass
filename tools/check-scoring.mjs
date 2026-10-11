@@ -135,8 +135,13 @@ for (const title of ['Wires', 'Sweet Emotion', 'Snarling of Beasts', 'The Seeker
     // A hammer-on or pull-off straight after a skipped note isn't really
     // played: the string never left the pitch. Reported, but not counted.
     const i = notes.indexOf(ev), afterSkip = p.kind === 'right' && p.legato && i > 0 && byEv.get(notes[i - 1]).kind === 'skipped';
-    const should = afterSkip ? 'either' : p.kind === 'right' ? 'hit' : 'miss';
-    tally(afterSkip ? 'legato after a skipped note' : p.kind === 'right' ? `right: ${p.cat}` : `mistake: ${p.kind}`, should, r.hit);
+    // A skipped repeat of a note still ringing gets the benefit of the doubt (no pluck
+    // heard, the pitch there): a soft re-pluck can't be told from it. Reported, not counted.
+    const before = i > 0 ? byEv.get(notes[i - 1]) : null;
+    const stillRinging = p.kind === 'skipped' && !p.legato && p.parts.length === 1 && before && before.kind === 'right' && before.parts.length === 1
+      && noteFreq(before.parts[0], chart) === noteFreq(p.parts[0], chart);
+    const should = afterSkip || stillRinging ? 'either' : p.kind === 'right' ? 'hit' : 'miss';
+    tally(afterSkip ? 'legato after a skipped note' : stillRinging ? 'skipped, the same note still ringing' : p.kind === 'right' ? `right: ${p.cat}` : `mistake: ${p.kind}`, should, r.hit);
     if (process.env.DIAG2 && (should === 'hit') !== r.hit && title === 'Sweet Emotion' && diag.length < 6) {
       const t0 = ev.t - 0.3, seg = buf.subarray(Math.round(t0 * SR), Math.round((ev.t + 0.3) * SR));
       const heard = onsets(seg, SR).map(o => Math.round((t0 + o - ev.t) * 1000));

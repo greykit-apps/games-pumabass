@@ -90,7 +90,13 @@ These need songs, so they run locally:
   came before: out of step or jumped in level, or (an open string re-plucked carries on nearly in step)
   at least twice the energy; never with the level dropping (that's damping). On a learner's takes of
   songs full of repeated notes, that was 53 of 88 and 79 of 151 "already sounding" misses; a string left
-  ringing faked it 4 times in 205.
+  ringing faked it 4 times in 205. That gives its notes a timing.
+- Otherwise, a plucked note with no pluck heard gets the benefit of the doubt: it counts if its pitch is
+  there at the end of its window (by then whatever was played instead has taken over from what rang
+  before). So the same note again counts while it rings, played or not: a fast run of one note (eighths
+  on the low E) leaves no room to tell, and what it would take a cleverer detector to call wrong is close
+  enough to right. "Already sounding" now only fails a hammer-on or pull-off. check-scoring reports a
+  skipped repeat of a note still ringing apart, uncounted.
 
 **Takes.** With **Record a take** ticked in the Mix panel, **Save take** (there, or `S` on the end screen)
 writes what the cable heard, with the song's notes and each verdict, to `takes/` (git ignores it). A song's

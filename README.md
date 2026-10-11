@@ -190,6 +190,7 @@ best streak, whether you tend to play early or late, how each section went, and 
 - A note counts when it's plucked within 200 ms early to 300 ms late (Rocksmith 2014's own windows) at
   the right pitch. Slowed-down practice is judged the same.
 - It's forgiving of a muddy signal: a note still ringing, an open string nobody muted, a soft pluck.
+  The same note again counts while it's sounding: a soft re-pluck can't be told from it ringing on.
 - Hammer-ons and pull-offs need the new note; mutes and harmonics just the pluck; chords just the strum
   (a wrong chord shape isn't caught yet).
 - Run **Sync** with the cable first: scoring depends on it.
