@@ -4,12 +4,14 @@
 // next one, '+' ends the line. Lines also break at a pause the words don't mark, and when long.
 import { $ } from './core.js';
 
-const LEAD = 1;       // s a line shows before its first syllable
-const HOLD = 1.5;     // s it stays after its last one, unless the next line comes sooner
+const LEAD = 1;       // s a line shows before its first syllable, once the line before is sung
+const LINGER = 0.3;   // s a line stays after its last syllable when the next line follows on: it's
+                      // under it already, and a last word is often held past its marked end
+const HOLD = 1.5;     // s it stays after its last syllable when nothing follows soon
 const PAUSE = 2.5;    // s of silence that ends a line the words don't end
 const LONGEST = 40;   // characters a line runs to before it breaks at the next word anyway (it must fit on a TV)
 
-let lines = [];       // [{ t, end, syl: [{ t, end, text, space }] }]
+let lines = [];       // [{ t, end, from, syl: [{ t, end, text, space }] }]
 let shown = -2, lit = -1, singing = false;
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -33,6 +35,12 @@ export function setLyrics(words) {
     chars += text.length + (joins ? 0 : 1);
     ended = breaks;
   }
+  // When each line takes over: its lead-in, but not before the line before has been sung (and
+  // lingered), unless the line itself has begun.
+  lines.forEach((l, k) => {
+    l.from = l.t - LEAD;
+    if (k > 0) l.from = Math.min(l.t, Math.max(l.from, lines[k - 1].end + LINGER));
+  });
   shown = -2; lit = -1; singing = false;
 }
 
@@ -45,8 +53,8 @@ export function renderLyrics(t, show) {
   const el = $('lyrics');
   let i = -1;
   if (show) {
-    // the last line whose lead-in has begun, while it's still being sung or held
-    for (let k = 0; k < lines.length && lines[k].t - LEAD <= t; k++) i = k;
+    // the last line to have taken over, while it's still being sung or held
+    for (let k = 0; k < lines.length && lines[k].from <= t; k++) i = k;
     if (i >= 0 && t > lines[i].end + HOLD) i = -1;
   }
   if (i !== shown) {
