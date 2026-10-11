@@ -162,6 +162,73 @@ export function pitchCheck(x, sr, freq) {
   return { verdict: 'unclear', ...p, other };
 }
 
+/**
+ * A re-pluck of a note still ringing, between from and to (s into x), when
+ * its click was too soft to hear: the note is steady at freq before the
+ * finger came down (GAP before) and after the pluck's click, yet what follows
+ * doesn't carry on what came before. The measure (as nsdf) drops both when
+ * the string starts over out of step and when it jumps in level. A string
+ * left ringing stays near 1 (on real takes, rarely under 0.7); a re-pluck
+ * mostly falls under 0.4. Damping only takes level away, so the level after
+ * must be at least half what it was. A change of note never counts: it isn't
+ * steady at freq on both sides.
+ * Returns where it starts over (s into x), or null.
+ */
+const STEADY = 0.8, BREAK = 0.4, GAP = 0.02, KEPT = 0.5;
+export function rePluck(x, sr, from, to, freq) {
+  const step = Math.max(1, Math.floor(sr / (freq * 100)));
+  const n0 = Math.floor(x.length / step), y = new Float32Array(n0);
+  for (let i = 0; i < n0; i++) { let s = 0; for (let k = 0; k < step; k++) s += x[i * step + k]; y[i] = s; }
+  const rate = sr / step, T = rate / freq, P = Math.round(2 * T), W = Math.ceil(T * 1.02);
+  const click = Math.round(0.015 * rate), gap = Math.round(GAP * rate);
+  // the best match within 2% of a lag (a string's pitch drifts a little): y from i against y lag earlier
+  const near = (i, lag0, n) => {
+    let b = -1;
+    for (let lag = Math.floor(lag0 * 0.98); lag <= Math.ceil(lag0 * 1.02); lag++) {
+      let r = 0, m = 0;
+      for (let j = 0; j < n; j++) { const a = y[i - lag + j], c = y[i + j]; r += a * c; m += a * a + c * c; }
+      if (m > 0) b = Math.max(b, (2 * r) / m);
+    }
+    return b;
+  };
+  const energy = (s, e) => { let m = 0; for (let j = s; j < e; j++) m += y[j] * y[j]; return m / (e - s); };
+  const first = Math.max(Math.ceil(from * rate), gap + W + 2 * P), last = Math.min(Math.floor(to * rate), n0 - click - W - P - 1);
+  let best = null, lowest = BREAK;
+  for (let i = first; i <= last; i += Math.max(1, Math.round(0.005 * rate))) {
+    const across = near(i, P, P); // the two periods after i, against the two before
+    if (across >= lowest) continue;
+    if (near(i - gap - P, T, P) < STEADY || near(i + click + W, T, P) < STEADY) continue;
+    if (energy(i + click, i + click + W + P) < KEPT * energy(i - gap - W - P, i - gap)) continue;
+    lowest = across; best = i / rate;
+  }
+  return best;
+}
+
+/**
+ * x with everything well below fc taken out: two Butterworth high-pass
+ * stages (24 dB an octave). Open strings nobody muted ring under a played
+ * note (the low E and A under an F on the D string), out of step with it,
+ * and blur its period until a right note reads as a wrong one; below the
+ * note they can go. A wrong fret keeps its own period (its overtones repeat
+ * at it), so it still reads as wrong.
+ */
+const BELOW = 5; // semitones under the expected note where the high-pass starts
+function highpass(x, sr, fc) {
+  const w = (2 * Math.PI * fc) / sr, cw = Math.cos(w), al = Math.sin(w) / Math.SQRT2, a0 = 1 + al;
+  const b0 = (1 + cw) / 2 / a0, b1 = -(1 + cw) / a0, a1 = (-2 * cw) / a0, a2 = (1 - al) / a0;
+  let y = x;
+  for (let stage = 0; stage < 2; stage++) {
+    const out = new Float32Array(y.length);
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < y.length; i++) {
+      const v = y[i], r = b0 * v + b1 * x1 + b0 * x2 - a1 * y1 - a2 * y2;
+      out[i] = r; x2 = x1; x1 = v; y2 = y1; y1 = r;
+    }
+    y = out;
+  }
+  return y;
+}
+
 const QUIET = 10 ** (10 / 10); // within 10 dB of the noise floor counts as silence
 const meanSquare = x => { let e = 0; for (let i = 0; i < x.length; i++) e += x[i] * x[i]; return x.length ? e / x.length : 0; };
 
@@ -194,13 +261,19 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
   let pluck = null;
   const heard = onsets(x, sr, { noise });
   if (needsPluck) {
-    const cands = heard.filter(o => o >= at - early && o <= at + late && !taken.some(t => Math.abs(t - o) < 0.02));
+    const free = o => !taken.some(t => Math.abs(t - o) < 0.02);
+    const cands = heard.filter(o => o >= at - early && o <= at + late && free(o));
+    // No click heard, the same note again: the string starting over out of step with itself
+    // is a pluck too soft to click.
+    if (!cands.length && needsPitch) {
+      const again = rePluck(x, sr, at - early, at + late, noteFreq(parts[0], chart));
+      if (again !== null && free(again)) cands.push(again);
+    }
     // No click heard: a soft fingerstyle pluck can make none. For a single note, its pitch
     // starting right then is proof enough (as for a hammer-on, below); otherwise a miss.
     if (!cands.length && !needsPitch) return { hit: false, offset: null, pluck: null, why: 'no pluck' };
     // A pluck heard just before the window, nearer this note than the last: plucked too early,
     // and the pitch it started mustn't pass for a soft pluck on time.
-    const free = o => !taken.some(t => Math.abs(t - o) < 0.02);
     if (!cands.length && heard.some(o => o < at - early && o > Math.max((prev + at) / 2, at - early - 0.15) && free(o))) return { hit: false, offset: null, pluck: null, why: 'too early' };
     if (cands.length) pluck = cands.reduce((a, b) => (Math.abs(b - at) < Math.abs(a - at) ? b : a));
   }
@@ -216,6 +289,10 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     const after = heard.find(o => o > s + 0.01); // the next pluck actually heard
     return Math.min(3.5 / freq, Math.min(next - 0.008, after === undefined ? Infinity : after - 0.005) - s - lagRoom);
   };
+  // After a pluck, the strings ringing under the note are filtered out (above). Not
+  // without one: searching the whole window, a quieter filtered tail of the last
+  // note could pass for this one.
+  const xp = pluck !== null ? highpass(x, sr, freq * 2 ** (-BELOW / 12)) : x;
   const starts = pluck !== null ? [pluck + 0.015] : [];
   let last = null, unclear = false;
   if (pluck === null) {
@@ -237,7 +314,7 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     const seg = x.subarray(i, i + need);
     // Down in the cable's noise nothing is sounding, whatever its hum repeats at.
     if (noise && meanSquare(seg) < noise.energy * QUIET) continue;
-    const p = pitchCheck(seg, sr, freq);
+    const p = pitchCheck(xp.subarray(i, i + need), sr, freq);
     last = p;
     if (p.verdict === 'right') return { hit: true, offset: pluck === null ? null : pluck - at, pluck };
     if (p.verdict === 'unclear') unclear = true;

@@ -82,6 +82,14 @@ These need songs, so they run locally:
   still ringing from before never counts again.
 - The soundcheck (in Sync) measures the cable's noise floor as Rocksmith does (its typical level plus
   2 dB); scoring then takes nothing within 10 dB of it for a note, so mains hum can't pass for a low B.
+- After a pluck, the pitch is checked with everything from a fourth below the note filtered out: open
+  strings left ringing (the low E and A under an F on the D string) blur its period otherwise, and a
+  right note reads as a wrong one. In a learner's take, that was 28 of 37 misses.
+- The same note again with no click heard (a soft re-pluck of a string still ringing) counts as plucked
+  where the note is steady before the finger came down and after, but what follows doesn't carry on what
+  came before (out of step, or jumped in level), and the level didn't drop (that's damping). In a
+  learner's take of a song full of repeated notes, that was 34 of 88 "already sounding" misses; on the
+  same take, a string left ringing faked it about 3 times in 70.
 
 **Takes.** With **Record a take** ticked in the Mix panel, **Save take** (there, or `S` on the end screen)
 writes what the cable heard, with the song's notes and each verdict, to `takes/` (git ignores it). A song's
