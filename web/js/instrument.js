@@ -25,7 +25,13 @@ export function inputStatus() {
   return `<b>${esc(shortLabel(prefs.input.label))}</b>${isRealTone(prefs.input.label) ? '' : ` (${esc(prefs.input.label)})`}${input.open ? ' · listening' : ''}`;
 }
 
+/* Whether the site has turned the microphone off for its pages (a Permissions-Policy
+ * header): then the browser refuses without asking, whatever its settings. (Chrome and
+ * Edge say so; elsewhere this is never known, so false.) */
+const micPolicyOff = () => { const p = document.permissionsPolicy || document.featurePolicy; return !!(p && p.allowsFeature && !p.allowsFeature('microphone')); };
+
 export function inputError(e) {
+  if (e && e.name === 'NotAllowedError' && micPolicyOff()) return "This site doesn't let its pages use audio inputs (its Permissions-Policy turns the microphone off), so the browser refused without asking.";
   if (e && e.name === 'NotAllowedError') return "PumaBass wasn't allowed to use audio inputs. Allow it in the browser's settings for this site (the icon left of the address), then try again.";
   if (e && (e.name === 'NotFoundError' || e.name === 'OverconstrainedError')) return "That input isn't connected. Plug it in, or choose another.";
   return (e && e.message) || "The input couldn't be opened.";
