@@ -323,7 +323,7 @@ The song list panel and every sheet (Settings, Help, About, questions, tuner, en
 A top bar fading from the stage navy (wordmark, chips, heart), a bottom bar fading up to it: the progress track (24px, 6px radius) carries a block per section coloured by kind with 2px gaps, the loop region in translucent cyan between cyan edges, and a 3px white playhead with a cyan glow. Controls are 16px buttons, cyan section name, tabular time.
 
 ### Lyrics
-The song's words sit centred in the top bar, between the wordmark and the score: the line being sung in Saira 700 at 26px, upright (it's read), the syllables still to come in ink, those sung in text, the one being sung in the accent; the next line under it at 22px in ink, big enough to read ahead from the sofa. A dark halo holds them over the highway, and they never take clicks. Y or Settings turns them off.
+The song's words sit centred in the top bar, between the wordmark and the score: the line being sung in Saira 700 at 26px, upright (it's read), the syllables still to come in ink, those sung in text, the one being sung in the accent; the next line under it, the same size, in ink. They advance like a scroll: when a line is sung it moves up and fades, the next moves up into its place, and the one after fades in under it (fades only, under reduced motion). A dark halo holds them over the highway, and they never take clicks. Y or Settings turns them off.
 
 ### Big announcements
 PAUSED and the countdown sit at 24% from the top, leaning Display caps; PAUSED sits on a horizontal cyan haze with the keys listed below in a dark rounded strip; the countdown ticks in from 1.35x (none under reduced motion), "go" in green. The song caption credits the song lower left like a music video, then fades.
