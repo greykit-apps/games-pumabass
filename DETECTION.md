@@ -77,8 +77,10 @@ waveform's phase breaking at the expected period.
 **Re-plucks, from real takes (2026-10-11):** the second, for the same note again only (`rePluck` in
 `web/js/scoring.js`). On two takes from the cable, a string left ringing carries on in step with itself
 two periods back (rarely under 0.7, as nsdf); a re-pluck breaks that, mostly under 0.4, as much by its
-jump in level as by starting out of step (bass re-plucks often restart nearly in step). It only counts
-with the note steady on both sides (20 ms clear of the finger coming down) and the level not dropping.
+jump in level as by starting out of step (bass re-plucks often restart nearly in step). An open string
+re-plucked often keeps step with only a few dB more, so at least twice the energy (over whole periods)
+counts too: a string left alone gained that 3 times in 200. It only counts with the note steady on both
+sides (20 ms clear of the finger coming down) and the level not dropping.
 
 ## Ideas not yet done
 

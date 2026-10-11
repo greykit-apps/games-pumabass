@@ -87,9 +87,10 @@ These need songs, so they run locally:
   right note reads as a wrong one. In a learner's take, that was 28 of 37 misses.
 - The same note again with no click heard (a soft re-pluck of a string still ringing) counts as plucked
   where the note is steady before the finger came down and after, but what follows doesn't carry on what
-  came before (out of step, or jumped in level), and the level didn't drop (that's damping). In a
-  learner's take of a song full of repeated notes, that was 34 of 88 "already sounding" misses; on the
-  same take, a string left ringing faked it about 3 times in 70.
+  came before: out of step or jumped in level, or (an open string re-plucked carries on nearly in step)
+  at least twice the energy; never with the level dropping (that's damping). On a learner's takes of
+  songs full of repeated notes, that was 53 of 88 and 79 of 151 "already sounding" misses; a string left
+  ringing faked it 4 times in 205.
 
 **Takes.** With **Record a take** ticked in the Mix panel, **Save take** (there, or `S` on the end screen)
 writes what the cable heard, with the song's notes and each verdict, to `takes/` (git ignores it). A song's
