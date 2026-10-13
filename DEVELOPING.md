@@ -99,7 +99,9 @@ These need songs, so they run locally:
   before). So the same note again counts while it rings, played or not: a fast run of one note (eighths
   on the low E) leaves no room to tell, and what it would take a cleverer detector to call wrong is close
   enough to right. "Already sounding" now only fails a hammer-on or pull-off. check-scoring reports a
-  skipped repeat of a note still ringing apart, uncounted.
+  skipped repeat of a note still ringing apart, uncounted. In a fast run the end of the window runs into
+  the next note's pluck (soft, unheard, up to 0.1 s early): unless the end clearly says right or wrong,
+  the latest look over before then counts instead (Thunderstruck's eighths: 720 to 770 of 968).
 
 **Takes.** With **Record a take** ticked in the Mix panel, **Save take** (there, or `S` on the end screen)
 writes what the cable heard, with the song's notes and each verdict, to `takes/` (git ignores it). A song's
