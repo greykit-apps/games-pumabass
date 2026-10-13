@@ -87,6 +87,9 @@ for that test, and on a real take half its re-plucks made no click. So a plucked
 now counts when its pitch is there at the end of its window, re-plucked or left ringing: it would take a
 cleverer detector to call it wrong, and that's close enough to right. Judged at the end of the window, not
 anywhere in it, so a soft wrong note after the same one still ringing isn't credited off the old one.
+In a fast run (eighths 0.23 s apart) the end of the window holds the next note's soft, unheard pluck,
+which can come 0.1 s early: unless the end clearly says right or wrong, the latest look that's over
+before then decides.
 
 ## Ideas not yet done
 

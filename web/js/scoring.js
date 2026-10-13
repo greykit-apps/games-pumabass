@@ -312,9 +312,21 @@ export function judge(x, sr, at, ev, chart, taken = [], { prev = -Infinity, next
     if (i >= 0 && j <= x.length && end - start >= 1.5 / freq + lagRoom && pitchPresent(x.subarray(i, j), sr, freq).match) return { hit: false, offset: null, pluck: null, why: 'already sounding' };
   }
   // A plucked note with no pluck heard: the pitch at the end of its window, when whatever was
-  // played has taken over from what rang before it. Legato notes: anywhere in the window.
+  // played has taken over from what rang before it. In a fast run, though, the end of the window
+  // runs into the next note's pluck (one can come 0.1 s early, too soft to be heard and stopped
+  // short of): unless the end clearly says right or wrong, the latest look that's over before then.
+  // Legato notes: anywhere in the window.
   if (pluck === null && needsPluck) {
-    for (let s = at + late; s >= at; s -= 0.02) if (room(s) >= 1.5 / freq) { starts.push(s); break; }
+    const over = s => s + Math.min(room(s), 3.5 / freq) + lagRoom <= next - 0.1;
+    let end = null, before = null;
+    for (let s = at + late; s >= at; s -= 0.02) if (room(s) >= 1.5 / freq) { if (end === null) end = s; if (over(s)) { before = s; break; } }
+    let s0 = end;
+    if (end !== null && before !== null && before !== end) {
+      const i = Math.max(0, Math.round(end * sr)), need = Math.ceil((room(end) + lagRoom) * sr) + 4;
+      const v = i + need <= x.length ? pitchCheck(xp.subarray(i, i + need), sr, freq).verdict : null;
+      if (v !== 'right' && v !== 'wrong') s0 = before;
+    }
+    if (s0 !== null) starts.push(s0);
   } else if (pluck === null) for (let s = at - early; s <= at + late; s += 0.02) starts.push(s);
   for (const s of starts) {
     const look = room(s);
