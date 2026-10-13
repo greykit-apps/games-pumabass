@@ -44,8 +44,17 @@ export const RUNUP = 6;
 export let pausedAt = null;   // where play will count back in to, or null
 export let liveAt = null;     // the spot the countdown is counting to, while it runs
 export let liveShownAt = 0;   // when LIVE went up, to take it down again
+/* The last notes before a jump: at a loop's end (and the song's) their windows haven't
+ * closed, so they're held, each with the real time its input arrives in, and judged on
+ * the frames after the seek as it comes in (judgeHeld). A pass of the riff repeater, and
+ * the end screen, wait for them. */
+let held = [];
+let passDue = false;   // the loop came round: count the pass once its held notes are in
+let endDue = 0;        // the song ended: the end screen once its held notes are in (or by this time)
+let prevT = null;      // last frame's song time, to see the loop's start go by
+let loadWait = null;   // ends the wait for a song's audio, when the song is left meanwhile
 
-export async function openSong(s, startAt = 0, { resumed = false } = {}) {
+export async function openSong(s, startAt = 0, { resumed = false, songTime: fromChart = false } = {}) {
   closeEndScreen();
   song = s;
   setScreen('player');
@@ -59,6 +68,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   try {
     chart = s.demo ? demoChart(s.id) : await api(`/api/chart/${encodeURIComponent(s.id)}`);
   } catch (e) {
+    chart = null; // nothing of the song that didn't open (the tuner would say its name with the last song's tuning)
     $('loading').classList.add('hidden');
     showLibrary();
     await alertSheet(e.message, `Can't open "${s.title}"`);
@@ -76,6 +86,7 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   $('offset').min = -range; $('offset').max = range; $('offset').step = s.audio === 'user' ? 10 : 5;
   $('offset').value = offsetMs; showOffset();
   $('settings').classList.toggle('own-audio', s.audio === 'user'); // whole seconds only make sense for your own recordings
+  if (fromChart) startAt += (offsetMs + prefs.avOffset) / 1000; // a chart time: the audio runs the offsets ahead of it
   loop = null;
   renderLoop();
   applyDifficulty();
@@ -86,12 +97,11 @@ export async function openSong(s, startAt = 0, { resumed = false } = {}) {
   audio.src = s.demo ? demoTrack(s.id) : `/api/audio/${encodeURIComponent(s.id)}`; // a demo's is made here (demos.js)
   audio.preservesPitch = true;
   // A song's first play decodes its audio on the server, which takes a few seconds; after that it's kept.
-  const slow = setTimeout(() => { if (song === s) showLoading(`Loading ${s.title}`, 'Decoding its audio: the first play of a song takes a few seconds'); }, 1200);
-  await new Promise(resolve => {
-    const done = () => { audio.removeEventListener('canplay', done); audio.removeEventListener('error', done); resolve(); };
-    audio.addEventListener('canplay', done); audio.addEventListener('error', done);
-  });
+  const c = chart;
+  const slow = setTimeout(() => { if (chart === c) showLoading(`Loading ${s.title}`, 'Decoding its audio: the first play of a song takes a few seconds'); }, 1200);
+  await waitForAudio();
   clearTimeout(slow);
+  if (chart !== c) return; // left (Esc, the Back button) while it loaded: another song, or none, has the player now
   $('loading').classList.add('hidden');
   if (audio.error) {
     const why = await audioTrouble(s);
@@ -129,8 +139,20 @@ function showLoading(what, more = '') {
   $('loading').classList.remove('hidden');
 }
 
+/* Until the audio can play, or fails. Leaving the song meanwhile (leaveSong) ends the wait
+ * too: clearing the source fires neither, and the wait would otherwise end on the next
+ * song's load and run this one's steps over it. */
+function waitForAudio() {
+  return new Promise(resolve => {
+    const done = () => { audio.removeEventListener('canplay', done); audio.removeEventListener('error', done); loadWait = null; resolve(); };
+    loadWait = done;
+    audio.addEventListener('canplay', done); audio.addEventListener('error', done);
+  });
+}
+
 /* The song's audio didn't play: ask the server why, and say what to do about it. */
 async function audioTrouble(s) {
+  if (WEB) return `The demo song's audio couldn't load. Check the connection, then open "${s.title}" again.`;
   setInfo(await api('/api/info').catch(() => info));
   if (info.vgmstream === false) return `Song audio needs vgmstream, which isn't installed yet. In the PumaBass folder run tools/get-vgmstream.sh (on Windows, see README.md), then open "${s.title}" again.`;
   const r = await fetch(`/api/audio/${encodeURIComponent(s.id)}`, { headers: { Range: 'bytes=0-0' } }).catch(() => null);
@@ -204,7 +226,9 @@ export async function openTestSong(test) {
   applyDifficulty();
   buildSectionBar();
   audio.src = test.url;
-  await new Promise(resolve => { audio.addEventListener('canplay', resolve, { once: true }); });
+  const c = chart;
+  await waitForAudio();
+  if (chart !== c) return; // left while it loaded
   $('loading').classList.add('hidden');
   audio.currentTime = 0;
   pausedAt = null;
@@ -220,7 +244,9 @@ export function saveResume() {
 
 /* Stop the song and put the player away. */
 export function leaveSong() {
+  if (loadWait) loadWait();
   scorer = null;
+  held = []; passDue = false; endDue = 0; prevT = null;
   stopRepeater();
   clearTake();
   $('calib-cue').classList.add('hidden');
@@ -248,7 +274,7 @@ export function closeSong() {
 /* From the end screen: the song again from one section, looped, with the riff
  * repeater on, so it starts slower and comes up to speed. */
 export async function practiseSection(s, sec) {
-  await openSong(s, sec.t);
+  await openSong(s, sec.t, { songTime: true });
   if (song !== s || !chart) return;
   loop = { a: sec.t, b: sec.end };
   if (!repeater) toggleRepeater(); else renderLoop();
@@ -278,6 +304,7 @@ export function startScoring() {
   // Sync's soundcheck, when it was taken with this input: the cable's noise floor.
   const sc = prefs.soundcheck, noise = sc && (!sc.device || sc.device === input.deviceId) ? sc : null;
   scorer = scoreMode && input.open && chart && !calib ? new Scorer(chart, highway.notes, sectionIndex, noise) : null;
+  held = []; passDue = false;
   if (scorer) scorer.seek(songTime());
   startTake();
   updateHud();
@@ -338,6 +365,34 @@ export function seek(t, chosen = true) {
   if (calib) calib.meter.seek(songTime());
 }
 
+/* A seek to a chart time (a section's start, the loop's run-up): the audio runs the offsets
+ * ahead of or behind the chart, so the spot lands where the chart has it. (Left, Right and the
+ * wheel move the audio itself.) */
+export const seekSong = (t, chosen = true) => seek(t + (offsetMs + prefs.avOffset) / 1000, chosen);
+
+/* ---- notes held over a jump ---- */
+/* The notes before chart time limit still waiting for their windows to close, with the
+ * real time each one's input arrives in, worked out from now's clock before the seek
+ * changes the song's. Judged as that input comes in (judgeHeld), into the score, the pass
+ * and the take; not on the highway, which has jumped on. */
+function holdBack(limit, now) {
+  if (!scorer || !input.open) return;
+  const rate = audio.playbackRate, ctxNow = mixer.ctx.currentTime, lat = input.latency + prefs.inputOffset / 1000;
+  const real = T => ctxNow - (now - T) / rate + lat;
+  for (const h of scorer.holdBack(limit, rate)) held.push({ ...h, rate, c0: real(h.from), c1: real(h.close) });
+}
+function judgeHeld() {
+  if (!held.length) return;
+  if (!scorer || !input.open) { held = []; return; }
+  held = held.filter(h => {
+    const seg = input.segment(h.c0, h.c1);
+    if (seg === 'later') return true; // its input is still on its way
+    if (seg) scorer.judgeOne(h.i, { x: seg.x, sr: input.sampleRate, t0: h.from + (seg.c0 - h.c0) * h.rate }, h.rate, h.from, (ev, r) => logTakeVerdict(ev, r), false);
+    return false;
+  });
+  updateHud();
+}
+
 export function togglePlay() {
   if (!chart) return;
   if (audio.paused) {
@@ -369,7 +424,7 @@ export function renderOverlay() {
     liveShownAt = 0;
     big = 'PAUSED';
     small = pausedAt !== null ? `Press <kbd>Space</kbd> to play · back in at ${formatTime(pausedAt)}` : 'Press <kbd>Space</kbd> to play';
-    small += PAUSED_KEYS;
+    small += calib ? '<span class="ov-keys"><span><kbd>Esc</kbd>leave the sync test</span></span>' : PAUSED_KEYS; // the test has no loops, mix or views
   } else if (liveAt !== null) {
     const left = (liveAt - audio.currentTime) / audio.playbackRate;
     if (left > 0) { mode = 'count'; big = String(Math.ceil(left)); small = 'back in at ' + formatTime(liveAt); liveShownAt = 0; }
@@ -417,7 +472,10 @@ audio.addEventListener('ended', () => {
   pausedAt = null;
   liveAt = null;
   save(KEY_RESUME, null); // a song played to the end leaves nothing to resume
-  showEndScreen();
+  // The last notes, when the audio ends within their windows: judged as their input comes in,
+  // then the end screen (within a second regardless).
+  holdBack(Infinity, songTime());
+  if (held.length) endDue = performance.now() + 1000; else showEndScreen();
 });
 
 
@@ -463,7 +521,7 @@ $('progress').addEventListener('click', e => {
   if (e.shiftKey) { setLoopPoint(t); return; }
   // Snap to the start of the clicked section when clicking near it.
   const sec = currentSection(t);
-  seek(sec && t - sec.t < 2 ? sec.t : t);
+  seekSong(sec && t - sec.t < 2 ? sec.t : t);
 });
 
 export function toggleSectionLoop() {
@@ -472,7 +530,7 @@ export function toggleSectionLoop() {
     const t = songTime();
     const sec = currentSection(t) || { t: 0, end: chart.songLength };
     loop = { a: sec.t, b: sec.end };
-    if (t < loop.a || t > loop.b) seek(loop.a);
+    if (t < loop.a || t > loop.b) seekSong(loop.a);
   }
   renderLoop();
 }
@@ -622,7 +680,7 @@ export function playerKey(e) {
   else if (k === 'r' || k === 'R') toggleRepeater();
   else if (k === '[') setLoopPoint(songTime(), 'a');
   else if (k === ']') setLoopPoint(songTime(), 'b');
-  else if (k === 'Home') seek(loop ? loop.a : 0);
+  else if (k === 'Home') seekSong(loop ? loop.a : 0);
   else if (k === 'm' || k === 'M') toggleSettingsPanel();
   else if (k === 't' || k === 'T') showTuner();
   else if (k === 'n' || k === 'N') cycleNotation();
@@ -658,12 +716,20 @@ export function frame() {
   if (chart && screen === 'player') {
     let t = songTime();
     if (loop && !audio.paused && t >= loop.b) {
+      // The section's last notes haven't had their windows yet: held, to be judged as their input comes in.
+      holdBack(loop.b, t);
       // Restart the loop with a short lead-in so you can get ready.
       // Carry on from just as far past the run-up as play went past the end, so the highway runs on unbroken.
-      seek(loopFrom() + Math.min(0.1, t - loop.b), false);
+      seekSong(loopFrom() + Math.min(0.1, t - loop.b), false);
       t = songTime();
-      loopCameRound();
+      passDue = true;
     }
+    judgeHeld();
+    if (passDue && !held.length) { passDue = false; loopCameRound(); }
+    if (endDue && (!held.length || performance.now() > endDue)) { endDue = 0; showEndScreen(); }
+    // The riff repeater counts a time round from the loop's start: the run-up's notes are the section before.
+    if (repeater && loop && scorer && prevT !== null && prevT < loop.a && t >= loop.a) repeater.mark = { hits: scorer.hits, judged: scorer.judged };
+    prevT = t;
     updateNotation(t, !calib);
     // The tab view stands in for the highway (never in the sync test, which is all highway).
     const tabs = !calib && tabView();
@@ -696,7 +762,7 @@ export function frame() {
       if (scorer && input.open) {
         logTakeSync(t, sync);
         scorer.update(t, audio.playbackRate, inputBetween, (ev, r) => {
-          highway.mark(ev, r.hit);
+          highway.mark(ev, r.hit, r.offset);
           logTakeVerdict(ev, r);
         });
         updateHud();

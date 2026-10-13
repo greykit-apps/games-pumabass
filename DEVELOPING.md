@@ -163,7 +163,9 @@ path from the page.
 
 CI's deploy stage builds it and rsyncs `public/` to greykit.com/games/pumabass/ on every main commit, as
 the other greykit.games deploy, with the group's DreamHost CI variables. Only the build goes up: never
-the server, the tools, the screenshots or any songs.
+the server, the tools, the screenshots or any songs. Earlier deploys' `web-<commit>/` folders are left
+in place for two days (a page opened before a deploy, or served from Cloudflare's minute, still finds
+its own scripts and `audio/copybook.m4a`), then pruned by the next deploy over the same connection.
 
 To try it locally, build it into a subfolder and serve that with any static server:
 

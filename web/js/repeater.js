@@ -31,6 +31,8 @@ export function repeaterPass() {
   if (scorer && repeater.mark) {
     const judged = scorer.judged - repeater.mark.judged, hits = scorer.hits - repeater.mark.hits;
     if (judged >= 3) { good = hits / judged >= 0.7; note = ` \u00b7 ${Math.round((100 * hits) / judged)}% hit`; }
+    // Too few notes judged to tell (the input dropped out, a near-empty section): only a clean sweep speeds up.
+    else { good = judged > 0 && hits === judged; note = judged ? ` \u00b7 ${hits} of ${judged} hit` : ' \u00b7 nothing judged'; }
   }
   repeater.mark = scorer ? { hits: scorer.hits, judged: scorer.judged } : null;
   if (v >= 100) { toast(`Full speed, time ${repeater.passes}${note}`); return; }

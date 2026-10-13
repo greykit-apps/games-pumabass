@@ -84,6 +84,11 @@ export function titleEscape() {
   clearTimeout(el.timer);
   el.timer = setTimeout(() => { el.classList.add('gone'); quitAsked = 0; }, 3000);
 }
+// A sheet opened meanwhile (Settings, say) takes Esc for itself: the question goes.
+new MutationObserver(() => {
+  const ask = document.querySelector('.quit-ask');
+  if (ask && !ask.classList.contains('gone') && document.querySelector('.gk-sheet')) { ask.classList.add('gone'); quitAsked = 0; }
+}).observe(document.body, { childList: true });
 async function quitGame() {
   const ask = document.querySelector('.quit-ask');
   if (ask) ask.remove();
@@ -125,10 +130,12 @@ export function partsLabel(n) {
   return `${n} ${prefs.type === 'all' ? '' : prefs.type + ' '}${n === 1 ? 'part' : 'parts'}`;
 }
 const playableParts = () => ownSongs().filter(s => (prefs.type === 'all' || s.type === prefs.type) && s.audio !== false);
-/* "299 songs, 315 bass parts": the boot and Settings. */
+/* "299 songs, 315 bass parts on 290 of them": the boot and Settings. (The song list's All tab
+ * counts the songs with such a part, so that number is here too.) */
 export function libraryLabel() {
-  const playable = ownSongs().filter(s => s.audio !== false);
-  return `${new Set(playable.map(s => s.songKey)).size} songs, ${partsLabel(playableParts().length)}`;
+  const playable = ownSongs().filter(s => s.audio !== false), parts = playableParts();
+  const all = new Set(playable.map(s => s.songKey)).size, withPart = new Set(parts.map(s => s.songKey)).size;
+  return `${all} songs, ${partsLabel(parts.length)}${withPart < all ? ` on ${withPart} of them` : ''}`;
 }
 
 /* Settings is for setting up: the songs, the input, the screen, the highway.
@@ -231,7 +238,7 @@ export async function settingsClick(b, sheet) {
     case 'screen': prefs.screen = v; applyScreen(); break;
     case 'rescan':
       b.textContent = 'Scanning';
-      try { await api('/api/rescan'); await loadLibrary(); }
+      try { await api('/api/rescan', { method: 'POST' }); await loadLibrary(); }
       catch (e) { sheet.close(); await alertSheet(e.message, "Can't rescan"); return; }
       break;
     case 'library':
@@ -252,7 +259,8 @@ export async function settingsClick(b, sheet) {
       return;
     case 'input':
       sheet.close();
-      chooseInput().then(refreshScoreMeta);
+      // With an input chosen, the next thing is to tune to it.
+      chooseInput().then(async ok => { refreshScoreMeta(); if (ok && await confirmSheet('Your input is set. Tune up now?', 'Open the tuner', 'Instrument input')) showTuner(); });
       return;
     case 'tuner':
       sheet.close();
@@ -269,7 +277,13 @@ export async function settingsClick(b, sheet) {
   }
   savePrefs();
   syncPlayerPrefs();
+  // The title's own sheet redraws without keeping the focus: put it back on the button pressed.
+  const f = document.activeElement && document.activeElement.dataset, at = f && JSON.stringify({ ...f });
   sheet.refresh();
+  if (at && document.activeElement === document.body) {
+    const same = [...document.querySelectorAll('.gk-sheet button')].find(b => JSON.stringify({ ...b.dataset }) === at);
+    if (same) same.focus({ preventScroll: true });
+  }
 }
 
 

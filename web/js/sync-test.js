@@ -58,6 +58,7 @@ export async function playAlongDone() {
     if (audio.paused) togglePlay();
     return;
   }
+  if (choice === null) { endSync(); return; } // Esc, or the sheet closed: nothing changes
   // The picture's offset was lined up by eye: it stays whatever is chosen here.
   if (choice === 'use') {
     prefs.inputOffset = res.input;
@@ -92,8 +93,9 @@ export function endSync() {
 /* Keys during the test. True when handled. */
 export function calibKey(e) {
   const k = e.key;
-  if (k === ' ' || k === 'Escape') return false; // play / pause, and leave, as ever
+  if (k === ' ') return false; // play / pause, as ever
   e.preventDefault();
+  if (k === 'Escape') { endSync(); return true; } // leaves at any point, as promised, with nothing changed
   if (calib.phase === 'align') {
     if (k === 'ArrowLeft') nudgeSync(e.shiftKey ? -20 : -5);
     else if (k === 'ArrowRight') nudgeSync(e.shiftKey ? 20 : 5);

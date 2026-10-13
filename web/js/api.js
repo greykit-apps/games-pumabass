@@ -7,8 +7,12 @@ import { alertSheet } from './title.js';
  * server (your songs, choosing a folder, Rescan, takes) says so when it's asked for
  * (notInDemo); Quit isn't there at all. */
 export const WEB = typeof document !== 'undefined' && document.documentElement.dataset.edition === 'web';
-export function notInDemo(what) {
-  return alertSheet(`${what} isn't in the web demo. On your own computer, PumaBass plays song files (PSARC) that you make yourself, and is also compatible with CustomsForge and Rocksmith 2014 songs.`, 'Not available in the demo');
+export async function notInDemo(what) {
+  await alertSheet(`${what} isn't in the web demo. On your own computer, PumaBass plays song files (PSARC) that you make yourself, and is also compatible with CustomsForge and Rocksmith 2014 songs.`, 'Not available in the demo');
+  // Asked from a button under the song list, the focus goes back to the list, not the button:
+  // Enter there played the song before, and would only ask again.
+  const b = document.activeElement, row = document.querySelector('#song-list .song');
+  if (row && b && b.closest && b.closest('#library .bar')) row.focus({ preventScroll: true });
 }
 
 

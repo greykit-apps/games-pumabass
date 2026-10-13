@@ -7,8 +7,9 @@
 # web/ goes up as web-<commit>/: greykit.com sits behind Cloudflare, which keeps
 # scripts and styles for a month, so each deploy's get addresses it has never seen,
 # and the page (kept a minute) always loads the scripts it was built with. Everything
-# inside finds the rest by relative path, so nothing else needs changing.
-#
+# inside finds the rest by relative path, so nothing else needs changing. The deploy
+# (.gitlab-ci.yml) leaves the earlier deploys' web-<commit>/ folders on the host for
+# two days, so a page already open keeps its scripts and audio across a deploy.
 #
 #   bash tools/build-web.sh [out]     (default: public/)
 set -euo pipefail

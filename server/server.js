@@ -26,18 +26,32 @@ const STARTED_WITH = codeStamp();
 // when the page starts needing something an older server doesn't have.
 const API_VERSION = 5;
 
+/* The last config that read as JSON. A config.json that won't parse (a stray
+ * comma from a hand edit) is kept aside as config.json.bad and the last good
+ * one used, so saving a setting can't overwrite port, host or musicDir with
+ * nothing. */
+let lastGoodConfig = {};
 function readConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
+  let text;
+  try { text = fs.readFileSync(CONFIG_FILE, 'utf8'); } catch { return lastGoodConfig; } // no file yet
+  try { return (lastGoodConfig = JSON.parse(text)); } catch (e) {
+    console.error(`${CONFIG_FILE} is not valid JSON (${e.message}); using the last settings that were.`);
+    const bad = `${CONFIG_FILE}.bad`;
+    try { if (!fs.existsSync(bad)) fs.copyFileSync(CONFIG_FILE, bad); } catch {}
+    return lastGoodConfig;
+  }
 }
 function saveConfig(patch) {
-  const next = Object.assign(readConfig(), patch);
+  const next = Object.assign({}, readConfig(), patch);
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(next, null, 2) + '\n');
+  lastGoodConfig = next;
 }
 
 const fileConfig = readConfig();
 const config = Object.assign({ port: 8014, host: '127.0.0.1', openBrowser: true }, fileConfig);
-// rocksmithDir is the name the library folder had before it could be any folder.
-config.libraryDir = fileConfig.libraryDir || fileConfig.rocksmithDir || null;
+// rocksmithDir is the name the library folder had before it could be any folder. It only
+// counts when libraryDir was never saved: null there means the folder was cleared on purpose.
+config.libraryDir = ('libraryDir' in fileConfig ? fileConfig.libraryDir : fileConfig.rocksmithDir) || null;
 const arg = name => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : undefined; };
 if (arg('--port')) config.port = Number(arg('--port'));
 if (arg('--host')) config.host = arg('--host');
@@ -94,17 +108,35 @@ function sendJson(res, obj, status = 200) {
   res.end(JSON.stringify(obj));
 }
 
+/* Streams a file into the response. A read that fails part way (the stick with
+ * the songs pulled out) is logged and the response closed, instead of taking
+ * the server down as an uncaught error. */
+function streamFile(file, res, opts) {
+  fs.createReadStream(file, opts).on('error', e => {
+    console.error(`Reading ${file}: ${e.message}`);
+    res.destroy();
+  }).pipe(res);
+}
+
 function sendFileRange(req, res, file, type) {
   const size = fs.statSync(file).size;
   const range = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
   if (range) {
-    const start = range[1] ? Number(range[1]) : size - Number(range[2]);
-    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    // Worked out and checked before any header goes: a range that doesn't fit
+    // the file (an empty file, a suffix longer than it, a start past its end)
+    // gets 416, as the browser expects, not a 206 that then falls over.
+    let start, end;
+    if (range[1]) { start = Number(range[1]); end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1; }
+    else { start = Math.max(0, size - Number(range[2])); end = size - 1; }
+    if (!range[1] && !range[2] || start > end || start >= size) {
+      res.writeHead(416, { 'Content-Range': `bytes */${size}` });
+      return res.end();
+    }
     res.writeHead(206, { 'Content-Type': type, 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Accept-Ranges': 'bytes' });
-    fs.createReadStream(file, { start, end }).pipe(res);
+    streamFile(file, res, { start, end });
   } else {
     res.writeHead(200, { 'Content-Type': type, 'Content-Length': size, 'Accept-Ranges': 'bytes' });
-    fs.createReadStream(file).pipe(res);
+    streamFile(file, res);
   }
 }
 
@@ -202,10 +234,12 @@ function quit() {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://localhost');
-  const p = decodeURIComponent(url.pathname);
   try {
     if (!hostAllowed(req)) { res.writeHead(403); return res.end('Forbidden'); }
+    // Inside the try: a path that won't decode (GET /%ff) is a bad request, not a crash.
+    let url, p;
+    try { url = new URL(req.url, 'http://localhost'); p = decodeURIComponent(url.pathname); }
+    catch { return sendJson(res, { error: 'bad url' }, 400); }
     if (p === '/api/songs') {
       return sendJson(res, lib.songs.map(songJson));
     }
@@ -231,6 +265,8 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (p === '/api/rescan') {
+      // POST only: a rescan blocks the server for a while, so an <img> on another page can't start one.
+      if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }); return res.end(); }
       loadLibrary();
       return sendJson(res, { songs: lib.songs.length, archives: lib.archiveCount });
     }
@@ -281,9 +317,11 @@ const server = http.createServer(async (req, res) => {
     const audioType = AUDIO_MIME[path.extname(file).toLowerCase()];
     if (audioType) return sendFileRange(req, res, file, audioType);
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-    fs.createReadStream(file).pipe(res);
+    streamFile(file, res);
   } catch (e) {
     console.error(e);
+    // Headers already out (an error part way through a reply): just close it; another writeHead would throw.
+    if (res.headersSent) return res.end();
     sendJson(res, { error: e.message }, 500);
   }
 });

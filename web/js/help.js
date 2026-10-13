@@ -56,8 +56,9 @@ ${keys([
 <p>The songs you played last wait at the top, under <b>Recently played</b> (on a list too long to see at once). Below, every song, grouped by what
 the list is sorted on. Click a column heading to sort by it; again to reverse. Beside the list, an index of
 the groups: click one to jump there, or slide along it to skim.</p>
-<p>The tabs over the list are your libraries (<b>Your songs</b>): <b>All</b>, then one for each folder with
-songs in it, and <b>Demo</b>. Going down the list, the heading and the buttons slide away to show more; going up brings them
+<p>The tabs over the list are your libraries (<b>Your songs</b>): <b>All</b>, <b>New</b> (the songs added in the
+last 30 days, newest first), then one for each folder with songs in it. The <b>Demo</b> tab is there until you
+have songs of your own. Going down the list, the heading and the buttons slide away to show more; going up brings them
 back.</p>
 <h3>Favorites</h3>
 <p>Heart a song (its heart, or <kbd>F</kbd> in the list or in the song). <b>Favorites</b> shows only those: your
@@ -125,9 +126,10 @@ set the two meters about level. A limiter keeps them from distorting.</p>
 thump.</p>`)],
   ['Scoring', cols(`
 <p>Scoring is a mode of its own: choose <b>Score a song</b> (<kbd>C</kbd>) on the menu. With the
-cable open, PumaBass listens to each note as it lands: a hit fills in bright; a miss is crossed out
-and drops away. The top bar keeps your accuracy and streak, and the end screen gives your score, your best streak,
-whether you play early or late, and where to practise.</p>
+cable open, PumaBass listens to each note as it lands: a hit fills in bright, its ring in the string's colour
+(blue when you plucked early, amber when late); a miss is crossed out and drops away. The top bar keeps your
+accuracy and streak, and the end screen gives your score, your best streak, whether you play early or late,
+the string and fret you missed most, and where to practise.</p>
 <h3>What counts</h3>
 <p>The right note, within about a sixth of a second. It's forgiving of a muddy sound (the last note still
 ringing, a string you didn't mute): a note only counts as wrong when it clearly was another one.
@@ -219,7 +221,7 @@ then; the button at its foot shows them.</p>`)],
 ];
 
 export const ABOUT = `
-<p><b>PumaBass</b> is a RockSmith-style tabulature player. At its core, it takes tab notation, turns it sideways,
+<p><b>PumaBass</b> is a Rocksmith-style tablature player. At its core, it takes tab notation, turns it sideways,
 and synchronizes it to the music. Make your own PSARC files (<b>Help &rarr; Make your own</b>) or download them
 from CustomsForge; it's also compatible with Rocksmith 2014's.
 It can also "score" your playing, if you really like being judged by a machine.</p>

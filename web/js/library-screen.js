@@ -78,7 +78,17 @@ export function chooseFolder() {
       if (back && back.isConnected) back.focus({ preventScroll: true });
       resolve(v);
     };
-    const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(null); } };
+    // The picker's keys are its own: nothing reaches the title's menu behind it (its hotkeys
+    // opened Settings or the song list under the picker). Tab stays inside, as in every sheet.
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(null); return; }
+      if (e.key === 'Tab') {
+        const bs = [...el.querySelectorAll('button, input')].filter(x => !x.disabled), i = bs.indexOf(document.activeElement);
+        e.preventDefault();
+        bs[(i + (e.shiftKey ? -1 : 1) + bs.length) % bs.length].focus();
+      }
+      e.stopPropagation();
+    };
     el.addEventListener('submit', e => { e.preventDefault(); go(el.querySelector('input[name=p]').value.trim()); });
     el.addEventListener('click', async e => {
       if (e.target === el) return close(null);
@@ -116,8 +126,9 @@ export function showLibrary() {
   $('player').classList.add('hidden');
   $('library').classList.remove('hidden');
   renderLibrary();
+  // No song to land on: the Menu button, not the search box (there the hotkeys would be typed).
   const first = $('song-list').querySelector('.song:not(.noaudio)');
-  (first || $('search')).focus({ preventScroll: true });
+  (first || $('library').querySelector('.bar [data-act=menu]')).focus({ preventScroll: true });
 }
 
 /* The song list, with a song's row in focus and in view (back from the player). */
@@ -156,14 +167,15 @@ export function renderLibrary() {
   const ofPart = songs.filter(s => prefs.type === 'all' || s.type === prefs.type);
   const ofType = ofPart.filter(s => inLibrary(s, prefs.library));
   const favs = load(KEY_FAVS, {}), stats = load(KEY_STATS, {});
-  // Each tab counts the songs it would list, with these parts.
+  // Each tab counts the songs it would list: with these parts, under the search and the favorites filter.
+  const matches = s => !q || `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q);
   const tabs = $('lib-tabs');
   tabs.innerHTML = libs.map(([k, name, about]) => {
-    const n = new Set(ofPart.filter(s => inLibrary(s, k) && (prefs.showMissing || s.audio !== false)).map(s => s.songKey)).size;
+    const n = new Set(ofPart.filter(s => inLibrary(s, k) && (prefs.showMissing || s.audio !== false) && (!prefs.favOnly || favs[s.id]) && matches(s)).map(s => s.songKey)).size;
     return `<button data-lib="${k}" aria-pressed="${k === prefs.library}" title="${esc(about ? `${name}: ${about}` : 'Every library')}"><span>${esc(name)}</span><small>${n}</small></button>`;
   }).join('');
   let list = ofType.filter(s => (prefs.showMissing || s.audio !== false) && (!prefs.favOnly || favs[s.id]));
-  if (q) list = list.filter(s => `${s.title} ${s.artist} ${s.album}`.toLowerCase().includes(q));
+  if (q) list = list.filter(matches);
   const fresh = prefs.library === 'new', sort = fresh ? 'added' : prefs.sort; // New: always the newest first
   const cmp = {
     artist: (a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title),
@@ -272,7 +284,14 @@ export function heartRow(row) {
   for (const b of $('song-list').querySelectorAll(`.song[data-id="${CSS.escape(row.dataset.id)}"] [data-fav]`)) {
     b.setAttribute('aria-pressed', String(on));
   }
-  if (prefs.favOnly && !on) { const next = row.nextElementSibling || row.previousElementSibling; renderLibrary(); const n = next && $('song-list').querySelector(`.song[data-id="${CSS.escape(next.dataset.id || '')}"]`); if (n) n.focus({ preventScroll: true }); }
+  if (prefs.favOnly && !on) {
+    // The row goes: focus its neighbour (a row, not a group's name or the hint), else the filter button.
+    const along = (r, way) => { let n = r[way]; while (n && !n.classList.contains('song')) n = n[way]; return n; };
+    const next = along(row, 'nextElementSibling') || along(row, 'previousElementSibling');
+    renderLibrary();
+    const n = next && $('song-list').querySelector(`.song[data-id="${CSS.escape(next.dataset.id)}"]`);
+    (n || $('fav-filter')).focus({ preventScroll: true });
+  }
 }
 
 $('song-list').addEventListener('click', e => {
@@ -316,7 +335,7 @@ $('library').querySelector('.bar').addEventListener('click', async e => {
   else if (b.dataset.act === 'rescan' && WEB) notInDemo('Rescan');
   else if (b.dataset.act === 'rescan') {
     b.textContent = 'Scanning';
-    try { await api('/api/rescan'); await loadLibrary(); }
+    try { await api('/api/rescan', { method: 'POST' }); await loadLibrary(); }
     catch (err) { await alertSheet(err.message, "Can't rescan"); }
     b.textContent = 'Rescan';
   }
@@ -416,7 +435,8 @@ function jumpToGroup(g) {
 const SHELF = 4; // songs on the Recently played shelf
 const initial = t => { const c = String(t || '').trim().charAt(0).toUpperCase(); return /[A-Z]/.test(c) ? c : c ? '#' : '#'; };
 const DESC = new Set(['plays', 'finished', 'recent']); // sorts that put the most first
-const SORTS = [['artist', 'artist'], ['title', 'title'], ['difficulty', 'difficulty'], ['tuning', 'tuning'], ['recent', 'recently played'], ['plays', 'most played']];
+// O goes round every sort the headings offer, and recently played.
+const SORTS = [['artist', 'artist'], ['title', 'title'], ['part', 'part'], ['difficulty', 'difficulty'], ['tuning', 'tuning'], ['plays', 'most played'], ['finished', 'most finished'], ['length', 'length'], ['recent', 'recently played']];
 const PARTS = [['bass', 'Bass parts'], ['lead', 'Lead guitar parts'], ['rhythm', 'Rhythm guitar parts'], ['all', 'Every part']];
 
 /* Focus a row and bring it into view; a group's first row shows its heading too. */
