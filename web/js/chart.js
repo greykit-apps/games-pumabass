@@ -23,10 +23,12 @@ export function buildPlayable(chart, percent) {
   handShapes.sort((a, b) => a.t - b.t);
   // A chord straight after the same chord is a repeat, drawn as its frame alone. Rocksmith
   // 2014's charts say which (repeat); older ones don't, so: the same chord as the note just
-  // before, within a second.
-  if (!notes.some(n => n.repeat)) notes.forEach((n, i) => {
+  // before, within a second. The levels are shared by every difficulty, so the chart's own
+  // notes are never marked: a repeat found here is a copy of its note, made afresh each build
+  // (a mark left on a level's note would be seen by the next build and stop it looking).
+  if (!chart.levels.some(l => l.notes.some(n => n.repeat))) notes.forEach((n, i) => {
     const prev = notes[i - 1];
-    if (n.notes && prev && prev.notes && prev.chord === n.chord && n.t - prev.t < 1) n.repeat = true;
+    if (n.notes && prev && prev.notes && prev.chord === n.chord && n.t - prev.t < 1) notes[i] = { ...n, repeat: true };
   });
   if (!anchors.length) anchors.push({ t: 0, end: chart.songLength, fret: 1, width: 4 });
   return { notes, anchors, handShapes };
@@ -119,9 +121,14 @@ const KEYS = [['C', 0, 0], ['G', 7, 1], ['D', 2, 2], ['A', 9, 3], ['E', 4, 4], [
   ['F', 5, -1], ['Bb', 10, -2], ['Eb', 3, -3], ['Ab', 8, -4], ['Db', 1, -5]];
 // The key signature that leaves the fewest notes needing an accidental (on a tie,
 // the one with fewer sharps or flats). flats: whether to spell the others as flats.
+// Fret-hand mutes (dead notes) have no pitch to speak of, so they don't count: a funk
+// part full of them would otherwise tip the key and put accidentals on the real notes.
 export function keyOf(chart, notes) {
   const count = new Array(12).fill(0);
-  for (const e of notes) for (const p of e.notes || [e]) count[((pitchOf(chart, p.s, p.f) % 12) + 12) % 12]++;
+  for (const e of notes) for (const p of e.notes || [e]) {
+    if ((e.tech || p.tech || []).includes('mute')) continue;
+    count[((pitchOf(chart, p.s, p.f) % 12) + 12) % 12]++;
+  }
   let best = null;
   for (const [name, tonic, acc] of KEYS) {
     const fit = [0, 2, 4, 5, 7, 9, 11].reduce((n, i) => n + count[(tonic + i) % 12], 0);

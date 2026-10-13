@@ -10,8 +10,15 @@ export const KEY_TUNER = 'pumabass_tuner_v1';      // the day and tuning you las
 export const KEY_FAVS = 'pumabass_favorites_v1';   // { id: true } for each favorite part
 export const KEY_STATS = 'pumabass_stats_v1';      // { id: { plays, finished, last } }
 
+/* What was saved under key, or fallback: when it isn't there, can't be read, or (edited by
+ * hand) isn't the kind of thing the fallback is, so a stored null can't stand in for an object. */
 export function load(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const v = JSON.parse(raw);
+    return fallback !== null && fallback !== undefined && (v === null || typeof v !== typeof fallback) ? fallback : v;
+  } catch (e) { return fallback; }
 }
 export function save(key, value) {
   try { if (value == null) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private window */ }

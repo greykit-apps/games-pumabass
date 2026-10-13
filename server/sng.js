@@ -36,7 +36,16 @@ class Reader {
   bytes(n) { const v = this.b.subarray(this.o, this.o + n); this.o += n; return v; }
   str(n) { const raw = this.bytes(n); const z = raw.indexOf(0); return raw.toString('utf8', 0, z < 0 ? n : z); }
   skip(n) { this.o += n; }
-  arr(fn) { const n = this.i32(); const out = new Array(n); for (let i = 0; i < n; i++) out[i] = fn(); return out; }
+  /* A counted run of elements, each at least `min` bytes. The count is checked against
+   * what's left of the file first: a corrupt one (up to 2^31) would otherwise make an
+   * array of that size before the first read could fail, and take the memory with it. */
+  arr(fn, min = 1) {
+    const n = this.i32();
+    if (n < 0 || n * min > this.b.length - this.o) throw new Error(`Bad SNG: ${n} elements of ${min} bytes at ${this.o - 4}, only ${this.b.length - this.o} bytes left`);
+    const out = new Array(n);
+    for (let i = 0; i < n; i++) out[i] = fn();
+    return out;
+  }
 }
 
 function readBend(r) {
@@ -46,15 +55,15 @@ function readBend(r) {
 function parseSng(raw, platform = 'pc') {
   const r = new Reader(decryptSng(raw, platform));
 
-  const beats = r.arr(() => ({ time: r.f32(), measure: r.i16(), beat: r.i16(), phraseIteration: r.i32(), mask: r.i32() }));
-  const phrases = r.arr(() => ({ solo: r.u8(), disparity: r.u8(), ignore: r.u8(), _pad: r.u8(), maxDifficulty: r.i32(), links: r.i32(), name: r.str(32) }));
+  const beats = r.arr(() => ({ time: r.f32(), measure: r.i16(), beat: r.i16(), phraseIteration: r.i32(), mask: r.i32() }), 16);
+  const phrases = r.arr(() => ({ solo: r.u8(), disparity: r.u8(), ignore: r.u8(), _pad: r.u8(), maxDifficulty: r.i32(), links: r.i32(), name: r.str(32) }), 44);
   const chordTemplates = r.arr(() => {
     const mask = r.u32();
     const frets = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
     const fingers = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
     for (let i = 0; i < 6; i++) r.i32(); // midi notes
     return { mask, frets, fingers, name: r.str(32) };
-  });
+  }, 72);
   const chordNotes = r.arr(() => {
     const noteMask = []; for (let i = 0; i < 6; i++) noteMask.push(r.u32());
     const bends = []; // per string: its bend points (32 slots, the count after them)
@@ -63,30 +72,30 @@ function parseSng(raw, platform = 'pc') {
     const slideUnpitchTo = [...r.bytes(6)].map(f => (f === 255 ? -1 : f));
     const vibrato = []; for (let i = 0; i < 6; i++) vibrato.push(r.i16());
     return { noteMask, bends, slideTo, slideUnpitchTo, vibrato };
-  });
-  const vocals = r.arr(() => ({ time: r.f32(), note: r.i32(), length: r.f32(), lyric: r.str(48) }));
+  }, 2376);
+  const vocals = r.arr(() => ({ time: r.f32(), note: r.i32(), length: r.f32(), lyric: r.str(48) }), 60);
   if (vocals.length > 0) {
     // Symbol header / texture / definition tables only exist in vocal arrangements.
-    r.arr(() => r.skip(32));
-    r.arr(() => r.skip(128 + 4 + 4 + 4 + 4));
-    r.arr(() => r.skip(12 + 16 + 16));
+    r.arr(() => r.skip(32), 32);
+    r.arr(() => r.skip(128 + 4 + 4 + 4 + 4), 144);
+    r.arr(() => r.skip(12 + 16 + 16), 44);
   }
   const phraseIterations = r.arr(() => {
     const it = { phraseId: r.i32(), startTime: r.f32(), nextPhraseTime: r.f32() };
     it.difficulty = [r.i32(), r.i32(), r.i32()];
     return it;
-  });
-  r.arr(() => r.skip(16)); // phrase extra info
-  r.arr(() => { r.i32(); const n = r.i32(); r.skip(n * 4); }); // linked difficulties
-  r.arr(() => r.skip(260)); // actions
-  const events = r.arr(() => ({ time: r.f32(), name: r.str(256) }));
-  const tones = r.arr(() => ({ time: r.f32(), id: r.i32() }));
-  r.arr(() => r.skip(8)); // DNA
+  }, 24);
+  r.arr(() => r.skip(16), 16); // phrase extra info
+  r.arr(() => { r.i32(); const n = r.i32(); r.skip(n * 4); }, 8); // linked difficulties
+  r.arr(() => r.skip(260), 260); // actions
+  const events = r.arr(() => ({ time: r.f32(), name: r.str(256) }), 260);
+  const tones = r.arr(() => ({ time: r.f32(), id: r.i32() }), 8);
+  r.arr(() => r.skip(8), 8); // DNA
   const sections = r.arr(() => {
     const s = { name: r.str(32), number: r.i32(), startTime: r.f32(), endTime: r.f32(), startPhraseIteration: r.i32(), endPhraseIteration: r.i32() };
     r.skip(36);
     return s;
-  });
+  }, 88);
   const levels = r.arr(() => {
     const difficulty = r.i32();
     const anchors = r.arr(() => {
@@ -95,10 +104,10 @@ function parseSng(raw, platform = 'pc') {
       a.width = r.i32();
       a.phraseIteration = r.i32();
       return a;
-    });
-    r.arr(() => r.skip(12)); // anchor extensions
-    const handShapes = r.arr(() => ({ chordId: r.i32(), startTime: r.f32(), endTime: r.f32(), _u3: r.f32(), _u4: r.f32() }));
-    const arpeggios = r.arr(() => ({ chordId: r.i32(), startTime: r.f32(), endTime: r.f32(), _u3: r.f32(), _u4: r.f32() }));
+    }, 28);
+    r.arr(() => r.skip(12), 12); // anchor extensions
+    const handShapes = r.arr(() => ({ chordId: r.i32(), startTime: r.f32(), endTime: r.f32(), _u3: r.f32(), _u4: r.f32() }), 20);
+    const arpeggios = r.arr(() => ({ chordId: r.i32(), startTime: r.f32(), endTime: r.f32(), _u3: r.f32(), _u4: r.f32() }), 20);
     const notes = r.arr(() => {
       const n = {
         mask: r.u32(), flags: r.u32(), hash: r.u32(), time: r.f32(),
@@ -109,14 +118,14 @@ function parseSng(raw, platform = 'pc') {
       n.slideTo = r.u8(); n.slideUnpitchTo = r.u8(); n.leftHand = r.u8(); n.tap = r.u8();
       n.pickDirection = r.u8(); n.slap = r.u8(); n.pluck = r.u8();
       n.vibrato = r.i16(); n.sustain = r.f32(); n.maxBend = r.f32();
-      n.bends = r.arr(() => readBend(r));
+      n.bends = r.arr(() => readBend(r), 12);
       return n;
-    });
+    }, 67);
     const nPhrases = r.i32(); r.skip(nPhrases * 4);
     const n1 = r.i32(); r.skip(n1 * 4);
     const n2 = r.i32(); r.skip(n2 * 4);
     return { difficulty, anchors, handShapes, arpeggios, notes };
-  });
+  }, 36);
   const meta = {
     maxScore: r.f64(), maxNotesAndChords: r.f64(), maxNotesAndChordsReal: r.f64(), pointsPerNote: r.f64(),
     firstBeatLength: r.f32(), startTime: r.f32(), capo: r.u8(), lastConversion: r.str(32), part: r.i16(),

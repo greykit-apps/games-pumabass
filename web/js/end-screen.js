@@ -1,6 +1,6 @@
 // The end screen, when a song is over.
 
-import { tuningName, formatTime, arrangementLabel, sectionName } from './chart.js';
+import { tuningName, tuningNotes, formatTime, arrangementLabel, sectionName } from './chart.js';
 import { $, highway, input, esc } from './core.js';
 import { showSongInList } from './library-screen.js';
 import { showTitle } from './menu.js';
@@ -37,7 +37,7 @@ export function showEndScreen() {
   // (A finish is counted before the end screen opens, so st.finished includes this one.)
   const verdict = finished
     ? (st.finished === 1 ? 'Played to the end, for the first time.' : `Played to the end: that's ${st.finished} finishes from ${st.plays} plays.`)
-    : `You played ${formatTime(played)} of ${formatTime(chart.songLength)}. Play at least half of it and it counts as a finish${st.finished ? ` (you've finished it ${times(st.finished)})` : ''}.`;
+    : `You played ${formatTime(played)} of ${formatTime(chart.songLength)}. Play it through, at least half of it from where you start, and it counts as a finish${st.finished ? ` (you've finished it ${times(st.finished)})` : ''}.`;
   // (An unfinished scored play already counts the notes in its score line.)
   const facts = [finished || !(scorer && scorer.judged) ? (prefs.difficulty < 100 ? `${notes} notes (${prefs.difficulty}% of the chart)` : `${notes} notes`) : '', `${currentSpeed()}% speed`, !sc && best !== null ? `your best ${best}%` : ''].filter(Boolean).join(' &middot; ');
   // Each section's accuracy, as a strip along the song.
@@ -56,13 +56,37 @@ export function showEndScreen() {
     const a = r.hits / r.judged;
     if (a < 0.85 && (!weak || a < weak.a)) weak = { a, sec: x };
   });
+  // Playing along, nothing was judged: the section to practise is the busiest, notes a second.
+  if (!sc && chart.sections.length > 1) {
+    let busiest = null;
+    for (const x of chart.sections) {
+      if (/^noguitar/i.test(x.name) || x.end - x.t < 4) continue;
+      const n = highway.notes.filter(e => e.t >= x.t && e.t < x.end).length, d = n / (x.end - x.t);
+      if (n >= 8 && (!busiest || d > busiest.d)) busiest = { d, sec: x };
+    }
+    if (busiest) weak = { a: null, sec: busiest.sec, busy: true };
+  }
+  // The spot missed most, by string and fret, when one keeps coming up: where the practice goes.
+  let missed = '';
+  if (sc) {
+    const names = tuningNotes(chart.tuning, chart.strings), byPos = new Map();
+    for (const [ev, r] of sc.results) {
+      if (r.hit) continue;
+      for (const p of ev.notes || [ev]) { const k = `${p.s}:${p.f}`; byPos.set(k, (byPos.get(k) || 0) + 1); }
+    }
+    const top = [...byPos].sort((a, b) => b[1] - a[1])[0];
+    if (top && top[1] >= 3) {
+      const [s, f] = top[0].split(':').map(Number);
+      missed = `missed most: the ${esc(names[s] || '')} string${f ? ` at fret ${f}` : ', open'} (${top[1]} times)`;
+    }
+  }
   const timingSay = timing ? (Math.abs(timing.ms) < 10 ? 'on the beat' : `${Math.round(Math.abs(timing.ms))} ms ${timing.ms > 0 ? 'late' : 'early'}, give or take ${Math.round(timing.spread)}`) : '';
   // The score only takes the stage when there is one; otherwise, under the verdict, a line on how to get one.
   const score = sc ? `<div class="end-score">
       <span class="end-score-value">${pct}%</span>
       <span class="end-score-note">${sc.hits} of ${sc.judged} notes hit${newBest ? ' &middot; <b>a new best</b>' : ''}</span>
       ${strip}
-      <p class="end-more">Best streak ${sc.best}${timingSay ? ` &middot; ${timingSay}` : ''}${best !== null ? ` &middot; best ${best}% on full plays` : ''}</p>
+      <p class="end-more">Best streak ${sc.best}${timingSay ? ` &middot; ${timingSay}` : ''}${missed ? ` &middot; ${missed}` : ''}${best !== null ? ` &middot; best ${best}% on full plays` : ''}</p>
     </div>`
     : `<p class="end-invite">${!scoreMode ? 'Played along. To have your playing scored, choose <b>Score a song</b> on the menu.'
       : !input.open && prefs.input ? `Not scored: ${esc(shortLabel(prefs.input.label))} wasn't connected. Plug it in and press <kbd>T</kbd> for the tuner, which opens it.`
@@ -72,10 +96,10 @@ export function showEndScreen() {
   // notes, is a line under them, not the headline.
   const partial = !finished;
   const scoreLine = sc ? `<div class="end-score small">
-      <p class="end-score-line">${sc.judged} of the song's ${notes} notes were scored: ${sc.hits} hit (${pct}%).</p>
+      <p class="end-score-line">${sc.judged} of the song's ${notes} notes were scored: ${sc.hits} hit (${pct}%)${missed ? `; ${missed}` : ''}.</p>
       ${strip}
     </div>` : '';
-  const practise = weak ? `<button data-end="practise" title="The song again from this section, looped, with the riff repeater: slower, then up to speed"><kbd>P</kbd>Practise the ${esc(sectionName(weak.sec.name).toLowerCase())} at ${formatTime(weak.sec.t)}</button>` : '';
+  const practise = weak ? `<button data-end="practise" title="The song again from this section, looped, with the riff repeater: slower, then up to speed"><kbd>P</kbd>Practise the ${esc(sectionName(weak.sec.name).toLowerCase())} at ${formatTime(weak.sec.t)}${weak.busy ? ' (its busiest)' : ''}</button>` : '';
   const kicker = finished ? 'Song complete' : 'End of the song';
   const el = document.createElement('div');
   el.className = `gk-sheet end-sheet${finished ? ' cheer' : ''}`;
@@ -124,6 +148,7 @@ export function showEndScreen() {
     else if (k === 'r' || k === 'R') { e.preventDefault(); act('again'); }
     else if ((k === 'p' || k === 'P') && weak) { e.preventDefault(); act('practise'); }
     else if (k === 'm' || k === 'M') { e.preventDefault(); act('menu'); }
+    else if ((k === 's' || k === 'S') && el.querySelector('[data-end="take"]')) { e.preventDefault(); act('take'); }
     else if (k === 'Escape') { e.preventDefault(); act('list'); }
   };
   document.addEventListener('keydown', el.onKey, true);

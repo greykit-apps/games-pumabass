@@ -381,18 +381,47 @@ export class Scorer {
       const from = ev.t - (EARLY + 0.2) * rate; // room before the window, to hear a pluck that came too early
       const seg = input(from, close);
       if (seg === 'later') break; // the input for it is still on its way: next frame
-      this.next++;
+      const i = this.next++;
       if (!seg) continue; // no input for that stretch (paused, unplugged): not judged
-      const real = t => (t - seg.t0) / rate; // song time -> seconds into seg.x
-      const taken = this.taken.filter(t => t > from).map(real);
-      const prev = this.next >= 2 ? real(this.notes[this.next - 2].t) : -Infinity;
-      const nextT = this.next < this.notes.length ? real(this.notes[this.next].t) : Infinity;
-      const r = judge(seg.x, seg.sr, real(ev.t), ev, this.chart, taken, { prev, next: nextT, noise: this.noise });
-      if (r.pluck !== null) this.taken.push(seg.t0 + r.pluck * rate);
-      if (this.taken.length > 64) this.taken.splice(0, 32);
-      this.record(ev, r);
-      if (onResult) onResult(ev, r);
+      this.judgeOne(i, seg, rate, from, onResult);
     }
+  }
+
+  /**
+   * Judge note i on seg, the input covering its window (as update finds it, or held over
+   * a jump: holdBack). from: the song time the window's input starts at, for the plucks
+   * already given to earlier notes. keepPluck: remember its pluck as taken, so the next
+   * note can't claim it (not for a held note: the song has jumped on).
+   */
+  judgeOne(i, seg, rate, from, onResult, keepPluck = true) {
+    const ev = this.notes[i];
+    if (this.results.has(ev)) return; // judged already (held, then come round again)
+    const real = t => (t - seg.t0) / rate; // song time -> seconds into seg.x
+    const taken = this.taken.filter(t => t > from).map(real);
+    const prev = i >= 1 ? real(this.notes[i - 1].t) : -Infinity;
+    const nextT = i + 1 < this.notes.length ? real(this.notes[i + 1].t) : Infinity;
+    const r = judge(seg.x, seg.sr, real(ev.t), ev, this.chart, taken, { prev, next: nextT, noise: this.noise });
+    if (keepPluck && r.pluck !== null) this.taken.push(seg.t0 + r.pluck * rate);
+    if (this.taken.length > 64) this.taken.splice(0, 32);
+    this.record(ev, r);
+    if (onResult) onResult(ev, r);
+  }
+
+  /**
+   * Before a jump (a loop coming round, the song's end): the notes before song time limit
+   * whose windows haven't closed, taken out of the queue, each with the song-time stretch
+   * its input is judged on, so the player can fetch that input by the clock as it arrives
+   * and judge them later (judgeOne). Without this the last notes of a looped section were
+   * never judged at all.
+   */
+  holdBack(limit, rate) {
+    const out = [];
+    while (this.next < this.notes.length && this.notes[this.next].t < limit) {
+      const i = this.next++, ev = this.notes[i];
+      if (this.results.has(ev)) continue;
+      out.push({ i, from: ev.t - (EARLY + 0.2) * rate, close: ev.t + (LATE + 0.12) * rate });
+    }
+    return out;
   }
 
   record(ev, r) {

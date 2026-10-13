@@ -33,6 +33,9 @@ const SOLID = 0.8;   // where it is fully drawn
 const SPLASH = 0.3;  // s (song time), the pulse and fade with no verdict to wait for
 const WAIT = 0.5;    // s (song time), the most a scored note waits on its string for its verdict
 const HIT_MS = 380;  // a hit, filling in bright as it fades
+const EARLY_LATE = 0.05;      // s: a pluck further off than this colours its ring
+const EARLY_COLOR = '#5ab3ff'; // blue: early
+const LATE_COLOR = '#ffb000';  // amber: late
 const MISS_MS = 600; // a miss, crossed out and falling away
 const LINGER = 1.4;  // s (song time) a note stays in the running after it lands
 const easeOut = k => 1 - (1 - k) * (1 - k);
@@ -57,6 +60,17 @@ export class Highway {
     // `to`, so past `to` the highway shows the loop's start coming round
     // again, and the camera glides there, and the jump back is seamless.
     this.loop = null;
+    this.maxSus = 0;        // the longest sustain in the chart: how far back a note can still be in view
+    this.anchorEnds = [];   // anchors' ends, each the latest so far (sorted, for finding the first still to come)
+    this.shapeEnds = [];    // the same for the hand shapes
+    this.drawFailed = false;
+    // The canvas's size is kept here as it changes, rather than read each frame:
+    // reading it forces the page to lay itself out after the player's writes.
+    this.cssW = this.cssH = null;
+    if (typeof ResizeObserver === 'function' && typeof Element === 'function' && canvas instanceof Element) {
+      this.watcher = new ResizeObserver(() => { this.cssW = canvas.clientWidth; this.cssH = canvas.clientHeight; });
+      this.watcher.observe(canvas);
+    }
   }
 
   /** Shifts (s) at which the loop's start shows again within the lookahead of now: one per time round. */
@@ -75,10 +89,11 @@ export class Highway {
     return L.from + ((t - L.to) % (L.to - L.from));
   }
 
-  /** Scoring's verdict on a note, shown as it lands. */
-  mark(ev, hit) {
+  /** Scoring's verdict on a note, shown as it lands. offset: the pluck's timing in
+   * seconds (late positive), for the ring's colour; null when no pluck was heard. */
+  mark(ev, hit, offset = null) {
     const wall = performance.now();
-    this.verdicts.set(ev, { hit, wall });
+    this.verdicts.set(ev, { hit, wall, offset });
     if (this.verdicts.size > 200) for (const [e, v] of this.verdicts) if (wall - v.wall > 3000) this.verdicts.delete(e);
   }
   /** After a jump (a loop coming round, say): the notes from t on are unplayed again. */
@@ -94,13 +109,19 @@ export class Highway {
     this.handShapes = playable.handShapes || [];
     this.camPath = planCamera(this.notes, this.anchors);
     this.flats = keyOf(chart, this.notes).flats; // how note names are spelt
+    this.maxSus = 0;
+    for (const n of this.notes) for (const p of n.notes || [n]) this.maxSus = Math.max(this.maxSus, n.sus || 0, p.sus || 0);
+    this.anchorEnds = runningMax(this.anchors);
+    this.shapeEnds = runningMax(this.handShapes);
+    this.drawFailed = false;
+    MEASURED.clear();
   }
 
   // The camera window (centre and visible width, in frets) at song time t,
   // read off the planned path so it is the same however you got to t.
   camAt(t) {
     const path = this.camPath;
-    if (!path) return { c: 4.5, w: MIN_VIEW };
+    if (!path || !path.L || !path.R) return { c: 4.5, w: MIN_VIEW }; // no path (a chart with no notes)
     const l = edgeAt(path.L, path.l0, t), r = edgeAt(path.R, path.r0, t);
     return { c: (l + r) / 2, w: r - l };
   }
@@ -117,8 +138,13 @@ export class Highway {
 
   resize() {
     // On the couch the page is zoomed (style.css): draw at the zoomed size, not blurred up.
+    // A change of pixel ratio (the window moved to another monitor) shows up here too, in
+    // the comparison below. The size is the watcher's (constructor); read here before it has
+    // spoken, and while it last saw nothing (the player hidden): the watcher's word comes a
+    // frame after the player shows, and the first frame shouldn't be blank.
     const dpr = (window.devicePixelRatio || 1) * (this.canvas.currentCSSZoom || 1);
-    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
+    if (!this.cssW) { this.cssW = this.canvas.clientWidth; this.cssH = this.canvas.clientHeight; }
+    const w = this.cssW, h = this.cssH;
     if (this.canvas.width !== Math.round(w * dpr) || this.canvas.height !== Math.round(h * dpr)) {
       this.canvas.width = Math.round(w * dpr);
       this.canvas.height = Math.round(h * dpr);
@@ -133,7 +159,16 @@ export class Highway {
     return 0.35 + idx * this.stringGap;
   }
 
+  // A frame. Whatever goes wrong in one is reported once and that frame dropped: the
+  // player's loop calls this with no net of its own, so an error here would stop the
+  // time, the words, the score and the scoring with it.
   draw(now) {
+    try { this.drawFrame(now); } catch (e) {
+      if (!this.drawFailed) { this.drawFailed = true; console.error('highway: a frame failed to draw', e); }
+    }
+  }
+
+  drawFrame(now) {
     this.resize();
     const { ctx, W, H } = this;
     const chart = this.chart;
@@ -236,8 +271,13 @@ export class Highway {
       this.quad([[x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]], a === current ? 'rgba(80,120,200,0.22)' : 'rgba(80,120,200,0.12)');
     };
     const L = this.loop;
-    for (const a of this.anchors) lane(a, now, -Infinity, L ? L.to : Infinity);
-    for (const shift of this.loopShifts(now)) for (const a of this.anchors) lane(a, now - shift, L.from, L.to);
+    // From the first anchor not yet over, to the last that has begun by the far end.
+    const lanes = (at, lo, hi) => {
+      const list = this.anchors;
+      for (let i = lowerBound(this.anchorEnds, at); i < list.length && list[i].t <= at + this.lookahead; i++) lane(list[i], at, lo, hi);
+    };
+    lanes(now, -Infinity, L ? L.to : Infinity);
+    for (const shift of this.loopShifts(now)) lanes(now - shift, L.from, L.to);
     // Fret lines running into the distance.
     for (let f = 0; f <= MAX_FRET; f++) {
       this.line([f, 0, 0], [f, 0, zMax], f === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.08)', 1);
@@ -258,9 +298,8 @@ export class Highway {
 
   beatsAt(now, lo, hi) {
     const beats = this.chart.beats;
-    for (let i = 0; i < beats.length; i++) {
+    for (let i = lowerBound(beats, Math.max(now - 0.05, lo), b => b.t); i < beats.length; i++) {
       const b = beats[i];
-      if (b.t < now - 0.05 || b.t < lo) continue;
       if (b.t > now + this.lookahead * SPAWN || b.t >= hi) break;
       const z = this.zOf(b.t, now), a = this.farAlpha(z);
       if (a <= 0) continue;
@@ -330,17 +369,17 @@ export class Highway {
 
   drawNotes(now, zMax) {
     const notes = this.notes;
-    // Binary search for the first note that might still be visible (long sustains included).
-    let lo = 0, hi = notes.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (notes[mid].t < now - 12) lo = mid + 1; else hi = mid; }
+    // Binary search for the first note that might still be visible: one begun as long ago
+    // as the chart's longest sustain (an ending chord held through the outro) is still ringing.
+    const lo = lowerBound(notes, now - Math.max(12, this.maxSus + LINGER), n => n.t);
     this.firstVisible = lo;
     const L = this.loop;
     // The loop coming round again, beyond its end: furthest first.
     const shifts = this.loopShifts(now);
     for (let k = shifts.length - 1; k >= 0; k--) {
       const at = now - shifts[k], round = [];
-      for (const n of notes) {
-        if (n.t < L.from) continue;
+      for (let i = lowerBound(notes, L.from, n => n.t); i < notes.length; i++) {
+        const n = notes[i];
         if (n.t >= L.to || n.t > at + this.lookahead * SPAWN) break;
         if (n.t + (n.sus || 0) >= at - 0.25) round.push(n);
       }
@@ -401,7 +440,10 @@ export class Highway {
     if (v) {
       const k = (performance.now() - v.wall) / (v.hit ? HIT_MS : MISS_MS);
       if (k >= 1) return;
-      fx = v.hit ? { scale: pulse + 0.45 * easeOut(k), alpha: (1 - k) ** 1.3, bright: 1 - k / 2, ring: 1.3 + 1.7 * easeOut(k) }
+      // A hit's ring is the string's colour when the pluck was on time; blue says early, amber late,
+      // so a run of one colour shows which way you lean before the end screen says so.
+      const lean = v.hit && v.offset !== null && Math.abs(v.offset) > EARLY_LATE ? (v.offset < 0 ? EARLY_COLOR : LATE_COLOR) : null;
+      fx = v.hit ? { scale: pulse + 0.45 * easeOut(k), alpha: (1 - k) ** 1.3, bright: 1 - k / 2, ring: 1.3 + 1.7 * easeOut(k), ringColor: lean }
         : { scale: pulse, alpha: 1 - k * k, drop: k * k, cross: true, glass: true };
     } else if (this.judging && dt < WAIT) fx = { scale: pulse, alpha: 1, glass: true };
     else {
@@ -489,7 +531,8 @@ export class Highway {
   // fret of the shape, and the chord's name over it.
   drawHandShapes(now) {
     const tpl = this.chart.chordTemplates || [], { ctx } = this;
-    for (const h of this.handShapes) {
+    for (let i = lowerBound(this.shapeEnds, now); i < this.handShapes.length; i++) {
+      const h = this.handShapes[i];
       if (h.end < now) continue;
       if (h.t > now + this.lookahead * SPAWN) break;
       const c = tpl[h.chord];
@@ -634,10 +677,10 @@ export class Highway {
       ctx.lineCap = 'butt';
     }
     ctx.restore();
-    if (fx && fx.ring) { // the splash: a ring in the string's colour, spreading as it fades
-      const rw = halfW * 2 * s * fx.ring, rh = halfH * 2 * s * fx.ring;
-      ctx.strokeStyle = color;
-      ctx.shadowColor = color; ctx.shadowBlur = 12;
+    if (fx && fx.ring) { // the splash: a ring in the string's colour (or the timing's), spreading as it fades
+      const rw = halfW * 2 * s * fx.ring, rh = halfH * 2 * s * fx.ring, rc = fx.ringColor || color;
+      ctx.strokeStyle = rc;
+      ctx.shadowColor = rc; ctx.shadowBlur = 12;
       ctx.lineWidth = Math.max(1.5, s * 0.05 * alpha);
       roundRect(ctx, cx - rw / 2, cy - rh / 2, rw, rh, Math.min(rh / 2, s * 0.1));
       ctx.stroke();
@@ -734,26 +777,60 @@ export function drawIcon(ctx, icon, x, y, size, ink) {
   ctx.restore();
 }
 
+// A label's ink, measured once per text and size: measuring is slow, and every labelled
+// gem would want two measurements a frame. Cleared with the chart (setChart), and when
+// it has grown past any sensible run of sizes.
+const MEASURED = new Map();
+// Measured before the font came in, a label has the fallback's metrics: start over as fonts load.
+if (typeof document !== 'undefined' && document.fonts) document.fonts.addEventListener('loadingdone', () => MEASURED.clear());
+function measured(ctx, text, px) {
+  const key = `${px}|${text}`;
+  let m = MEASURED.get(key);
+  if (!m) {
+    if (MEASURED.size > 4000) MEASURED.clear();
+    ctx.font = `bold ${px}px Saira, system-ui, sans-serif`;
+    const r = ctx.measureText(text);
+    m = { width: r.width, ascent: r.actualBoundingBoxAscent, descent: r.actualBoundingBoxDescent };
+    MEASURED.set(key, m);
+  }
+  return m;
+}
+
 // Text that fits a box of maxW x maxH, centred on (cx, cy) by its actual ink.
 function drawFitted(ctx, text, cx, cy, maxW, maxH, ink = '#111') {
   if (maxH < 6) return;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic'; // the ink measurements below are from the baseline
   let px = Math.floor(maxH * 1.35);
-  ctx.font = `bold ${px}px Saira, system-ui, sans-serif`;
-  let m = ctx.measureText(text);
-  const inkH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  let m = measured(ctx, text, px);
+  const inkH = m.ascent + m.descent;
   const scale = Math.min(maxH / inkH, maxW / m.width);
   px = Math.floor(px * scale);
   if (px < 7) return;
+  m = measured(ctx, text, px);
   ctx.font = `bold ${px}px Saira, system-ui, sans-serif`;
-  m = ctx.measureText(text);
   ctx.fillStyle = ink;
   // Fade in as it grows legible, rather than appear at a size.
   const was = ctx.globalAlpha;
   ctx.globalAlpha = was * Math.min(1, (px - 6) / 5);
-  ctx.fillText(text, cx, cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+  ctx.fillText(text, cx, cy + (m.ascent - m.descent) / 2);
   ctx.globalAlpha = was;
+}
+
+// The first index in a sorted list whose key is at least v (the list's length if none).
+function lowerBound(list, v, key = x => x) {
+  let lo = 0, hi = list.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (key(list[mid]) < v) lo = mid + 1; else hi = mid; }
+  return lo;
+}
+
+// Each span's end, or the latest end before it: sorted, so the first span that may
+// still be going at time t is found by search, and nothing before it could be.
+function runningMax(spans) {
+  const out = [];
+  let m = -Infinity;
+  for (const s of spans) { m = Math.max(m, s.end); out.push(m); }
+  return out;
 }
 
 // How far a note is bent (half steps) secs after it starts, from its bend's points:
@@ -806,7 +883,7 @@ const ease = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u)); // smoothstep
  *    MOVE_MAX seconds). The edge that widens the view moves early, so the new
  *    spot is on screen before its notes arrive; the edge that narrows it waits
  *    until the old spot is finished. A long gap gets one glide instead.
- * Returns { l0, r0, L, R }: each edge's starting fret and its moves. */
+ * Returns { l0, r0, L, R }: each edge's starting fret and its moves; null with no notes. */
 function planCamera(notes, anchors) {
   const anchorIndex = t => {
     let lo = 0, hi = anchors.length - 1, found = 0;
@@ -824,7 +901,7 @@ function planCamera(notes, anchors) {
     seg.last = Math.max(seg.last, n.t + (n.sus || 0));
   }
   let shots = segs.filter(s => s.first !== Infinity).map(s => ({ ...s }));
-  if (!shots.length) return [];
+  if (!shots.length) return null; // no notes, no path: camAt shows the nut
 
   const span = (a, b) => Math.max(a.hi, b.hi) - Math.min(a.lo, b.lo);
   const dur = s => s.last - s.first;

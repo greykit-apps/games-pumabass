@@ -16,6 +16,13 @@ class Psarc {
   constructor(path) {
     this.path = path;
     this.fd = fs.openSync(path, 'r');
+    // A file that isn't an archive after all mustn't keep its descriptor: a
+    // folder of them (Rocksmith's Tmp) would otherwise use them all up.
+    try { this._parse(); } catch (e) { this.close(); throw e; }
+  }
+
+  _parse() {
+    const path = this.path;
     const header = this._read(0, 32);
     if (header.toString('ascii', 0, 4) !== 'PSAR') throw new Error(`Not a PSARC file: ${path}`);
     const tocLength = header.readUInt32BE(12);
@@ -64,6 +71,7 @@ class Psarc {
   }
 
   _read(pos, len) {
+    if (this.fd == null) throw new Error(`${this.path} was closed (ask the library to open it again)`);
     const buf = Buffer.alloc(len);
     let done = 0;
     while (done < len) {

@@ -14,10 +14,12 @@ import { $, highway } from './core.js';
 import { pitchOf, keyOf, noteName, isDownbeat, tuningNotes } from './chart.js';
 import { STRING_COLORS, noteIcon } from './highway.js';
 import { prefs } from './store.js';
+import { hasLyrics } from './lyrics.js';
 
 const TPB = 12;          // ticks per beat: a 16th is 3, a triplet 8th 4
 const STRIP = 12;        // bars drawn at a time...
 const AHEAD = 7;         // ...drawn afresh once the playhead is this many bars in
+const BUDGET = 3;        // ms a frame spent drawing the next strip ahead of time
 const TAB_NUDGE = 5.6;    // VexFlow sets a fret number this far left of its notehead
 
 let VF = null, loading = null;
@@ -41,9 +43,11 @@ const song = { chart: null, kind: 'bass', notes: null, bars: [], key: null, chor
 
 // The band: where it's drawn, how big, and what it shows (staff, tab, names under the
 // notes). Its tab lines are further apart than VexFlow's 13, so its chips can be read
-// over the highway.
+// over the highway. It has two strip elements: the one showing, and a spare the next
+// strip is drawn into ahead of time (strips: [showing, spare]; pending: that drawing
+// under way; next: it, done, waiting its turn).
 const BAND = { el: $('notation'), part: c => BAND.el.querySelector(`.nt-${c}`), scale: 1.1, beatW: 86, head: 0.18, gap: 17,
-  strip: null, choice: '', L: null };
+  strip: null, strips: null, pending: null, next: null, choice: '', L: null };
 
 // The tab view: its lines of whole bars, as many as fit, spread to fill the width. A bar
 // takes the room its busiest stretch needs to keep its chips apart, so a bar of 16ths is
@@ -63,7 +67,7 @@ export function setNotationSong(chart, type) {
   song.chart = chart;
   song.kind = type === 'bass' ? 'bass' : 'guitar';
   song.notes = null; // rebuilt from the highway's notes on the next frame
-  BAND.strip = null;
+  BAND.strip = BAND.pending = BAND.next = null;
   BAND.choice = TAB.choice = '';
 }
 
@@ -95,13 +99,22 @@ function updateBand(t) {
   if (choice !== S.choice) {
     S.choice = choice;
     S.L = layoutFor(shows, S.gap);
-    S.strip = null;
+    S.strip = S.pending = S.next = null;
     drawClef(S);
   }
+  // Under the song's words, when there are words to show (style.css): they'd meet otherwise.
+  const words = prefs.lyrics && hasLyrics();
+  if (S.el.classList.contains('lyrics') !== words) S.el.classList.toggle('lyrics', words);
   if (!song.bars.length) return;
   const k = barAt(song.bars, t);
   const st = S.strip;
-  if (!st || k < st.first + 1 || k >= st.first + AHEAD) drawStrip(S, Math.max(0, k - 2));
+  if (!st || k < st.first + 1 || k >= st.first + AHEAD) {
+    // The strip drawn ahead, if it's the one wanted (play went straight on); a seek
+    // anywhere else gets its strip drawn now.
+    const want = Math.max(0, k - 2);
+    if (S.next && S.next.first === want) showStrip(S, want, S.next.drawn);
+    else drawStrip(S, want);
+  } else advanceStrip(S);
   slide(S, t);
   if (S.L.tab) markChips(S.strip.chips, t);
 }
@@ -233,6 +246,19 @@ function buildBars(chart, notes) {
     }
     delete bar.raw;
   });
+  // A note that rings past its bar line carries on into the next bar, tied, for as many
+  // beats as it rings there (or until that bar's first note): a held note isn't written as
+  // a rest from the bar line on. A long one carries on through bar after bar.
+  bars.forEach((bar, k) => {
+    const next = bars[k + 1];
+    if (!next || next.onsets.has(0)) return;
+    let tick = bar.carry ? 0 : -1, at = bar.carry || null; // the bar's last note: an onset, or what came in tied
+    for (const [tk, a] of bar.onsets) if (tk > tick) { tick = tk; at = a; }
+    if (!at) return;
+    const spill = at.sus - (bar.n * TPB - tick); // ticks it rings past the bar line
+    if (Math.round(spill / TPB) < 1) return;
+    next.carry = { parts: at.parts, sus: spill, chord: at.chord };
+  });
   for (const bar of bars) bar.pieces = piecesOf(bar);
   return bars;
 }
@@ -243,6 +269,14 @@ function piecesOf(bar) {
   const ticks = bar.n * TPB, segs = [];
   const onsets = [...bar.onsets].sort((a, b) => a[0] - b[0]);
   let cur = 0;
+  // A note tied in from the bar before: from the bar line, for the beats it has left
+  // (or until the bar's own first note), every piece of it tied.
+  if (bar.carry) {
+    const gap = onsets.length ? onsets[0][0] : ticks;
+    const len = Math.min(gap, Math.round(bar.carry.sus / TPB) * TPB);
+    segs.push({ start: 0, len, parts: bar.carry.parts, chord: bar.carry.chord, carried: true });
+    cur = len;
+  }
   onsets.forEach(([tick, at], i) => {
     if (tick > cur) segs.push({ start: cur, len: tick - cur });
     const gap = (i + 1 < onsets.length ? onsets[i + 1][0] : ticks) - tick;
@@ -263,7 +297,7 @@ function piecesOf(bar) {
         const whole = Math.floor((e - s) / TPB);
         len = [4, 3, 2, 1].find(k => k <= whole) * TPB;
       } else len = Math.min(e, (Math.floor(s / TPB) + 1) * TPB) - s;
-      out.push({ start: s, len, parts: seg.parts, chord: seg.chord, tied: !first, triplet: len < TPB && bar.triplets.has(Math.floor(s / TPB)) });
+      out.push({ start: s, len, parts: seg.parts, chord: seg.chord, tied: !first || !!seg.carried, triplet: len < TPB && bar.triplets.has(Math.floor(s / TPB)) });
       s += len; first = false;
     }
   }
@@ -356,26 +390,84 @@ function drawStringNames(ctx, L, x) {
 // A time signature takes room at the start of its bar: the song's first, and wherever it changes.
 const sigW = bi => (bi === 0 || song.bars[bi - 1].n !== song.bars[bi].n ? 26 : 0);
 
-// STRIP bars from bar `first`, side by side at a steady width per beat, for the band to slide.
-function drawStrip(S, first) {
+// The band's two strip elements, [showing, spare]: the page has one, the spare is its twin,
+// kept out of sight (the next strip is drawn in it while the first is still showing).
+function stripEls(S) {
+  if (!S.strips) {
+    const shown = S.part('strip'), spare = shown.cloneNode(false);
+    spare.style.visibility = 'hidden';
+    shown.after(spare);
+    S.strips = [shown, spare];
+  }
+  return S.strips;
+}
+
+// STRIP bars from bar `first`, side by side at a steady width per beat, for the band to
+// slide: drawn into el a bar at a time (a generator, so the drawing can be spread over frames).
+function renderStrip(S, el, first) {
   const count = Math.min(STRIP, song.bars.length - first);
   const widths = song.bars.slice(first, first + count).map((b, i) => b.n * S.beatW + sigW(first + i));
-  const el = S.part('strip');
   const ctx = svgIn(S, el, widths.reduce((a, b) => a + b, 0) + 2);
-  S.strip = { first, ...drawBars(S, el, ctx, first, count, widths, 0) };
+  return barsDrawer(S, el, ctx, first, count, widths, 0);
+}
+
+// The strip from bar `first`, drawn now, in one go, and shown.
+function drawStrip(S, first) {
+  const steps = renderStrip(S, stripEls(S)[1], first);
+  let r;
+  do r = steps.next(); while (!r.done);
+  showStrip(S, first, r.value);
+}
+
+// The strip drawn in the spare (`drawn`: what barsDrawer returned) takes over from the
+// one showing, which becomes the spare: the strip after it starts drawing there at once,
+// to be ready when the playhead gets that far (advanceStrip).
+function showStrip(S, first, drawn) {
+  const [shown, spare] = stripEls(S);
+  shown.style.visibility = 'hidden';
+  spare.style.visibility = '';
+  S.strips = [spare, shown];
+  S.strip = { first, ...drawn };
+  S.next = null;
+  const after = first + AHEAD - 2; // where updateBand will want the next strip to start
+  S.pending = after > first && after < song.bars.length ? { first: after, steps: renderStrip(S, shown, after) } : null;
+}
+
+// A little more of the next strip, within the frame's budget (at least a bar), so no
+// frame is held up by a whole strip's drawing when its turn comes.
+function advanceStrip(S) {
+  const p = S.pending;
+  if (!p) return;
+  const t0 = performance.now();
+  for (;;) {
+    const r = p.steps.next();
+    if (r.done) { S.next = { first: p.first, drawn: r.value }; S.pending = null; return; }
+    if (performance.now() - t0 > BUDGET) return;
+  }
 }
 
 // `count` bars from bar `first`, side by side from x0 at the given widths, into el's
 // svg. Returns, for each beat, its song time and where it sits (for the playhead), and
 // the tab's chips with their notes (for markChips).
 function drawBars(S, el, ctx, first, count, widths, x0) {
+  const steps = barsDrawer(S, el, ctx, first, count, widths, x0);
+  let r;
+  do r = steps.next(); while (!r.done);
+  return r.value;
+}
+
+// The drawing itself, a bar at a time: yields after each bar, and returns what drawBars does.
+function* barsDrawer(S, el, ctx, first, count, widths, x0) {
   const { StaveNote, TabNote, GhostNote, Voice, Formatter, Beam, Tuplet, StaveTie, Accidental, Dot, Fraction } = VF;
   const L = S.L;
   const bars = song.bars.slice(first, first + count);
   const sig = bi => sigW(bi) > 0;
   const clef = clefName(), nStr = song.chart.strings, flats = song.key.flats;
   const points = [], fretted = [];
-  let lastChord = '';
+  // The note a tie would come from: carried from bar to bar, so a note held across the
+  // bar line is tied to its continuation there. One tied in from before the first bar
+  // drawn is tied from nowhere: a tie's end, as a score's line breaks are written.
+  let lastChord = '', open = null;
   // The staves first, to know where each bar's first beat sits: a bar's beats are
   // spread evenly from its first beat to the next bar's, notes placed by their time
   // in that span, so the score scrolls at a steady pace (VexFlow's own spacing,
@@ -390,13 +482,13 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
   });
   const starts = staves.map(({ stave }) => stave.getNoteStartX());
   const spans = starts.map((s0, i) => (i + 1 < starts.length ? starts[i + 1] : x + (s0 - staves[i].stave.getX())) - s0);
-  bars.forEach((bar, i) => {
-    const { stave, tab } = staves[i];
+  for (let i = 0; i < bars.length; i++) {
+    const bar = bars[i], { stave, tab } = staves[i];
     if (L.staff) stave.setContext(ctx).draw();
     if (L.tab) tab.setContext(ctx).draw();
 
     const notes = [], tabs = [], ties = [], tuplets = [], startOf = new Map(), named = [];
-    let open = null, group = [], groupTab = [], groupBeat = -1;
+    let group = [], groupTab = [], groupBeat = -1;
     const flush = () => {
       if (group.length) { tuplets.push(new Tuplet(group, { numNotes: 3, notesOccupied: 2 })); new Tuplet(groupTab, { numNotes: 3, notesOccupied: 2 }); }
       group = []; groupTab = []; groupBeat = -1;
@@ -417,7 +509,7 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
         sn = new StaveNote({ keys, duration: dur, clef, dots, autoStem: true });
         tn = pc.tied ? new GhostNote({ duration: dur, dots }) : new TabNote({ positions: ps.map(p => ({ str: nStr - p.s, fret: tabFret(p.f) })), duration: dur, dots });
         if (!pc.tied) { named.push({ sn, pc, ps }); fretted.push({ tn, ps }); }
-        if (pc.tied && open) ties.push(new StaveTie({ firstNote: open, lastNote: sn, firstIndexes: keys.map((_, n) => n), lastIndexes: keys.map((_, n) => n) }));
+        if (pc.tied) ties.push(new StaveTie({ firstNote: open, lastNote: sn, firstIndexes: keys.map((_, n) => n), lastIndexes: keys.map((_, n) => n) }));
         open = sn;
       }
       if (dots) Dot.buildAndAttach([sn], { all: true });
@@ -479,7 +571,8 @@ function drawBars(S, el, ctx, first, count, widths, x0) {
       ctx.closeGroup();
     }
     for (let j = 0; j < bar.n; j++) points.push([bar.beats[j], starts[i] + (j / bar.n) * spans[i]]);
-  });
+    yield;
+  }
   const last = bars.length - 1;
   points.push([bars[last].end, starts[last] + spans[last]]);
   // Each fret number centred under its note, where the playhead crosses it, and on
@@ -649,6 +742,6 @@ function slide(S, t) {
   const x = xAt(st.points, t);
   const view = S.part('view');
   const head = view.clientWidth * S.head;
-  S.part('strip').style.transform = `translateX(${(head - x * S.scale).toFixed(1)}px)`;
+  stripEls(S)[0].style.transform = `translateX(${(head - x * S.scale).toFixed(1)}px)`;
   S.part('head').style.left = `${view.offsetLeft + head}px`;
 }

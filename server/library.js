@@ -15,6 +15,9 @@ const LAYOUT = {
   mac: { sng: 'songs/bin/macos', audio: 'audio/mac' },
 };
 const WEM_RE = /^audio\/(?:windows|mac)\/(\d+)\.wem$/;
+// How many archives stay open at once. Each holds a file descriptor, and Linux
+// allows a process 1024 by default; a big library has more song files than that.
+const MAX_OPEN = 64;
 
 /* The libraries, each a folder of song files and a tab on the song list. A song
  * in more than one (a copy, while songs are being moved) is listed once, from
@@ -30,22 +33,36 @@ class Library {
     this.sourceOf = new Map(); // song file -> its library's key (archiveFiles)
     this.cacheDir = cacheDir;
     this.indexFile = path.join(cacheDir, 'library.json');
-    this.archives = new Map(); // path -> Psarc (opened lazily, kept open)
+    this.archives = new Map(); // path -> Psarc, the most recently used last (opened lazily, MAX_OPEN kept open)
     this.songs = [];
     this.byId = new Map();
     this.archiveCount = 0;
   }
 
   setRoot(dir) {
-    for (const p of this.archives.values()) p.close();
-    this.archives.clear();
-    this._shared = null;
+    this.closeAll();
     this.root = dir;
   }
 
+  closeAll() {
+    for (const p of this.archives.values()) p.close();
+    this.archives.clear();
+    this._shared = null;
+  }
+
+  /* The archive, open. Each call moves it to the back of the queue, and opening one
+   * more than MAX_OPEN closes the one unused longest. So nothing should hold a Psarc
+   * across another open() and then read from it: ask for it again (a Map lookup) instead. */
   open(file) {
     let p = this.archives.get(file);
-    if (!p) { p = new Psarc(file); this.archives.set(file, p); }
+    if (p) { this.archives.delete(file); this.archives.set(file, p); return p; }
+    p = new Psarc(file);
+    this.archives.set(file, p);
+    while (this.archives.size > MAX_OPEN) {
+      const [oldest, old] = this.archives.entries().next().value;
+      old.close();
+      this.archives.delete(oldest);
+    }
     return p;
   }
 
@@ -103,11 +120,12 @@ class Library {
   // Find the wem referenced by a sound bank: the bank from the chart's own
   // archive, or failing that from anywhere in the library; then scan it for any
   // known wem id, first in the bank's own archive, then anywhere in the library.
-  findWem(archive, layout, bankName) {
+  findWem(file, layout, bankName) {
+    const archive = this.open(file);
     const local = new Map();
     for (const n of archive.list()) {
       const m = WEM_RE.exec(n);
-      if (m) local.set(Number(m[1]), { file: archive.path, name: n, size: archive.size(n) });
+      if (m) local.set(Number(m[1]), { file, name: n, size: archive.size(n) });
     }
     const bankPath = `${layout.audio}/${bankName}`;
     let bank;
@@ -129,9 +147,10 @@ class Library {
   }
 
   scanArchive(file) {
-    const p = this.open(file);
+    // Asked for afresh at each read: findWem opens other archives (every one in the
+    // library, the first time), which may have closed this one meanwhile.
+    const names = this.open(file).list();
     const out = [];
-    const names = p.list();
     const isMac = names.some(n => n.startsWith(LAYOUT.mac.sng + '/')) && !names.some(n => n.startsWith(LAYOUT.pc.sng + '/'));
     const platform = isMac ? 'mac' : 'pc';
     const layout = LAYOUT[platform];
@@ -139,7 +158,7 @@ class Library {
       if (!name.startsWith('manifests/') || !name.endsWith('.json')) continue;
       let attrs;
       try {
-        const j = JSON.parse(p.extract(name).toString('utf8'));
+        const j = JSON.parse(this.open(file).extract(name).toString('utf8'));
         attrs = Object.values(j.Entries)[0].Attributes;
       } catch { continue; }
       if (!attrs || !attrs.SongAsset || !attrs.SongBank) continue;
@@ -151,9 +170,9 @@ class Library {
       // Rocksmith's own lesson charts (etudes.psarc): not songs.
       if (/^\$\[\d+\]/.test(attrs.SongName || '') || /^ge_/i.test(sngBase)) continue;
       const sng = `${layout.sng}/${sngBase}.sng`;
-      if (!p.has(sng)) continue;
+      if (!this.open(file).has(sng)) continue;
       // wem is null when the audio isn't there (e.g. RS1 DLC charts); the user can supply a recording.
-      const wem = this.findWem(p, layout, attrs.SongBank);
+      const wem = this.findWem(file, layout, attrs.SongBank);
       const tuning = attrs.Tuning || {};
       out.push({
         id: `${path.basename(file, path.extname(file))}:${sngBase}`,
@@ -181,7 +200,9 @@ class Library {
   }
 
   load({ onProgress } = {}) {
-    this._shared = null; // archives may have come or gone since the last scan
+    // Archives may have come, gone or been rewritten since the last scan: an open one
+    // would still be read through its old descriptor and old table of contents.
+    this.closeAll();
     let cached = null;
     try { cached = JSON.parse(fs.readFileSync(this.indexFile, 'utf8')); } catch {}
     const dirsKey = JSON.stringify(this.dirs());
@@ -254,8 +275,10 @@ class Library {
       s.userAudio = null;
       if (s.wem) continue;
       const title = norm(s.title), artist = norm(s.artist);
-      const hit = files.find(f => f.norm.includes(title) && f.norm.includes(artist))
-        || files.find(f => f.base === title || f.base === `${artist}${title}`);
+      // A title with no Latin letters normalises to nothing, and nothing is in every name.
+      if (!title) continue;
+      const hit = files.find(f => f.norm.includes(title) && (!artist || f.norm.includes(artist)))
+        || files.find(f => f.base === title || (artist && f.base === `${artist}${title}`));
       if (hit) s.userAudio = hit.full;
     }
   }
@@ -303,15 +326,24 @@ class Library {
     fs.mkdirSync(wavDir, { recursive: true });
     const key = `${path.basename(entry.wem.file, path.extname(entry.wem.file))}_${path.basename(entry.wem.name, '.wem')}`;
     const wav = path.join(wavDir, `${key}.wav`);
-    if (fs.existsSync(wav)) return wav;
+    if (fs.existsSync(wav)) {
+      // Mark it used, so a song played often stays in the cache (pruneCache goes by this).
+      const now = new Date();
+      try { fs.utimesSync(wav, now, now); } catch {}
+      return wav;
+    }
     const wemTmp = path.join(wavDir, `${key}.wem`);
     fs.writeFileSync(wemTmp, this.open(entry.wem.file).extract(entry.wem.name));
-    await new Promise((resolve, reject) => {
-      const { execFile } = require('child_process');
-      execFile(vgmstreamExe, ['-o', `${wav}.part`, wemTmp], { windowsHide: true }, err => (err ? reject(err) : resolve()));
-    });
-    fs.renameSync(`${wav}.part`, wav);
-    fs.unlinkSync(wemTmp);
+    try {
+      await new Promise((resolve, reject) => {
+        const { execFile } = require('child_process');
+        execFile(vgmstreamExe, ['-o', `${wav}.part`, wemTmp], { windowsHide: true }, err => (err ? reject(err) : resolve()));
+      });
+      fs.renameSync(`${wav}.part`, wav);
+    } finally {
+      // The .wem goes either way; a half-written .part only when the decode failed.
+      for (const f of [wemTmp, `${wav}.part`]) { try { fs.unlinkSync(f); } catch {} }
+    }
     pruneCache(wavDir, 3 * 1024 ** 3);
     return wav;
   }
@@ -322,17 +354,28 @@ function norm(str) {
   return String(str || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, 'and').replace(/^the\s+/, '').replace(/[^a-z0-9]/g, '');
 }
 
-// Keep the audio cache under a size limit by deleting the least recently used files.
+/* Keep the audio cache under a size limit by deleting the least recently used files.
+ * Recency is the modified time, which decodeAudio sets each time a .wav is served:
+ * the access time can't be trusted (Windows leaves it alone on big volumes, Linux
+ * updates it once). Leftovers of a decode that died (.wem, .part) go too, once they
+ * are old enough that they can't belong to a decode still running. */
 function pruneCache(dir, maxBytes) {
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.wav')).map(f => {
+  const STALE = 10 * 60 * 1000;
+  const files = [];
+  for (const f of fs.readdirSync(dir)) {
     const full = path.join(dir, f);
-    const st = fs.statSync(full);
-    return { full, size: st.size, used: st.atimeMs };
-  }).sort((a, b) => b.used - a.used);
+    let st;
+    try { st = fs.statSync(full); } catch { continue; } // gone since the listing
+    if (f.endsWith('.wem') || f.endsWith('.part')) {
+      if (Date.now() - st.mtimeMs > STALE) { try { fs.unlinkSync(full); } catch {} continue; }
+    } else if (!f.endsWith('.wav')) continue;
+    files.push({ full, size: st.size, used: st.mtimeMs });
+  }
+  files.sort((a, b) => b.used - a.used);
   let total = 0;
   for (const f of files) {
     total += f.size;
-    if (total > maxBytes) fs.unlinkSync(f.full);
+    if (total > maxBytes && f.full.endsWith('.wav')) { try { fs.unlinkSync(f.full); } catch {} }
   }
 }
 

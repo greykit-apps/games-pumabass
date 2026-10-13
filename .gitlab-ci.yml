@@ -58,6 +58,12 @@ deploy:
   script:
     # Only the built demo goes up (the page, its icons and manifest, web/): never the
     # server, the tools, the screenshots or anyone's songs. One destination, so this
-    # job costs exactly one SSH connection; --delete keeps the live copy exactly the build.
+    # job costs exactly one SSH connection; --delete keeps the live copy exactly the build,
+    # except the earlier deploys' web-<commit>/ folders: a tab opened before this deploy
+    # (or a page Cloudflare kept for its minute) still loads its scripts and audio from
+    # its own. Those are pruned after two days, in the same connection: --rsync-path runs
+    # the find on the host just before rsync itself. The current build is always uploaded
+    # (its folder is young, and the include wins over the exclude).
     - bash tools/build-web.sh public
-    - puma_rsync -avz --delete public/ ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:/home/${DREAMHOST_USERNAME}/greykit.com/games/pumabass/
+    - DEST=/home/${DREAMHOST_USERNAME}/greykit.com/games/pumabass/
+    - puma_rsync -avz --delete --include "web-${CI_COMMIT_SHORT_SHA}/" --exclude 'web-*/' --rsync-path="find ${DEST} -mindepth 1 -maxdepth 1 -type d -name 'web-*' -mmin +2880 -exec rm -rf {} +; rsync" public/ ${DREAMHOST_USERNAME}@${DREAMHOST_HOST}:${DEST}

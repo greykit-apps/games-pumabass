@@ -48,7 +48,7 @@ PumaBass opens in your browser at http://localhost:8014/ (without a desktop, ope
 yourself). Close the window it started in, or press Ctrl+C there, to stop it.
 
 **Try it straight away** with the demo song: **Learn a song**, then *Gods of the Copybook Headings* on
-the **Demo** tab. It's Kipling's poem (1919) set to music by Suno AI, played from its own recording, with
+the **Demo** tab (there until you have songs of your own). It's Kipling's poem (1919) set to music by Suno AI, played from its own recording, with
 the bass part transcribed from it and the poem's words on screen as they're sung: seven minutes of
 simple roots in first position, A minor at about 137 BPM. With **Notes** below 50% it's just the notes
 on the beat, for a first go.
@@ -120,7 +120,7 @@ In a song:
 | F | Make the song a favorite |
 | Mouse wheel (paused) | Scrub |
 | S / ? | Settings / Help |
-| Esc | Back to the song list, then the menu |
+| Esc | Pause; again, back to the song list (and from there, the menu) |
 
 - **Notes** (the slider by Speed): 100% is the full chart; lower values use Rocksmith's simpler levels.
 - **Riff repeater**: loops the section from 60% speed up to full in 5% steps. When scoring, a time round
@@ -129,7 +129,8 @@ In a song:
   again, `Esc` goes to the song list, `M` to the menu; when scoring, `P` practises the section you
   found hardest.
 - **Plays** counts each time you start a song; **Finished**, each time you played it to its last note,
-  having played at least half of it. They're kept in your browser with the rest of your settings.
+  having played at least half of what was left from where you started. They're kept in your browser with the
+  rest of your settings.
 
 ## Reading music
 
@@ -186,8 +187,9 @@ you change speakers, headphones or screen (Bluetooth and TVs add delay).
 ## Scoring
 
 **Score a song** (`C`) judges each note as it lands, through the cable: a ring in the string's colour
-for a hit, a red cross for a miss, with accuracy and streak at the top. The end screen gives the score,
-best streak, whether you tend to play early or late, how each section went, and your best accuracy.
+for a hit (blue when the pluck came early, amber when late), a red cross for a miss, with accuracy and
+streak at the top. The end screen gives the score, best streak, whether you tend to play early or late,
+how each section went, the string and fret you missed most, and your best accuracy.
 
 - A note counts when it's plucked within 200 ms early to 300 ms late (Rocksmith 2014's own windows) at
   the right pitch. Slowed-down practice is judged the same.
