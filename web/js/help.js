@@ -196,7 +196,7 @@ files (<b>Your songs</b>).</p>`)],
 <p>PumaBass plays song files (<code>.psarc</code>) from three folders beside it, each a tab on the song
 list:</p>
 ${keys([
-    ['music', 'songs you made (<b>Make your own</b>), and recordings for charts with no audio'],
+    ['music', 'songs you made (<b>Make your own</b>)'],
     ['cdlc', 'songs you download, from CustomsForge say'],
     ['bundles', 'Rocksmith 2014\'s own song sets: the disc songs, the Rocksmith 1 packs'],
   ])}
@@ -212,17 +212,12 @@ with the poem's words on screen as they're sung. Below 50% <b>Notes</b> it's jus
 <h3>A Rocksmith folder of your own</h3>
 <p>Songs can stay where they are, too: <b>Settings &rarr; Songs &rarr; Choose Rocksmith folder</b> reads a whole
 Rocksmith install, a copied <code>dlc</code> folder or a USB stick, and gives it a <b>Rocksmith folder</b> tab.
-Nothing in it is copied or changed; <b>Remove it</b> stops reading it.</p>
-<h3>Charts without audio</h3>
-<p>Some charts arrive without audio. Put your own recording in the <code>music</code> folder, named like
-<code>Rush - YYZ.mp3</code> or just <code>YYZ.mp3</code>, and press <b>Rescan</b>. Line it up with the song's
-audio offset in the Mix (<kbd>M</kbd>), up to 15 seconds either way. The song list hides these charts until
-then; the button at its foot shows them.</p>`)],
+Nothing in it is copied or changed; <b>Remove it</b> stops reading it.</p>`)],
 ];
 
 export const ABOUT = `
-<p><b>PumaBass</b> is a Rocksmith-style tablature player. At its core, it takes tab notation, turns it sideways,
-and synchronizes it to the music. Make your own PSARC files (<b>Help &rarr; Make your own</b>) or download them
-from CustomsForge; it's also compatible with Rocksmith 2014's.
-It can also "score" your playing, if you really like being judged by a machine.</p>
-<p class="gk-credit">Developed entirely with Claude Code. Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;
+<p><b>PumaBass</b> is a highway-style live-notation engine for upright and electric bass (and to a lesser
+extent, guitar). It also offers a tab view, standard notation, tuner, and basic mixer.</p>
+<p>It reads standard .psarc audio+notation formats, including Rocksmith CDLC from CustomsForge. Make your own with
+Editor on Fire or just ask AI to do it.</p>
+<p class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;

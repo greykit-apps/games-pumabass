@@ -64,7 +64,7 @@ version.
 Song files (`.psarc`) go in these folders beside PumaBass. Each gets its own tab on the song list once
 it has songs:
 
-- `music/`: songs you made, and recordings for charts that have no audio (below).
+- `music/`: songs you made.
 - `cdlc/`: songs you download, such as from CustomsForge.
 - `bundles/`: Rocksmith 2014's own song sets, such as the on-disc songs and the Rocksmith 1 import packs.
 
@@ -79,11 +79,6 @@ Folders inside these folders are read too, and a song in more than one place is 
 - The Rocksmith 1 DLC import pack (`rs1compatibilitydlc_p.psarc`) keeps its audio in the disc's
   `songs.psarc`: copy that too, or its songs have no audio.
 - Decoded audio is cached in `cache/audio` (kept under about 3 GB).
-
-**Songs without audio.** To play a chart that has no audio, drop your own recording into `music/`
-named `Artist - Title.mp3` (or just `Title.mp3`) and press **Rescan**. mp3, ogg, flac, m4a and wav work.
-Settings → Song list → **Show them** lists the charts still waiting for one. Line it up with the song's
-audio offset (in the mix, `M`), which goes up to ±15 s for these.
 
 **A page of your songs.** `node tools/cdlc-index.mjs` writes `cdlc/index.html`, listing every song file
 there (parts, bass difficulty, tuning, length) with a link to each; open it from disk. Add a folder name
