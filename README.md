@@ -1,222 +1,125 @@
 # PumaBass
 
-Learn songs on a note highway, from charts you make yourself. Bass first; lead and rhythm guitar parts
-play too. Chart any song you have a recording of with free tools, and PumaBass plays it in your browser,
-in time with the music ([Making your own songs](MAKING-SONGS.md)); until then, there's a demo
-song to play. It also plays songs downloaded from CustomsForge, and is compatible with
-Rocksmith 2014's song files. Runs on Windows and Linux, from a desk or from the couch on a TV. Built by
-[greykit.com](https://greykit.com).
+A highway-style live-notation engine for upright and electric bass (and to a lesser extent, guitar),
+with a tab view, standard notation, a tuner and a basic mixer. It reads `.psarc` song files (audio and
+notation together), including Rocksmith CDLC from CustomsForge. Make your own with Editor on Fire, or
+ask an AI to.
 
-**Try the demo in your browser** at [greykit.com/games/pumabass](https://greykit.com/games/pumabass/),
-with nothing to install.
+It runs on your own computer (Linux, macOS or Windows), with a demo song to start on. **Try it in your
+browser** at [greykit.com/games/pumabass](https://greykit.com/games/pumabass/), with nothing to install.
+Built by [greykit.com](https://greykit.com).
 
 ![The note highway: the camera sits close over frets 1 to 4 for the verse riff and its slide, then pulls back and pans up the neck as the chorus moves to frets 7 to 12, where a bent 9 comes down](screenshots/highway.webp)
 
-## What you get
-
-- **The note highway.** Notes come down the strings towards you and land when it's time to play them.
-  The camera follows your hand up and down the neck, closing in on low positions and pulling back for
-  big moves. Slides, bends, hammer-ons, mutes and chords are marked the way Rocksmith marks them.
-- **Notation or tab.** Turn on standard notation and tab to scroll over the highway and learn to read
-  while you play, or swap the highway for a full page of tab.
-- **Practice tools.** Slow a song down without changing its pitch, loop a section, let the riff repeater
-  speed a loop up each time round, and pick an easier level of the chart.
-- **A tuner** that knows each song's tuning, and the Real Tone Cable plays your bass through the game.
-- **Scoring.** Each note you play is judged as it lands, with a score at the end.
-- **Your library.** Search, sort by difficulty or plays, heart your favorites, and see how often you've
-  finished each song.
-- **A demo song.** *Gods of the Copybook Headings*, Suno AI's setting of Kipling's poem, is ready to
-  play from the first run (below).
-
-## Install
+## Set up
 
 You need [Node.js](https://nodejs.org) 18 or newer, and vgmstream, which decodes the songs' audio.
-Download or clone PumaBass, then:
 
-**Windows**: run `tools/get-vgmstream.sh` once from Git Bash (or unzip `vgmstream-win64.zip` from
-[vgmstream's releases](https://github.com/vgmstream/vgmstream/releases) into `tools/vgmstream/`),
-then double-click **start.bat**.
-
-**Linux**:
+**Linux or macOS:**
 
 ```bash
 ./tools/get-vgmstream.sh
 ./start.sh
 ```
 
-PumaBass opens in your browser at http://localhost:8014/ (without a desktop, open that address
-yourself). Close the window it started in, or press Ctrl+C there, to stop it.
+**Windows**: run `tools/get-vgmstream.sh` once from Git Bash (or unzip `vgmstream-win64.zip` from
+[vgmstream's releases](https://github.com/vgmstream/vgmstream/releases) into `tools/vgmstream/`),
+then double-click **start.bat**.
 
-**Try it straight away** with the demo song: **Learn a song**, then *Gods of the Copybook Headings* on
-the **Demo** tab (there until you have songs of your own). It's Kipling's poem (1919) set to music by Suno AI, played from its own recording, with
-the bass part transcribed from it and the poem's words on screen as they're sung: seven minutes of
-simple roots in first position, A minor at about 137 BPM. With **Notes** below 50% it's just the notes
-on the beat, for a first go.
+vgmstream can also be on your `PATH`. Its Linux build is for x86-64; on ARM, build it from source.
 
-## Add your songs
+PumaBass opens at http://localhost:8014/. Press `Esc` twice on the menu to quit.
 
-![The song list sorted by plays: All, Bundles and CDLC tabs, the Bass part chosen, each song with its difficulty bars, tuning, plays, times finished and length, and a heart on the favorites](screenshots/songs.png)
+## Your songs
 
-**Make your own.** Chart a song in Editor on Fire and pack it with DLC Builder, both free:
-[MAKING-SONGS.md](MAKING-SONGS.md) walks through it. In the game, **Help → Make your own** has the short
-version.
+Song files (`.psarc`) go in three folders beside PumaBass, each a tab on the song list. Press **Rescan**
+after adding songs.
 
-Song files (`.psarc`) go in these folders beside PumaBass. Each gets its own tab on the song list once
-it has songs:
-
-- `music/`: songs you made, and recordings for charts that have no audio (below).
+- `music/`: songs you made ([Making your own songs](MAKING-SONGS.md), or **Help → Make your own**).
 - `cdlc/`: songs you download, such as from CustomsForge.
-- `bundles/`: Rocksmith 2014's own song sets, such as the on-disc songs and the Rocksmith 1 import packs.
+- `bundles/`: Rocksmith 2014's own song sets. Disc songs need both `songs.psarc` (charts) and
+  `audio.psarc` (audio).
 
-Or point PumaBass at a Rocksmith folder you already have (a whole Rocksmith install, a copied `dlc`
-folder, a USB stick) in **Settings → Songs**; it gets a tab of its own, and nothing in it is changed.
-Folders inside these folders are read too, and a song in more than one place is listed once. Press
-**Rescan** after adding songs.
-
-- PC (`_p.psarc`) and Mac (`_m.psarc`) files both work.
-- Rocksmith's disc songs keep their charts in `songs.psarc` and their audio in
-  `audio.psarc`: copy both.
-- The Rocksmith 1 DLC import pack (`rs1compatibilitydlc_p.psarc`) keeps its audio in the disc's
-  `songs.psarc`: copy that too, or its songs have no audio.
-- Decoded audio is cached in `cache/audio` (kept under about 3 GB).
-
-**Songs without audio.** To play a chart that has no audio, drop your own recording into `music/`
-named `Artist - Title.mp3` (or just `Title.mp3`) and press **Rescan**. mp3, ogg, flac, m4a and wav work.
-Settings → Song list → **Show them** lists the charts still waiting for one. Line it up with the song's
-audio offset (in the mix, `M`), which goes up to ±15 s for these.
-
-**A page of your songs.** `node tools/cdlc-index.mjs` writes `cdlc/index.html`, listing every song file
-there (parts, bass difficulty, tuning, length) with a link to each; open it from disk. Add a folder name
-to list another one: `node tools/cdlc-index.mjs bundles`.
+Or point **Settings → Songs** at a Rocksmith folder you already have; nothing in it is changed. Until
+you add songs, the **Demo** tab has *Gods of the Copybook Headings* to play.
 
 ## Playing
 
-![The title menu: Learn a song (631 bass parts), Score a song, Tuner, Sync, Settings, Help and About, on a stage between two amps](screenshots/title.png)
-
-**Learn a song** plays along: nothing is marked, and if the Real Tone Cable is plugged in you hear
-yourself with the song. **Score a song** is the same list, scored (see Scoring).
-
-In the song list, `/` searches, Up / Down move, Enter plays and `F` hearts a favorite. **Difficulty** is
-Rocksmith's own rating for each part, shown as 1 to 5 bars; sort by it for the easiest first.
-
-In a song:
+**Learn a song** plays along. **Score a song** is the same, marked.
 
 | Key | Action |
 | --- | --- |
-| Space | Play / pause (playing again starts 6 s back and counts you in) |
+| Space | Play / pause (after a pause, counts you in from 6 s back) |
 | Left / Right | Back / forward 5 seconds |
-| Up / Down | Faster / slower (the pitch stays the same) |
+| Up / Down | Faster / slower (pitch stays the same) |
 | L | Loop the current section (again to stop) |
-| R | Riff repeater: the loop, a little faster each time round |
-| [ / ] | Set the loop's start / end at the current spot |
-| Shift + click the progress bar | Move the nearest loop edge there |
-| Home | Back to the loop's start (or the song's) |
-| M | The mix: your bass, the song, this song's audio offset |
-| T | The tuner |
-| V | The view: the highway, or tab in its place |
-| N | The notation over the highway: standard notation, tab, both, off |
-| Y | The lyrics at the top, for songs that have them: on / off |
-| B | The record's own bass: full, reduced, cut |
-| F | Make the song a favorite |
-| Mouse wheel (paused) | Scrub |
+| R | Riff repeater: the loop, 5% faster each time round, from 60% to full speed |
+| [ / ] | Set loop start / end |
+| M | The mix, and this song's audio offset |
+| B | Recorded bass: full, reduced, cut |
+| T | Tuner |
+| V | Highway or tab |
+| N | Notation: standard, tab, both, off |
+| Y | Lyrics |
+| F | Favorite |
 | S / ? | Settings / Help |
-| Esc | Pause; again, back to the song list (and from there, the menu) |
+| Esc | Pause; again, the song list |
 
-- **Notes** (the slider by Speed): 100% is the full chart; lower values use Rocksmith's simpler levels.
-- **Riff repeater**: loops the section from 60% speed up to full in 5% steps. When scoring, a time round
-  only speeds up when you hit 70% of its notes.
-- **The end screen** says how far you got and whether it counted as finished. `R` or `Space` plays it
-  again, `Esc` goes to the song list, `M` to the menu; when scoring, `P` practises the section you
-  found hardest.
-- **Plays** counts each time you start a song; **Finished**, each time you played it to its last note,
-  having played at least half of what was left from where you started. They're kept in your browser with the
-  rest of your settings.
+Click the progress bar to jump (Shift+click moves the nearest loop edge). In the song list: `/`
+searches, Up / Down move, Enter plays, `F` favorites.
+
+- **Notes** (beside Speed) thins the chart using Rocksmith's own simpler levels; 100% is the full chart.
+- **Favorites, Plays and Finished** are kept in the browser. A song counts as finished when it's played
+  to its last note with at least half of it actually played.
 
 ## Reading music
 
-![The notation band over the highway: the line in bass clef with note names under it, its tab below, the blue playhead a little in from the left, and notes on frets 9 to 12 coming down](screenshots/notation.png)
+`N` scrolls standard notation and tab along the top of the highway; play each note as it crosses the
+blue line. `V` swaps the highway for a page of tab. Settings → Notation turns note names on and off.
 
-It starts off: press `N` and the part scrolls by over the highway in **standard notation over tab**, as a
-printed bass chart has it, with notes crossing the blue playhead as you play them. `N` steps through
-notation, tab, both and off. Settings → Notation also turns the note names under the notes on and off, and
-Settings → Highway can put note names on the highway's notes instead of fret numbers.
-
-The tab's notes are chips in their strings' colours, as on the highway, with the same marks for slides,
-bends and other techniques, and chord names over the tab where the chord changes. With a capo, the tab
-counts frets from the capo.
-
-![Tab view: two lines of bars, the cyan line running along the chorus on top while the verse riff waits below, with its pull-off, slide and bend marked](screenshots/tab.webp)
-
-**Tab view** (`V`, or Settings → View) puts the tab, large, in the highway's place, laid out like a page:
-the current line on top, the next below it. The cyan line runs along as you play, drops to the next line
-at the end, and the lines move up to bring in the one after.
-
-## Your bass: the cable, the tuner and the mix
-
-Plug your bass into the Rocksmith Real Tone Cable and press **T** (or **Tuner** on the menu). The first
-time, the browser asks to let PumaBass use audio inputs: allow it. The cable is found by name; any other
-input (an audio interface, a microphone) can be chosen in **Settings → Instrument input**.
-
-- **The tuner** aims for the song's tuning, including songs that sit a few cents off A440, and ticks each
-  string off once it holds within 3 cents. It opens by itself on the first song of the day and when a song
-  needs a different tuning from the last.
-- **Hear your bass** plays the cable through PumaBass, so you don't need an amp. There's a short delay on
-  the way; if you play through an amp with a splitter, turn it off.
-- **The mix** (`M` in a song): **Your bass** boosts the cable's quiet signal (up to +30 dB), **Song** sets
-  the record's level, and a meter on each helps you match them.
-- **Recorded bass** (`B`): Full, Reduced or Cut. Records have no separate bass track, so Cut takes the
-  low end out of the middle of the mix. Most of the bass goes; a little of its upper ring stays, and the
-  kick drum loses some thump.
-- Inputs only work when PumaBass is opened as `http://localhost:…` on the computer it runs on.
+Notation is written from the chart, so now and then a rhythm comes out differently from how you'd write
+it by hand. Drawn by [VexFlow](https://www.vexflow.com/) (MIT), bundled so it works offline.
 
 ## Timing
 
-**Sync** (on the menu, `Y`) lines up the picture, the sound and the cable. Run it once, and again when
-you change speakers, headphones or screen (Bluetooth and TVs add delay).
+**Sync** (on the menu) lines up the picture, the sound and the cable:
 
-1. **Line up.** A tick sounds on every beat while a bar swings from side to side. Move the bar (`←` / `→`,
-   `Shift` for bigger steps) until it lands right on the tick, then `Enter`.
-2. **Play along** (with the cable). Pluck the open E string with the notes. This measures how late your
-   playing reaches PumaBass, for scoring.
-3. **Soundcheck**, inside the play-along. Keep the strings quiet through the count-in so the cable's
-   own hum can be measured, then play. It tells you whether your level is good, too loud, or too quiet,
-   and what to turn. **Use these** keeps the result.
+- **Line up.** A tick sounds while a bar swings side to side. Move the bar (`←` / `→`, `Shift` for
+  bigger steps) until it lands on the tick, then `Enter`.
+- **Play along** (with the Real Tone Cable). Keep the strings quiet through the count-in, then pluck the
+  open E with the notes. This sets scoring's allowance for the cable and checks your level.
 
-`Esc` at any point leaves without changing anything. Each song also has its own audio offset (in the mix, `M`) on top.
+`Esc` leaves with nothing changed. Run it again after changing speakers, headphones or screen.
+
+## The cable, the tuner and the mix
+
+Plug into the Real Tone Cable and press **T**. The first time, the browser asks to use audio inputs.
+Any other input (an audio interface, a microphone) can be chosen in **Settings → Instrument input**.
+
+- The tuner aims for the song's tuning, ticks a string once it holds within 3 cents, and opens by itself
+  when the tuning changes.
+- Your bass plays through PumaBass with a short delay. With a splitter to an amp, turn off **Hear your
+  bass**.
+- **The mix** (`M`): set **Your bass** and **Song** about level. **Recorded bass** (`B`) turns the
+  record's own bass down or cuts it.
+- Inputs only work at `http://localhost:…`: browsers refuse microphones to plain-http addresses elsewhere.
 
 ## Scoring
 
-**Score a song** (`C`) judges each note as it lands, through the cable: a ring in the string's colour
-for a hit (blue when the pluck came early, amber when late), a red cross for a miss, with accuracy and
-streak at the top. The end screen gives the score, best streak, whether you tend to play early or late,
-how each section went, the string and fret you missed most, and your best accuracy.
+**Score a song** judges each note through the cable: a hit lights up, a miss is crossed out. The end
+screen gives your score, best streak, and where to practise.
 
-- A note counts when it's plucked within 200 ms early to 300 ms late (Rocksmith 2014's own windows) at
-  the right pitch. Slowed-down practice is judged the same.
-- It's forgiving of a muddy signal: a note still ringing, an open string nobody muted, a soft pluck.
-  The same note again counts while it's sounding: a soft re-pluck can't be told from it ringing on.
-- Hammer-ons and pull-offs need the new note; mutes and harmonics just the pluck; chords just the strum
-  (a wrong chord shape isn't caught yet).
-- Run **Sync** with the cable first: scoring depends on it.
-
-## Playing on a TV
-
-On a big screen PumaBass draws everything larger so it reads from the couch. At a desk, **Settings →
-Screen → Computer, up close** turns that off. While it's open it keeps the screen from sleeping; if a
-set-top PC still blanks mid-song, turn its screensaver or display power saving off (e.g. `xset s off -dpms`).
-
-To start PumaBass with a Linux computer, `tools/pumabass.service` runs it as a systemd user service (the
-steps are in the file); point a full-screen browser at it, e.g. `chromium --kiosk http://localhost:8014/`.
-A kiosk browser may have nowhere to ask for the cable: allow it once in a normal window first (Chromium
-remembers), or by policy, with `{ "AudioCaptureAllowedUrls": ["http://localhost:8014"] }` in
-`/etc/chromium/policies/managed/pumabass.json`.
+- A note counts when the right note is plucked 200 ms early to 300 ms late (Rocksmith 2014's own
+  windows), in real time, so slowed practice is judged the same.
+- Chords count on the pluck alone (a wrong shape isn't caught).
+- Right notes marked missed? Tune, then run **Sync** with the cable open.
 
 ## Settings file and options
 
 Settings live in `config.json` beside PumaBass. You can edit it by hand:
 
 ```json
-{ "libraryDir": "/media/me/songs", "port": 8014, "host": "127.0.0.1", "musicDir": "/home/me/bass-recordings" }
+{ "libraryDir": "/media/me/songs", "port": 8014, "host": "127.0.0.1" }
 ```
 
 | Key | What | Default |
@@ -232,10 +135,14 @@ Settings live in `config.json` beside PumaBass. You can edit it by hand:
 
 For one run: `./start.sh --port 8015 --library /path/to/songs --no-open` (start.bat takes the same).
 
-vgmstream is found in `tools/vgmstream/` or on your `PATH`. Its Linux build is for x86-64 computers;
-on ARM, build vgmstream from source.
+## Playing on a TV
 
-## More
+On a big screen PumaBass draws everything larger so it reads from the couch; **Settings → Screen →
+Computer, up close** turns that off. It keeps the screen awake while open; if a set-top PC still blanks,
+switch its screensaver off (e.g. `xset s off -dpms`).
 
-Help and About are on the title menu. Notation is drawn by [VexFlow](https://www.vexflow.com/) (MIT).
-How PumaBass is built and tested is in [DEVELOPING.md](DEVELOPING.md).
+To start with a Linux computer, `tools/pumabass.service` runs PumaBass as a systemd user service (the
+steps are in the file); point a full-screen browser at it, e.g. `chromium --kiosk http://localhost:8014/`.
+A kiosk browser may have nowhere to ask for the cable: allow it once in a normal window first, or by
+policy, with `{ "AudioCaptureAllowedUrls": ["http://localhost:8014"] }` in
+`/etc/chromium/policies/managed/pumabass.json`.
