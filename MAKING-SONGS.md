@@ -66,4 +66,4 @@ Put the `.psarc` in PumaBass's `music/` folder and press **Rescan**. It's on the
 
 Short of time? [CustomsForge](https://customsforge.com/) has songs other people have charted. Put them
 in `cdlc/`. PumaBass is also compatible with Rocksmith 2014's own song files: see
-[Add your songs](README.md#add-your-songs) in the README.
+[Your songs](README.md#your-songs) in the README.
