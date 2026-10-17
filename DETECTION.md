@@ -1,6 +1,6 @@
 # How Rocksmith 2014 hears you, and what PumaBass took from it
 
-Notes from a look through the Rocksmith 2014 install (2026-10-09), kept to come back to while tuning
+Notes from a look through the Rocksmith 2014 install (2026-10-09), kept for tuning
 PumaBass's note detection and scoring. Only numbers and approach are taken; no Rocksmith files or code are
 in PumaBass.
 
@@ -91,7 +91,7 @@ In a fast run (eighths 0.23 s apart) the end of the window holds the next note's
 which can come 0.1 s early: unless the end clearly says right or wrong, the latest look that's over
 before then decides.
 
-## Ideas not yet done
+## Ideas not taken up
 
 - A **level-up/down per phrase** (Dynamic Difficulty) using the thresholds above.
 - A **wrong-string hint**: the same note on a neighbouring string, as Rocksmith checks.
