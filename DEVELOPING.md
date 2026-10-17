@@ -2,8 +2,7 @@
 
 How PumaBass is put together, how it's tested, and the greykit.games rules it follows. For playing it, see
 [README.md](README.md). [`PRODUCT.md`](PRODUCT.md) and [`DESIGN.md`](DESIGN.md) describe the product and the
-look, [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about its timing and detection, and
-[`ROADMAP.md`](ROADMAP.md) what's next.
+look, and [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say about its timing and detection.
 
 ## Layout
 
@@ -118,7 +117,7 @@ Each note is fitted to the chart's own beats (16ths, or triplets where they fit 
 is worked out from the string, fret and tuning, and the key signature is the one that leaves the fewest
 accidentals. Bass is written an octave above where it sounds, in bass clef; guitar likewise in treble clef.
 Rocksmith's timings aren't perfectly on the grid, so now and then a rhythm comes out a little differently
-from how you'd write it by hand. Techniques aren't yet marked in the standard notation.
+from how you'd write it by hand. Techniques aren't marked in the standard notation.
 
 **Recorded bass** (`B`) cuts the low end of the centre of the stereo mix, where the bass sits, and leaves the
 sides alone. Measured on Sweet Emotion: Cut takes the bass range down about 20 to 25 dB (30 to 150 Hz),
@@ -176,8 +175,7 @@ bash tools/build-web.sh .web-preview/games/pumabass
 python -m http.server 8017 --directory .web-preview
 ```
 
-then open http://localhost:8017/games/pumabass/ (the `pumabass-web` preview in `.claude/launch.json` does
-the second step).
+then open http://localhost:8017/games/pumabass/.
 
 ## Icon and share card
 
@@ -189,3 +187,56 @@ bash tools/render-icons.sh
 
 That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.png` and
 `apple-touch-icon.png`. It needs headless Chrome or Edge and Python with Pillow.
+
+## Settings file and options
+
+Settings live in `config.json` beside PumaBass, and can be edited by hand:
+
+```json
+{ "libraryDir": "/media/me/songs", "port": 8014, "host": "127.0.0.1" }
+```
+
+| Key | What | Default |
+| --- | --- | --- |
+| `libraryDir` | a Rocksmith folder, on its own tab | none: chosen in Settings |
+| `port` | the address's port | 8014 |
+| `host` | who may connect: `127.0.0.1` is this computer only; `0.0.0.0` lets other devices on the network in (they can then see the folder names in the picker) | `127.0.0.1` |
+| `bundlesDir` | the Bundles folder | `bundles/` |
+| `cdlcDir` | the CDLC folder | `cdlc/` |
+| `musicDir` | the Music folder | `music/` |
+| `cacheDir` | decoded audio and the song index | `cache/` |
+| `openBrowser` | open a browser on start | `true` |
+
+For one run: `./start.sh --port 8015 --library /path/to/songs --no-open` (start.bat takes the same).
+
+On Windows without Git Bash, unzip `vgmstream-win64.zip` from [vgmstream's releases](https://github.com/vgmstream/vgmstream/releases) into `tools/vgmstream/`. vgmstream can also be on the `PATH`.
+
+## Playing on a TV
+
+On a big screen PumaBass draws everything larger so it reads from the couch; **Settings → Screen →
+Computer, up close** turns that off. It keeps the screen awake while open; if a set-top PC still blanks,
+switch its screensaver off (e.g. `xset s off -dpms`).
+
+On Linux, `tools/pumabass.service` runs PumaBass as a systemd user service (the steps are in the file);
+point a full-screen browser at it, e.g. `chromium --kiosk http://localhost:8014/`. A kiosk browser may
+have nowhere to ask for the cable: allow it once in a normal window first, or by policy, with
+`{ "AudioCaptureAllowedUrls": ["http://localhost:8014"] }` in
+`/etc/chromium/policies/managed/pumabass.json`.
+
+## Timing and scoring, in play
+
+**Sync** (on the menu) lines up the picture, the sound and the cable. **Line up**: a tick sounds while a
+bar swings side to side; move the bar (`←` / `→`, `Shift` for bigger steps) until it lands on the tick,
+then `Enter`. **Play along** (with the Real Tone Cable): keep the strings quiet through the count-in, then
+pluck the open E with the notes; this sets scoring's allowance for the cable and checks the level. `Esc`
+leaves with nothing changed. Run it again after changing speakers, headphones or screen.
+
+A note counts when the right note is plucked 200 ms early to 300 ms late (Rocksmith 2014's own windows),
+in real time, so slowed practice is judged the same. Chords count on the pluck alone (a wrong shape isn't
+caught). Right notes marked missed: tune, then run **Sync** with the cable open.
+
+The tuner aims for the song's tuning, ticks a string once it holds within 3 cents, and opens by itself
+when the tuning changes. The bass plays through PumaBass with a short delay; with a splitter to an amp,
+turn off **Hear your bass**. **Notes** (beside Speed) thins the chart using Rocksmith's own simpler
+levels. A song counts as finished when it's played to its last note with at least half of it actually
+played.
