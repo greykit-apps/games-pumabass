@@ -107,6 +107,16 @@ html.couch .gk-sheet .gk-box { max-height: calc(100dvh / var(--z, 1) - 32px); }
 .scene .sstr { fill: none; stroke-width: 2; opacity: .3; }
 .scene .sgem { opacity: .34; }
 .scene stop { stop-color: #8af6ff; }
+/* The title's stage, live (scene.js: liveScene sets --pump, 0 to 1, on every beat, and --sx/--sy) */
+.scene .live .scone, .scene .live .scap { transform-box: fill-box; transform-origin: center; }
+.scene .live .scone { transform: scale(calc(1 + var(--pump, 0) * .07)); }
+.scene .live .scap { transform: scale(calc(1 + var(--pump, 0) * .14)); }
+.scene .live .samp { transform: translate(var(--sx, 0), var(--sy, 0)); }
+.scene .live .scone .sd { stroke: color-mix(in srgb, var(--line), var(--accent) calc(var(--pump, 0) * 45%)); }
+.scene .live .sbeam { opacity: calc(.8 + var(--pump, 0) * .2); }
+.scene .live .sbar { stroke-width: 2.5; }
+.scene .live .sflash { opacity: 0; }
+.scene .live .snow { stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; opacity: calc(.35 + var(--pump, 0) * .4); }
 
 /* ---- the title (the canon's markup and keys; PumaBass's look) ---- */
 html .gk-title>.gk-shade { background: linear-gradient(rgba(var(--bg-rgb), .85), rgba(var(--bg-rgb), .4) 45%, rgba(var(--bg-rgb), 0) 75%),

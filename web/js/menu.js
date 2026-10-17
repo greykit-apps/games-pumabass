@@ -45,7 +45,7 @@ export function titleCfg() {
       { act: 'about', label: 'About', key: 'A' },
     ],
     primary: rs ? 'resume' : 'new',
-    scene: el => mountScene(el),
+    scene: el => mountScene(el, 'pb-beam', { live: true }),
     help: HELP,
     about: ABOUT,
     settings: { html: settingsHTML, onClick: settingsClick },

@@ -248,7 +248,7 @@ The scale is written before the couch zoom (a 1080p TV draws it 1.5x).
 
 ## Layout
 
-Screens are fixed layers over the stage backdrop. The title is a centred column: the wordmark at the top, a short skewed cyan rule (220 x 4px), a menu of full-width tiles up to 460px, the greykit credit at the foot. The song list is one glossy panel up to 1100px wide, centred on the stage with 32/24px of stage around it: a header (title, count, brand mark), a 3px cyan-fading rule, a wrapping tool row, sticky-looking column heads, then a grid of rows (heart, song and artist, part, difficulty, tuning, plays, finished, length) with a 12px column gap.
+Screens are fixed layers over the stage backdrop. The title is a centred column: the wordmark at the top, a short skewed cyan rule (220 x 4px), a menu of full-width tiles up to 460px, the greykit credit at the foot. Behind the title the stage plays: a two-bar groove at 112 BPM rides the highway in perspective to a cyan now line short of the credit's shade, each landing lights its string, and on every beat (and every note) the cones push and the stacks buzz a pixel, the beams breathing with them. No sound. It holds while a sheet is up, and stands still under reduced motion; the song list and end screen keep the still stage. The song list is one glossy panel up to 1100px wide, centred on the stage with 32/24px of stage around it: a header (title, count, brand mark), a 3px cyan-fading rule, a wrapping tool row, sticky-looking column heads, then a grid of rows (heart, song and artist, part, difficulty, tuning, plays, finished, length) with a 12px column gap.
 
 The player gives the whole window to the highway; chrome sits over its edges in fades of the stage navy (top bar fading down, bottom bar fading up over a 24px section-coloured progress track). The side panel docks bottom right (380px). Overlays (PAUSED, countdown, caption, lyrics, sync bar) never take clicks.
 
@@ -350,7 +350,7 @@ The opening token block in web/style.css (between `@gk-tokens-begin` and `@gk-to
 - **Do** build pressable surfaces as top-lit gradients (tile-top to tile-bottom) with the 6% white top highlight.
 - **Do** keep read text at 16px or more before the couch zoom, and let the zoom, not bigger type, carry the TV.
 - **Do** keep Rocksmith's string colours exactly as they are, on the highway and its echoes only.
-- **Do** honour reduced motion: ticks, captions, the cheer and the tuner's needle drop their animation.
+- **Do** honour reduced motion: ticks, captions, the cheer, the title's stage and the tuner's needle drop their animation.
 - **Do** restyle canon markup (title, sheets) from style.css with `html`-prefixed selectors; leave the canon token block and title.js untouched.
 
 ### Don't:
