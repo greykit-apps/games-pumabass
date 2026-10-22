@@ -108,46 +108,66 @@ html.couch .gk-sheet .gk-box { max-height: calc(100dvh / var(--z, 1) - 32px); }
 .scene .sgem { opacity: .34; }
 .scene stop { stop-color: #8af6ff; }
 
-/* ---- the title: the canon's v0.4 default (the name and menu down the left, over the stage) and
- * §14's intro, in PumaBass's look: the name in heavy leaning caps, BASS in the cyan, the skewed
- * cyan rule, glossy rows, and the item you're on the cyan bar it is everywhere else. ---- */
-.gk-title { --gk-title-ink: var(--text); --gk-title-hi: var(--accent); --gk-title-focus: var(--accent); --gk-title-dim: var(--dim);
-  --gk-title-panel: linear-gradient(rgba(var(--tile-rgb), .9), rgba(var(--panel-rgb), .92)); --gk-title-line: var(--line); --gk-title-font: var(--ui); }
-html .gk-title h1 { font-family: var(--display); font-weight: 800; font-size: clamp(72px, 8.4vw, 116px); line-height: .84; letter-spacing: -.01em;
-  transform: var(--lean); transform-origin: left bottom; text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
-html .gk-title h1 span + span { text-shadow: 0 0 34px rgba(var(--hot-rgb), .35), 0 6px 30px rgba(0, 0, 0, .6); }
-/* the rule under the name, arriving with the menu */
-html .gk-title h1::after { content: ''; display: block; width: 220px; height: 4px; margin-top: 22px; background: linear-gradient(90deg, var(--accent), #8af6ff); transform: skewX(-10deg); }
-html .gk-title.gki-intro h1::after { opacity: 0; }
-html .gk-title.gki-intro.gki-menu h1::after { opacity: 1; transition: opacity 1s ease-out; }
-html .gk-menu { margin-top: 26px; padding: 8px; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 18px 50px rgba(0, 0, 0, .5); }
-html .gk-menu button { height: 48px; padding: 0 16px; border-radius: 6px; font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: .03em;
-  color: var(--text); box-shadow: none; transition: transform .15s cubic-bezier(.22, 1, .36, 1), background .15s; }
+/* ---- the title: the canon's v0.4 default (the name and menu down the left, over the painting) and
+ * §14's intro, dressed as the arena it stands in: the name, big, as a tour poster's (PUMA in chrome
+ * edged with the stage beams' pink and cyan, BASS in gold outline glowing warm), and under it the
+ * menu, smaller, an ALL ACCESS backstage pass on a lanyard, in the poster's gold, hot pink
+ * and stage-black ink; the row you're on, the pass's ink with a pink edge. ---- */
+.gk-title { --pb-gold: #ffd35a; --pb-pink: #ff3fa4; --pb-cyan: #3fd6ff; --pb-ink: #1b0c18; --pb-mute: #7a6a62; --pb-rule: #d6ccb6;
+  --gk-title-ink: var(--text); --gk-title-hi: var(--pb-gold); --gk-title-focus: var(--pb-gold); --gk-title-dim: var(--dim);
+  --gk-title-panel: linear-gradient(160deg, #fffdf6, #f0ece2); --gk-title-line: var(--pb-rule); --gk-title-font: var(--ui); }
+/* the name, the pass and the credit, all at four-fifths: room round them for the painting */
+html .gk-title main { zoom: .8; }
+html .gk-title h1 { font-family: var(--display); font-weight: 800; font-size: clamp(84px, min(11vw, 20vh), 160px); line-height: .8; letter-spacing: -.02em; text-transform: uppercase;
+  transform: var(--lean); transform-origin: left bottom; }
+html .gk-title h1 span { background: linear-gradient(180deg, #fff 0%, #e6e9ff 45%, #8e95c8 50%, #f2f4ff 62%, #b9bfe6 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(-3px 0 0 var(--pb-pink)) drop-shadow(3px 0 0 var(--pb-cyan)) drop-shadow(0 10px 18px rgba(0, 0, 0, .7)); }
+html .gk-title h1 span + span { background: none; color: transparent; -webkit-text-stroke: 3px var(--pb-gold); filter: drop-shadow(0 0 16px rgba(255, 140, 60, .7)) drop-shadow(0 8px 14px rgba(0, 0, 0, .6)); }
+/* the pass: a laminated card on a lanyard, tipped a little, a glint across it */
+html .gk-menu { position: relative; width: min(400px, 100%); margin-top: 52px; padding: 0 10px; border-radius: 18px; background: var(--gk-title-panel); transform: rotate(-2deg);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .7); }
+html .gk-menu::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, .55) 47%, rgba(255, 63, 164, .12) 50%, rgba(63, 214, 255, .12) 53%, transparent 58%); }
+.pb-lanyard { position: absolute; left: calc(50% - 28px); top: -50px; width: 56px; height: 40px; background: repeating-linear-gradient(90deg, var(--pb-ink) 0 6px, var(--pb-gold) 6px 12px);
+  clip-path: polygon(30% 0, 70% 0, 62% 100%, 38% 100%); }
+.pb-clip { position: absolute; left: calc(50% - 16px); top: -14px; width: 32px; height: 20px; border-radius: 6px; background: linear-gradient(#f4f1e6, #a59c86); box-shadow: 0 2px 4px rgba(0, 0, 0, .5); }
+.pb-pass-hd { display: flex; align-items: center; justify-content: space-between; margin: 0 -10px 6px; padding: 8px 14px; border-radius: 18px 18px 0 0;
+  background: var(--pb-ink); border-bottom: 4px solid var(--pb-pink); color: var(--pb-gold); text-transform: uppercase; }
+.pb-pass-hd b { font: 800 22px var(--display); letter-spacing: .14em; transform: var(--lean); }
+.pb-pass-hd small { font: 700 12px var(--display); letter-spacing: .24em; color: #fff; }
+.pb-pass-hd i { font-style: normal; margin-left: 6px; padding: 1px 7px; background: var(--pb-pink); }
+.pb-pass-ft { display: flex; align-items: center; justify-content: space-between; margin: 4px -10px 0; padding: 5px 14px 9px;
+  font: 700 11px var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--pb-mute); }
+.pb-bars { width: 96px; height: 16px; background: repeating-linear-gradient(90deg, var(--pb-ink) 0 2px, transparent 2px 4px, var(--pb-ink) 4px 7px, transparent 7px 9px); }
+html .gk-menu button { height: 35px; padding: 0 10px; border-radius: 7px; font: 800 20px var(--display); letter-spacing: .02em; text-transform: uppercase;
+  color: var(--pb-ink); box-shadow: none; transition: background .15s; }
 html .gk-menu .gk-lbl { display: inline-block; transform: var(--lean); }
-html .gk-menu .gk-meta { font: 500 16px var(--ui); letter-spacing: 0; color: var(--dim); }
-html .gk-menu kbd { font: 700 14px var(--ui); margin: 0; color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
-html .gk-menu .gk-primary kbd { color: var(--accent); border-color: rgba(var(--hot-rgb), .5); }
-html .gk-menu button:hover { background: rgba(var(--hot-rgb), .07); }
-/* the row you're on: the bar, as everywhere in PumaBass (the canon's pointer and wash give way to it) */
-html .gk-menu button:focus { color: var(--bar-ink); background: linear-gradient(var(--bar-top), var(--bar-bot)); box-shadow: var(--bar-lift); transform: scale(1.03); }
+html .gk-menu .gk-meta { font: 500 14px var(--ui); letter-spacing: 0; text-transform: none; color: var(--pb-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html .gk-menu kbd { font: 700 13px var(--ui); margin: 0; padding: 1px 6px; color: var(--pb-gold); background: var(--pb-ink); border: 0; border-radius: 4px; }
+html .gk-menu .gk-primary { color: var(--pb-ink); }
+html .gk-menu button:hover { color: var(--pb-ink); background: rgba(27, 12, 24, .07); }
+/* the row you're on: the pass's ink, its edge pink (the canon's pointer and wash give way to it) */
+html .gk-menu button:focus { color: var(--pb-gold); background: var(--pb-ink); box-shadow: inset 4px 0 0 var(--pb-pink); }
 html .gk-menu button:focus::before { display: none; }
-html .gk-menu button:focus kbd, html .gk-menu button:focus .gk-meta { color: var(--bar-ink2); border-color: rgba(var(--bar-ink-rgb), .35); background: none; }
-html .gk-menu .gk-util { margin-top: 8px; padding-top: 8px; gap: 4px; }
-html .gk-menu .gk-util button, html .gk-menu .gk-util button:first-child { height: 42px; font-size: 19px; padding: 0 12px; }
-html .gk-menu .gk-util kbd { font-size: 13px; }
-/* the switches top right, as PumaBass's tiles */
-html .gki-tg { background: linear-gradient(var(--tile-top), var(--tile-bot)); border-color: var(--line); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .35); min-height: 0; }
-html .gki-tg:focus-visible { outline: 2px solid var(--bar-edge); transform: none; color: var(--text); background: linear-gradient(var(--tile-top), var(--tile-bot)); }
+html .gk-menu button:focus kbd { color: var(--pb-ink); background: var(--pb-gold); }
+html .gk-menu button:focus .gk-meta { color: #d8c9a8; }
+html .gk-menu .gk-util { margin-top: 6px; padding-top: 6px; gap: 4px; border-top: 2px dashed var(--pb-rule); }
+html .gk-menu .gk-util button, html .gk-menu .gk-util button:first-child { height: 32px; font-size: 17px; padding: 0 10px; }
+html .gk-menu .gk-util kbd { font-size: 12px; }
+/* the switches top right in the poster's gold (the credit keeps the canon's lowercase, its link the gold) */
+html .gki-tg { background: rgba(10, 6, 20, .72); color: #f2f0ff; border-color: rgba(255, 211, 90, .5); box-shadow: 0 2px 6px rgba(0, 0, 0, .35); min-height: 0; }
+html .gki-tg:focus-visible { outline: 2px solid var(--pb-gold); transform: none; color: #fff; background: rgba(10, 6, 20, .85); }
 html .gk-title.gki main > footer { font-family: var(--ui); }
 /* the title's painting (painting.js): its own pixels, scaled up square, the puma (61% across) kept
    61% across the screen, clear of the menu */
 .gk-title > .scene > canvas.painting { object-fit: cover; object-position: 61% 70%; image-rendering: pixelated; }
 @media (max-height: 680px) {
-  html .gk-title h1 { font-size: 60px; }
-  html .gk-title h1::after { margin-top: 12px; }
-  html .gk-menu { margin-top: 14px; padding: 6px; }
-  html .gk-menu button { height: 40px; font-size: 20px; }
-  html .gk-menu .gk-util button, html .gk-menu .gk-util button:first-child { height: 36px; font-size: 17px; }
+  html .gk-title h1 { font-size: 96px; }
+  html .gk-menu { margin-top: 16px; }
+  .pb-lanyard, .pb-clip, .pb-pass-ft { display: none; }
+  .pb-pass-hd { margin-bottom: 6px; padding: 8px 14px; } .pb-pass-hd b { font-size: 22px; }
+  html .gk-menu button { height: 32px; font-size: 18px; }
+  html .gk-menu .gk-util button, html .gk-menu .gk-util button:first-child { height: 30px; font-size: 15px; }
 }
 
 /* ---- the song list: a glossy panel over the stage, the row you're on lifted onto the bar ---- */
