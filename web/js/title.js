@@ -2,11 +2,10 @@
  *   @gk-title  games-meta's canon/gk-title.js (STANDARD.md §3): the boot, byte for byte as
  *              canon's, and the v0.4 default title. Change it there, never here.
  *   @gk-intro  games-meta's canon/gk-intro.js (§14, a guideline): the integrated intro, the
- *              hold, the crossing, the switches and the ticks. PumaBass's copy differs from
- *              canon's in one place: its @gk-meow block is empty, since PumaBass boots on a
- *              chime of its own (title-sound.js).
- * PumaBass's name, menu, stage, help, about and settings arrive in the config (menu.js); its
- * sounds are in title-sound.js. */
+ *              hold, the crossing, the meow, the switches and the ticks, byte for byte as
+ *              canon's. Change it there, never here.
+ * PumaBass's name, menu, painting, help, about and settings arrive in the config (menu.js); its
+ * own sounds (the menu's ticks, the theme) are in title-sound.js. */
 
 /* @gk-title-begin v0.4 -- greykit.games canon (games-meta STANDARD.md §3),
  * in every Tactical game. The copy of record is games-meta's
@@ -476,7 +475,7 @@ function mountTitle(host, cfg) {
 }
 /* @gk-title-end */
 
-/* @gk-intro-begin v0.3 -- greykit.games shared code (games-meta STANDARD.md §14),
+/* @gk-intro-begin v0.4 -- greykit.games shared code (games-meta STANDARD.md §14),
  * the integrated intro. A guideline, not a rule: nothing checks it, and a game
  * may take it, change its copy, or leave it. The copy of record is games-meta's
  * canon/gk-intro.js; a game that takes a newer version takes it whole.
@@ -496,6 +495,8 @@ function mountTitle(host, cfg) {
  *      comes up behind it, with the Sound and Music switches top right and
  *      the greykit.com credit centred under the menu.
  * A key or a click during 3-4 skips to the end of it. */
+
+const GK_INTRO_VERSION = "0.4";
 
 const INTRO_CSS = `
 /* ---- the hold at the end of the boot ---- */
@@ -518,6 +519,9 @@ const INTRO_CSS = `
 .gk-boot.gki-hold .gki-lid{animation:gki-blink 8s ease-in-out -6s infinite}
 @keyframes gki-blink{0%,92.5%{transform:rotate(6deg) scaleY(0)}94%,95.2%{transform:rotate(6deg) scaleY(1)}96.7%,100%{transform:rotate(6deg) scaleY(0)}}
 @keyframes gki-breathe{0%,100%{opacity:1}50%{opacity:.42}}
+
+/* the boot log's flavour line: quieter than the facts */
+.gk-boot .gk-log i{color:color-mix(in srgb,var(--dim) 85%,transparent)}
 
 /* ---- the integrated title: the credit centred under the menu (gkIntegrate
    moves the footer there), the switches top right ---- */
@@ -565,9 +569,7 @@ function injectIntroCSS() {
 /* @gk-meow-begin -- the cat on the pulse: a recording, trimmed, levelled and
    encoded as MP3 by games-meta's tools/build-meow.sh, which rewrites this
    block. Empty, the boot sound falls back to the arcade's coin. */
-/* PumaBass boots on a chime of its own (title-sound.js: pbChime), so its copy
-   carries no recording. */
-const GK_MEOW = null;
+const GK_MEOW = "data:audio/mpeg;base64,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q6KCQlGntfT/3OySKNXH72WiYkg8QGYGvCax6yIQCx7K3CJiiJp/ovWyADiqf6lSBiTUWbM/6kkzyiuKABFJkkSjEUBcOBkWD1pDWv/7UsRcgApobU0mGG7BTIxq9MSYoEdSvUnKe/QtlOsSzEwQsCOqKNcrUN/Qf7dRigsQNFloY8DlnhQHBRwjAgBHryLli67KU1fud/6P49XzVobpkD5506+V0JLMxTAcRgFOBMOgoBbJMUmARCYITTaTiUiCgJO99YHZhVKH6S4M6lSYfFnOHCMUmpN5UgePTK62JMve7pQMAh8fHcmhPjG33XO7/6KBOup273SAHyNIhnA7gKQko5j+dkNQ2EyhY5yJAsG5kp6iPoaVjcjIACZo//tSxGcAClhrSweww8FKC+twxIx86l6BdBFgmiA4REyGvKWIrsIjg0AGF0vY1THU/YXGfobtW+9r1F8tmS/FxQROsxgDN1ULCoGiQfNOEoGNjBWlxKHmm+BhxhdN1PGMZu5pTZUvERMcmYSkzeBTh8PgIkCDhCNA50mxwwCsNHkeYOJY7U7vZeLL/3L9+70VCXjbQALfNgMhSoGsnh4Qh+fKR+JVzsprSwkHgb0aOV/K0qCiVyggJaZnLVrN1u51tq14lNHoWcpRklHuLIFj6BD/+1LEcgAKaFVZZhhsoTyM6rDWGDAIkxUIi08ZbV05r/qHXfqR0MXnNXWgBngAkAACoMAaPGQdCiEUBMyieNiyIoGtTUUmLYoUfuFIkFupUyx8yIub5GfxmEMKHU6FgmMBJp5jxUUJF0XW7CJqI1HdVTq+99oDLDEF6itG0AACMtJg9A6gAdBqnsFQbCgjGkTdGCF6hMqpAPsmJw6zspirnpPIgU8RB4Ho8rHDyxuba4sWe0FDYKw7266ehX66xkkszrutppil+9i3MpUMsUmAB//7UsR+gApkqVOGDFJBS5IqcJMNzPXgqTXJqYLkZjC3KRXNLC6U4BCBP5qLnJJ4V5gWqUspxIGo+z1Ky7O0rOhXuVmuJMs8kPFbsK1jY8Y/JS3NWZ5gszJVtZvRTO+y+pR5XSoAuOUACrSCyjGBe0NMSn61Rxok/1C5NFm7spis5RIsJhc7lVrHJejTB0nJPNbPokl6kpcwYVa/UBI4FREPDZUBPAQwSgIClgalRoV8RRK5Qd/LAA0BBhylAXM2ixHKil9dhA5Gpo0xkVB8kEwV//tSxImACkRTSYYkxwFNEmfs8xWgDxsyysdQNuaQkRxGw+INgIVMgsLC5EBCwsI3eaCoq32OqIu//60UqaZb///8BC9MQU1FNC4wVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+1LElIAKRJEvjBhPQScKX4jzJRBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ=="; /* from DJI_0017.MP4, cleaned 8 dB, 87.24-88.02 s */
 /* @gk-meow-end */
 
 /* the meow, decoded once per context; null when there is none or it will not decode */
@@ -726,6 +728,29 @@ function gkSoundAllowed(ac, ms = 250) {
 }
 
 /**
+ * The boot log's lines are what the game passes startIntro, and the boot has
+ * room for three before it ends (one every 0.55 s from 0.15 s): canon's
+ * bootReloadLine(), a fact, and a flavour line. More would lengthen the boot.
+ *
+ * A fact: "label: value", the value lit -- what someone debugging wants to
+ * see first, such as gkFact("save", "night 2") or gkFact("save", "none").
+ */
+function gkFact(label, value) {
+  return escHTML(label) + ": <b>" + escHTML(value) + "</b>";
+}
+
+/**
+ * A flavour line: one of the game's themed lines, picked at random and shown
+ * quieter than the facts. About one load in rareChance (12), one of the rare
+ * lines comes up instead -- the easter egg.
+ */
+function gkFlavour(lines, rare = [], rareChance = 12) {
+  const pick = a => a[Math.random() * a.length | 0];
+  const line = rare.length && Math.random() * rareChance < 1 ? pick(rare) : lines.length ? pick(lines) : "";
+  return line ? "<i>" + escHTML(line) + "</i>" : "";
+}
+
+/**
  * Start the integrated intro: canon's boot, and the boot sound with it.
  *   lines      the boot log's first lines, as runBoot takes them
  *   audio()    optional: the game's AudioContext, made or found. Its sound
@@ -785,7 +810,11 @@ function startIntro({ lines = [], audio = null, bootSound = gkBootSound } = {}) 
   return {
     /**
      * Finish the boot, hold for the press, and bring the title in.
-     *   more        lines for the log now the game has loaded
+     *   more        lines for the log now the game has loaded, as HTML. Each
+     *               adds 0.3 s to the boot: the log's facts and flavour belong in
+     *               startIntro's lines instead (gkFact, gkFlavour)
+     *   prefix      the game's storage prefix (STANDARD.md §5): with it, the
+     *               console's [boot] line says what this browser keeps for it
      *   title       the mounted .gk-title (the page's, if left out)
      *   name        how the name arrives: "lines" (each line fades in on its
      *               turn), "words" (a word at a time), "decode" (canon's decode)
@@ -808,7 +837,8 @@ function startIntro({ lines = [], audio = null, bootSound = gkBootSound } = {}) 
      *   onDone      the menu is in and focused
      * Resolves when the menu is in, or the entrance was skipped.
      */
-    async finish({ more = [], title = document.querySelector(".gk-title"), name = "lines", timing = {}, prompt = null, hold = "auto",
+    async finish({ more = [], prefix = "",
+      title = document.querySelector(".gk-title"), name = "lines", timing = {}, prompt = null, hold = "auto",
       toggles = null, tick = null, onContinue = () => {}, onTitle = () => {}, onDone = () => {} } = {}) {
       const T = Object.assign({ name: 600, step: 700, menu: 3000, done: 4200 }, timing);
       /* a touchscreen has no keys to press */
@@ -842,20 +872,37 @@ function startIntro({ lines = [], audio = null, bootSound = gkBootSound } = {}) 
       const later = title ? [...title.querySelectorAll(".gk-menu, footer, .gki-toggles")] : [];
       if (title) { title.classList.add("gki-intro"); for (const n of later) n.inert = true; }
 
+      /* the intro's own facts, for whoever is debugging: the console, never the screen */
+      /* hold for the press only when it would let sound play -- or always if
+         asked; never for a silent game (hold: "never"), which has no sound to let play */
+      const ok = await allowed, holding = !pressed && hold !== "never" && (!ok || hold === "always");
+      const auto = [["audio", hold === "never" ? "none (silent game)" : ok ? (holding ? "allowed; holding anyway" : "allowed") : "waiting for a press"]];
+      if (toggles && toggles.sound && !toggles.sound.get()) auto.push(["sound", "off"]);
+      if (toggles && toggles.music && !toggles.music.get()) auto.push(["music", "off"]);
+      if (prefix) {
+        let n = 0, size = 0;
+        try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(prefix)) { n++; size += k.length + (localStorage.getItem(k) || "").length; } } } catch (e) { n = -1; }
+        /* UTF-16: two bytes a character */
+        const bytes = size * 2, kept = bytes < 1024 ? bytes + " bytes" : (bytes / 1024).toFixed(1) + " KB";
+        auto.push(["this browser", n < 0 ? "storage blocked" : n ? n + (n === 1 ? " key, " : " keys, ") + kept : "nothing kept"]);
+      }
+      auto.push(["intro", "v" + GK_INTRO_VERSION]);
+      try { console.info("[boot] " + auto.map(f => f[0] + ": " + f[1]).join(" | ")); } catch (e) { /* no console */ }
+
       /* the rest of the log, then -- unless a press already came -- the hold */
       /* after the boot's own lines, as runBoot's finish would place them */
       const at = Math.max(150 + lines.length * 550, performance.now() - t0);
       for (const [i, l] of more.entries()) setTimeout(() => say(l), pressed ? 0 : Math.max(0, at + i * 300 - (performance.now() - t0)));
       /* never before the face has pulsed, nor before the log has had its say */
-      const readyAt = Math.max(1850, at + more.length * 300 + 200);
+      const readyAt = Math.max(1850, at + more.length * 300);  /* canon's runBoot, to the millisecond */
       await new Promise(resolve => {
         if (pressed) return resolve();
         onPress = resolve;
-        setTimeout(() => allowed.then(ok => {
+        setTimeout(() => allowed.then(() => {
           if (pressed) return;
           /* sound may already play, so the press would be for nothing: the
              boot ends as it always did, straight into the title */
-          if ((ok && hold !== "always") || hold === "never") { onPress = null; return resolve(); }
+          if (!holding) { onPress = null; return resolve(); }
           el.classList.add("gk-ready", "gki-hold");
           const p = document.createElement("div");
           p.className = "gki-prompt";
@@ -1005,4 +1052,4 @@ function gkToggles(title, { sound = null, music = null } = {}) {
 /* @gk-intro-end */
 
 export { TITLE_CSS, runBoot, titleHTML, mountTitle, revealTitle, bootReloadLine, confirmSheet, alertSheet, injectTitleCSS,
-  startIntro, gkIntegrate, gkTick, gkSoundAllowed };
+  startIntro, gkIntegrate, gkTick, gkSoundAllowed, gkBootSound };

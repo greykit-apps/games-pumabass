@@ -142,17 +142,17 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
   have a switch (below);
 - §9 page metadata and icons, §10 `tools/check-assets.js` byte for byte, run by CI's validate stage;
 - §11 no native dialogs;
-- §14 the integrated intro: `web/js/title.js` also carries `canon/gk-intro.js` (v0.3), whose copy differs
-  from canon's in one place, an empty `@gk-meow` block. The boot plays a **chime** instead of the meow
-  (`web/js/title-sound.js`): the Macintosh's startup chord as the later Macs played it, F-sharp major,
-  plucked on an upright bass (all four strings in one roll of the thumb, a plucked-string model
-  through the wood's resonance), synthesized, struck as the logo pulses. On a cold load the browser keeps the boot silent, so the press
-  that continues strikes it instead. Then the hold, the crossing, the name a line at a time, the menu,
+- §14 the integrated intro: `web/js/title.js` also carries `canon/gk-intro.js` (v0.4), byte for byte.
+  The boot plays canon's **meow**, ending as the logo does, through the title's Sound switch
+  (`web/js/title-sound.js`: `bootMeow`), so a player who turned the title's sound off boots in
+  silence too; on a cold load the browser keeps the boot silent, as canon's does. `finish()` is passed
+  `prefix: 'pumabass_'`, so the intro's facts in the console include what PumaBass keeps in the
+  browser. Then the hold, the crossing, the name a line at a time, the menu,
   and the credit under it, and the **theme** starts: a bass groove played live, looping under the
   title (`title-sound.js`; the loop itself is below). The scene is a painting playing to it: its
   lights on the theme's beat, its crowd bobbing (`painting.js`; the painting is below too). The theme
   fades out when the title goes, and goes quiet while the tuner is up. The title has two switches
-  top right: Sound (`M` on the title), the master, for the chime, the ticks (a pick on a muted
+  top right: Sound (`M` on the title), the master, for the meow, the ticks (a pick on a muted
   string, climbing the A minor pentatonic down the menu) and the theme; and Music, the theme alone.
   They're saved in the prefs (`titleSound`, `titleMusic`) and touch nothing else. `?hold=always`
   shows the hold.
