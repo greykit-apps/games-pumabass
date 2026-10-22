@@ -14,7 +14,7 @@
 //   wake.js            keeping the screen on while PumaBass is open
 
 import { startIntro, injectTitleCSS, alertSheet } from './title.js';
-import { titleAudio, bootChime, chimeOnce, startTheme } from './title-sound.js';
+import { titleAudio, bootMeow, startTheme } from './title-sound.js';
 import { mountScene } from './scene.js';
 import { SERVER_API, SERVER_OLD, WEB } from './api.js';
 import { $, mixer, highway, input, screen, songs, ownSongs, info } from './core.js';
@@ -111,14 +111,14 @@ window.addEventListener('keydown', e => {
 
 window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, highway, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
-/* ---- start: the integrated intro (games-meta STANDARD.md §14). The boot plays, with its
- * chime, while the song index loads; it holds for a press when the browser wants one before
+/* ---- start: the integrated intro (games-meta STANDARD.md §14). The boot plays, with canon's
+ * meow, while the song index loads; it holds for a press when the browser wants one before
  * sound can play; then the title fades up over its painting, and the theme starts (title-sound.js). ---- */
 applyScreen();
 keepScreenOn();
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'), 'pb-beam-list');
-const intro = startIntro({ lines: ['PumaBass', 'reading your songs'], audio: titleAudio, bootSound: bootChime });
+const intro = startIntro({ lines: ['PumaBass', 'reading your songs'], audio: titleAudio, bootSound: bootMeow });
 applyMix();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
@@ -137,9 +137,7 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   return intro.finish({
     more, name: 'lines',
     hold: new URLSearchParams(location.search).get('hold') || 'auto', // ?hold=always shows the hold, as the canon's demos do
-    // A cold load boots in silence (the browser holds sound back until the page is touched):
-    // the press that continues strikes the chime instead.
-    onContinue: chimeOnce,
+    prefix: 'pumabass_', // the console's facts: what PumaBass keeps in this browser
     onTitle: startTheme,
   });
 }).then(async () => {
