@@ -1,8 +1,10 @@
 // The title and song-list backdrop: a stage in the Tactical tribe's line art.
 // A note highway runs from the front of the stage to the back wall, with an
-// amp stack either side and two lights from the truss. Paths only, no text.
-// On the title it plays (mountScene's live): a groove rides the highway, and
-// the cones pump on every beat. No sound; still under reduced motion.
+// amp stack either side and two lights from the truss. Paths only, no text. The
+// truss and the floor run on past the picture's sides, for the title, which moves it over.
+// On the title it plays (mountScene's live): a riff of its own rides the highway,
+// its beats with it, and the cones pump on every beat and note. No sound (the title
+// has no music); still under reduced motion.
 
 const STRING_COLORS = ['#e8413c', '#f2c623', '#2e8ff0', '#f5892a'];
 
@@ -21,7 +23,7 @@ function floor(u, v) {
 // knobs. Both stacks are the same model, side by side, not mirrored.
 const CONE = 44, PITCH = 100;           // cone radius, centre-to-centre spacing (gap = PITCH - 2 * CONE)
 const CAB_W = 280, CAB_H = 210, CAB_Y = 700 - CAB_H, HEAD_H = 56, HEAD_Y = CAB_Y - 4 - HEAD_H;
-function amp(x) {
+function amp(x, side) {
   const headMid = HEAD_Y + HEAD_H / 2;
   const knobs = [0, 1, 2, 3, 4, 5].map(i => `<circle class="sd" cx="${x + 40 + i * 30}" cy="${headMid}" r="6"/>`).join('');
   const cx0 = x + (CAB_W - PITCH) / 2, cy0 = CAB_Y + (CAB_H - PITCH) / 2;
@@ -29,7 +31,7 @@ function amp(x) {
     const cx = cx0 + i * PITCH, cy = cy0 + j * PITCH;
     return `<g class="scone"><circle class="sd" cx="${cx}" cy="${cy}" r="${CONE}"/><circle class="sd scap" cx="${cx}" cy="${cy}" r="12"/></g>`;
   }).join('');
-  return `<g class="samp"><rect class="sf" x="${x}" y="${HEAD_Y}" width="${CAB_W}" height="${HEAD_H}" rx="4"/>${knobs}<circle class="sled" cx="${x + 254}" cy="${headMid}" r="4"/>` +
+  return `<g class="samp ${side}"><rect class="sf" x="${x}" y="${HEAD_Y}" width="${CAB_W}" height="${HEAD_H}" rx="4"/>${knobs}<circle class="sled" cx="${x + 254}" cy="${headMid}" r="4"/>` +
     `<rect class="sf" x="${x}" y="${CAB_Y}" width="${CAB_W}" height="${CAB_H}" rx="4"/>${speakers}</g>`;
 }
 
@@ -68,15 +70,15 @@ export function sceneSVG(beam = 'pb-beam', live = false) {
   <defs><linearGradient id="${beam}" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#54f2ff" stop-opacity=".16"/><stop offset="1" stop-color="#54f2ff" stop-opacity="0"/>
   </linearGradient>${live ? `<filter id="${beam}-glow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="9"/></filter>` : ''}</defs>
-  <path class="sd" d="M0 70 H1600 M0 96 H1600 ${Array.from({ length: 33 }, (_, i) => `M${i * 50} 70 L${i * 50 + 25} 96 L${i * 50 + 50} 70`).join(' ')}"/>
+  <path class="sd" d="M-800 70 H2400 M-800 96 H2400 ${Array.from({ length: 65 }, (_, i) => `M${i * 50 - 800} 70 L${i * 50 - 775} 96 L${i * 50 - 750} 70`).join(' ')}"/>
   <polygon class="sbeam" fill="url(#${beam})" points="470,96 500,96 760,700 380,700"/>
   <polygon class="sbeam" fill="url(#${beam})" points="1100,96 1130,96 1220,700 840,700"/>
   <rect class="sx" x="455" y="88" width="60" height="20" rx="3"/><rect class="sx" x="1085" y="88" width="60" height="20" rx="3"/>
-  <rect class="sground" x="0" y="700" width="1600" height="200"/>
-  <line class="sl" x1="0" y1="700" x2="1600" y2="700"/>
+  <rect class="sground" x="-800" y="700" width="3200" height="200"/>
+  <line class="sl" x1="-800" y1="700" x2="2400" y2="700"/>
   <polygon class="sf" points="${hw}"/>
-  ${live ? `<g class="sbeats"></g>${lanes}${nowLine()}${flashes}<g class="sgems"></g>` : frets + lanes + gems}
-  ${amp(110)}${amp(1210)}
+  ${live ? `<g class="sbeats"></g>${lanes}<g class="stails"></g>${nowLine()}${flashes}<g class="sgems"></g>` : frets + lanes + gems}
+  ${amp(110, 'sleft')}${amp(1210, 'sright')}
   <line class="sa" x1="${FRONT.l}" y1="${FRONT.y - 1}" x2="${FRONT.r}" y2="${FRONT.y - 1}"/>
 </svg>`;
 }
@@ -89,24 +91,52 @@ export function mountScene(el, beam = 'pb-beam', { live = false } = {}) {
 
 /* ---- the live stage ---- */
 
-const BPM = 112, BEAT = 60 / BPM;
-const LOOK = 4;                          // beats a note is on the highway before it lands
+const LOOK = 1.8;                        // seconds a note is on the highway before it lands (three and a half beats)
 const NEAR = 1, FAR = 3;                 // the camera's distance to the front and the back of the highway
-// Two bars of a root-and-fifth groove, in beats: [when, string].
-const RIFF = [[0, 0], [1, 0], [1.5, 0], [2, 1], [3, 2], [3.5, 1],
-  [4, 0], [5, 0], [5.5, 1], [6, 2], [6.5, 3], [7, 2]];
-const LOOP = 8;
 const PUMP = 0.11, FLASH = 0.16;         // seconds a cone's push and a landing's light take to die away
+// The riff: not a song's, written for the stage to show off the highway. Four bars at 116 BPM
+// on a sixteenth-note grid, looping: funk octaves on the E string popping up to the D, a turn
+// that climbs to a held G, a run sweeping across all four strings and back, double stops, and a
+// fill cascading down into the next time round. [sixteenth, string, sixteenths held (1: a plain
+// note)]; string 0 is the low E.
+const BPM = 116, SIX = 60 / BPM / 4;
+const RIFF = [
+  [0, 0, 2], [3, 0, 1], [4, 2, 1], [6, 0, 1], [8, 0, 2], [10, 1, 1], [11, 2, 1], [12, 2, 3],
+  [16, 0, 2], [19, 0, 1], [20, 2, 1], [22, 0, 1], [24, 1, 2], [26, 1, 1], [27, 2, 1], [28, 3, 4],
+  [32, 0, 1], [33, 1, 1], [34, 2, 1], [35, 3, 1], [36, 2, 1], [37, 1, 1], [38, 0, 2], [40, 0, 2], [42, 1, 1], [43, 1, 1], [44, 2, 3], [44, 3, 3],
+  [48, 1, 4], [48, 3, 4], [52, 0, 1], [54, 0, 1], [55, 1, 1], [56, 2, 1], [57, 3, 1], [58, 3, 1], [59, 2, 1], [60, 1, 1], [61, 0, 1], [62, 0, 2],
+];
+const LOOP = 64, LOOPS = 40;
+// Its every note and beat, laid out once for LOOPS times round: [{ t, s, end }] and [{ t, bar }],
+// in time order (a note held for one sixteenth has no tail).
+let song = null;
+function songParts() {
+  if (song) return song;
+  const notes = [], beats = [];
+  for (let r = 0; r < LOOPS; r++) {
+    for (const [at, s, len] of RIFF) {
+      const t = (r * LOOP + at) * SIX;
+      notes.push({ t, s, end: len > 1 ? t + len * SIX * 0.9 : t });
+    }
+    for (let b = 0; b < LOOP / 4; b++) beats.push({ t: (r * LOOP + b * 4) * SIX, bar: b % 4 === 0 });
+  }
+  return (song = { notes, beats, end: LOOPS * LOOP * SIX });
+}
+// The first of list (sorted by t) at or after t.
+function from(list, t) {
+  let lo = 0, hi = list.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (list[m].t < t) lo = m + 1; else hi = m; }
+  return lo;
+}
 // The notes land on a line short of the front: the credit's shade covers the last of the floor.
 const NOW = 0.74;
 function nowLine() { const [x0, y] = floor(0, NOW), [x1] = floor(1, NOW); return `<line class="snow" x1="${x0}" y1="${y}" x2="${x1}" y2="${y}"/>`; }
 
-// Down the highway: z beats-to-go over LOOK (1 at the back, 0 landing) to the floor's v,
+// Down the highway: z seconds-to-go over LOOK (1 at the back, 0 landing) to the floor's v,
 // in perspective, so a note gathers speed as it comes.
 function depthV(z) { return (1 / (NEAR + (FAR - NEAR) * z) - 1 / FAR) / (1 / NEAR - 1 / FAR); }
 // The same, for the floor between the back and the now line (z < 0: past it, towards the front).
 const nowV = z => NOW * depthV(z);
-const ago = (b, at) => (b - at) * BEAT; // seconds since beat `at`
 
 function liveScene(el, beam, still) {
   const svg = el.firstElementChild, NS = 'http://www.w3.org/2000/svg';
@@ -115,47 +145,59 @@ function liveScene(el, beam, still) {
     e.setAttribute('class', cls[1]);
     return e;
   });
-  const beats = pool(svg.querySelector('.sbeats'), LOOK + 2, ['line', 'sd sbeat']);
-  const gems = pool(svg.querySelector('.sgems'), 12, ['rect', 'sgem']);
+  const { notes, beats: beatList, end } = songParts();
+  const beats = pool(svg.querySelector('.sbeats'), 8, ['line', 'sd sbeat']);
+  const gems = pool(svg.querySelector('.sgems'), 24, ['rect', 'sgem']);
+  const tails = pool(svg.querySelector('.stails'), 8, ['polygon', 'stail']);
   const lanes = [...svg.querySelectorAll('.sstr')], flashes = [...svg.querySelectorAll('.sflash')];
   const set = (e, a) => { for (const k in a) e.setAttribute(k, a[k]); };
 
-  let b = 0, last = performance.now();
+  let t = 0, last = performance.now();
   function draw() {
     // The beat lines, every bar's heavier, coming in with the notes and on past the now line.
-    beats.forEach((e, i) => {
-      const k = Math.floor(b) + i, z = (k - b) / LOOK;
-      if (z > 1 || nowV(z) > 1) { e.style.opacity = 0; return; }
-      const v = nowV(z), [x0, y] = floor(0, v), [x1] = floor(1, v);
+    let i = from(beatList, t - 2), n = 0, lastBeat = null;
+    for (; i < beatList.length && beatList[i].t <= t + LOOK; i++) {
+      const bt = beatList[i], z = (bt.t - t) / LOOK;
+      if (bt.t <= t) lastBeat = bt;
+      if (z < -0.4 || nowV(z) > 1 || n >= beats.length) continue; // past the front (the perspective folds over beyond)
+      const e = beats[n++], v = nowV(z), [x0, y] = floor(0, v), [x1] = floor(1, v);
       set(e, { x1: x0, y1: y, x2: x1, y2: y });
-      e.classList.toggle('sbar', k % 4 === 0);
+      e.classList.toggle('sbar', bt.bar);
       e.style.opacity = Math.min(1, (1 - z) * 4);
-    });
-    // The notes in view, and when each string and the amps last sounded.
-    let n = 0, hit = 0;
-    const lit = [-1e9, -1e9, -1e9, -1e9];
-    for (let r = Math.floor((b - 1) / LOOP); r * LOOP <= b + LOOK; r++) {
-      for (const [at, s] of RIFF) {
-        const t = r * LOOP + at, z = (t - b) / LOOK;
-        if (t <= b) { lit[s] = Math.max(lit[s], t); hit = Math.max(hit, t); }
-        if (z > 1 || z < -0.06 || n >= gems.length) continue;
-        const e = gems[n++];
-        set(e, { ...gemBox(s, nowV(Math.max(z, 0))), fill: STRING_COLORS[s] });
-        e.style.opacity = z < 0 ? 0.7 * (1 + z / 0.06) : Math.min(0.7, (1 - z) * 2.5) * lerp(0.55, 1, 1 - z);
+    }
+    for (; n < beats.length; n++) beats[n].style.opacity = 0;
+    // The notes in view, and when each string and the amps last sounded: a held note keeps its
+    // string lit, and its tail runs back up the lane, shortening into the now line as it plays.
+    const first = from(notes, t - 1), lit = [-1e9, -1e9, -1e9, -1e9];
+    let hit = -1e9, m = 0;
+    n = 0;
+    for (let k = first; k < notes.length && notes[k].t <= t + LOOK; k++) {
+      const { t: at, s, end } = notes[k], z = (at - t) / LOOK;
+      if (at <= t) { lit[s] = Math.max(lit[s], Math.min(t, end)); hit = Math.max(hit, at); }
+      if (end > at && end > t && m < tails.length) {
+        const u = (s + 0.5) / 4, v0 = nowV(Math.max(z, 0)), v1 = nowV(Math.min(1, (end - t) / LOOK));
+        const e = tails[m++], w = 0.03;
+        set(e, { points: [floor(u - w, v0), floor(u + w, v0), floor(u + w * 0.6, v1), floor(u - w * 0.6, v1)].map(p => p.join(',')).join(' '), fill: STRING_COLORS[s] });
+        e.style.opacity = at <= t ? 0.6 : 0.35;
       }
+      if (z < -0.06 || n >= gems.length) continue;
+      const e = gems[n++];
+      set(e, { ...gemBox(s, nowV(Math.max(z, 0))), fill: STRING_COLORS[s] });
+      e.style.opacity = z < 0 ? 0.7 * (1 + z / 0.06) : Math.min(0.7, (1 - z) * 2.5) * lerp(0.55, 1, 1 - z);
     }
     for (; n < gems.length; n++) gems[n].style.opacity = 0;
+    for (; m < tails.length; m++) tails[m].style.opacity = 0;
     lanes.forEach((e, s) => {
-      const f = Math.exp(-ago(b, lit[s]) / FLASH);
+      const f = Math.exp(-(t - lit[s]) / FLASH);
       e.style.opacity = 0.3 + 0.45 * f;
       flashes[s].style.opacity = 0.5 * f;
     });
     // The cones push on every beat (the bar's first hardest) and on every note.
-    const beat = Math.floor(b), kick = (beat % 4 === 0 ? 1 : 0.75) * Math.exp(-ago(b, beat) / PUMP);
-    const pump = Math.max(kick, 0.8 * Math.exp(-ago(b, hit) / PUMP));
+    const kick = lastBeat ? (lastBeat.bar ? 1 : 0.75) * Math.exp(-(t - lastBeat.t) / PUMP) : 0;
+    const pump = Math.max(kick, 0.8 * Math.exp(-(t - hit) / PUMP));
     svg.style.setProperty('--pump', pump.toFixed(3));
     // and the stacks buzz with it: a pixel or so, never the same way twice.
-    const ph = b * BEAT * Math.PI * 2;
+    const ph = t * Math.PI * 2;
     svg.style.setProperty('--sx', (Math.sin(ph * 31) * 1.4 * pump).toFixed(2) + 'px');
     svg.style.setProperty('--sy', (Math.cos(ph * 23) * 0.8 * pump).toFixed(2) + 'px');
   }
@@ -166,7 +208,7 @@ function liveScene(el, beam, still) {
     // tuner wants the frame to itself. A long gap (a background tab) resumes, not jumps.
     const dt = Math.min(now - last, 100) / 1000;
     last = now;
-    if (!document.querySelector('.gk-sheet')) { b += dt / BEAT; draw(); }
+    if (!document.querySelector('.gk-sheet')) { t = t + dt > end ? 0 : t + dt; draw(); }
     requestAnimationFrame(frame);
   }
   draw();

@@ -118,47 +118,49 @@ html.couch .gk-sheet .gk-box { max-height: calc(100dvh / var(--z, 1) - 32px); }
 .scene .live .sflash { opacity: 0; }
 .scene .live .snow { stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; opacity: calc(.35 + var(--pump, 0) * .4); }
 
-/* ---- the title (the canon's markup and keys; PumaBass's look) ---- */
-html .gk-title>.gk-shade { background: linear-gradient(rgba(var(--bg-rgb), .85), rgba(var(--bg-rgb), .4) 45%, rgba(var(--bg-rgb), 0) 75%),
-  linear-gradient(transparent calc(100% - 90px), rgba(var(--bg-rgb), .85)); }
-html .gk-title { padding-top: 32px; padding-bottom: 52px; }
-/* The canon centres the menu, with equal room above and below; with eight items (Resume game
- * and Score a song) that pushed the name and the credit off a TV. The room below gives way first. */
-html .gk-title main { grid-template-rows: minmax(min-content, 1fr) auto minmax(0, 1fr); min-height: 0; }
-/* ...which takes the title being exactly the screen's height: with only a minimum, the canon's
- * 1fr rows grow to their content, and the empty row under the menu matched the name's height. */
-html .gk-title { height: 100dvh; }
-html.couch .gk-title { height: calc(100dvh / var(--z, 1)); }
-html .gk-title h1 { font-family: var(--display); font-weight: 800; font-size: 80px; line-height: .9; letter-spacing: -.01em; padding: 0;
-  color: var(--text); transform: var(--lean); text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
-html .gk-title h1 b { color: var(--accent); font-weight: inherit; }
-html .gk-title .gk-rule { width: 220px; height: 4px; margin: 14px 0 20px; background: linear-gradient(90deg, var(--accent), #8af6ff); transform: skewX(-20deg); }
-html .gk-menu { gap: 5px; width: min(460px, 100%); }
+/* ---- the title: the canon's v0.4 default (the name and menu down the left, over the stage) and
+ * §14's intro, in PumaBass's look: the name in heavy leaning caps, BASS in the cyan, the skewed
+ * cyan rule, glossy rows, and the item you're on the cyan bar it is everywhere else. ---- */
+.gk-title { --gk-title-ink: var(--text); --gk-title-hi: var(--accent); --gk-title-focus: var(--accent); --gk-title-dim: var(--dim);
+  --gk-title-panel: linear-gradient(rgba(var(--tile-rgb), .9), rgba(var(--panel-rgb), .92)); --gk-title-line: var(--line); --gk-title-font: var(--ui); }
+html .gk-title h1 { font-family: var(--display); font-weight: 800; font-size: clamp(72px, 8.4vw, 116px); line-height: .84; letter-spacing: -.01em;
+  transform: var(--lean); transform-origin: left bottom; text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
+html .gk-title h1 span + span { text-shadow: 0 0 34px rgba(var(--hot-rgb), .35), 0 6px 30px rgba(0, 0, 0, .6); }
+/* the rule under the name, and the line under that */
+html .gk-title .gk-sub { margin: 18px 0 0; font: 600 15px var(--ui); letter-spacing: .28em; color: var(--ink); }
+html .gk-title .gk-sub::before { content: ''; display: block; width: 220px; height: 4px; margin: 0 0 14px; background: linear-gradient(90deg, var(--accent), #8af6ff); transform: skewX(-20deg); }
+html .gk-menu { margin-top: 26px; padding: 8px; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 18px 50px rgba(0, 0, 0, .5); }
+html .gk-menu button { height: 48px; padding: 0 16px; border-radius: 6px; font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: .03em;
+  color: var(--text); box-shadow: none; transition: transform .15s cubic-bezier(.22, 1, .36, 1), background .15s; }
 html .gk-menu .gk-lbl { display: inline-block; transform: var(--lean); }
-html .gk-menu button { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: .03em; min-height: 48px; padding: 0 18px;
-  border-radius: 6px; border: 1px solid var(--line); color: var(--text);
-  background: linear-gradient(rgba(var(--tile-rgb), .92), rgba(var(--panel-rgb), .92)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .35);
-  transition: transform .15s cubic-bezier(.22, 1, .36, 1), background .15s, border-color .15s; }
-html .gk-menu button:hover:not(:disabled) { border-color: var(--lit); background: linear-gradient(rgba(var(--tile-rgb), .92), rgba(var(--panel-rgb), .92)); }
-/* the default is outlined; only focus fills */
-html .gk-menu button.gk-primary { color: var(--text); background: linear-gradient(#18304a, #0f2034); border-color: var(--lit); font-weight: 700; }
-html .gk-menu button.gk-primary:hover:not(:disabled) { border-color: var(--lit); background: linear-gradient(#18304a, #0f2034); }
-html .gk-menu button.gk-primary kbd { color: var(--accent); border-color: rgba(var(--hot-rgb), .5); }
-html .gk-menu button.gk-primary .gk-meta { color: var(--ink); }
-html .gk-menu button:focus-visible { color: var(--bar-ink); border-color: var(--bar-top); background: linear-gradient(var(--bar-top), var(--bar-bot));
-  box-shadow: var(--bar-lift); transform: scale(1.05); }
-/* hovering the focused button keeps its bar: a hover tile under its dark ink read as unavailable */
-html .gk-menu button:focus-visible:hover:not(:disabled) { border-color: var(--bar-top); background: linear-gradient(var(--bar-top), var(--bar-bot)); }
-html .gk-menu button:focus-visible .gk-meta, html .gk-menu button:focus-visible kbd { color: var(--bar-ink2); border-color: rgba(var(--bar-ink-rgb), .35); }
-html .gk-menu .gk-meta { font-family: var(--ui); font-weight: 500; font-size: 16px; letter-spacing: 0; color: var(--dim); }
-html .gk-menu kbd { font: 700 14px var(--ui); color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
-html .gk-title>footer { font-family: var(--ui); font-size: 14px; }
+html .gk-menu .gk-meta { font: 500 16px var(--ui); letter-spacing: 0; color: var(--dim); }
+html .gk-menu kbd { font: 700 14px var(--ui); margin: 0; color: var(--ink); background: rgba(255, 255, 255, .06); border-color: var(--lit); border-radius: 4px; }
+html .gk-menu .gk-primary kbd { color: var(--accent); border-color: rgba(var(--hot-rgb), .5); }
+html .gk-menu button:hover { background: rgba(var(--hot-rgb), .07); }
+/* the row you're on: the bar, as everywhere in PumaBass (the canon's pointer and wash give way to it) */
+html .gk-menu button:focus { color: var(--bar-ink); background: linear-gradient(var(--bar-top), var(--bar-bot)); box-shadow: var(--bar-lift); transform: scale(1.03); }
+html .gk-menu button:focus::before { display: none; }
+html .gk-menu button:focus kbd, html .gk-menu button:focus .gk-meta { color: var(--bar-ink2); border-color: rgba(var(--bar-ink-rgb), .35); background: none; }
+html .gk-menu .gk-util { margin-top: 8px; padding-top: 8px; gap: 4px; }
+html .gk-menu .gk-util button, html .gk-menu .gk-util button:first-child { height: 42px; font-size: 19px; padding: 0 12px; }
+html .gk-menu .gk-util kbd { font-size: 13px; }
+/* the switches top right, as PumaBass's tiles */
+html .gki-tg { background: linear-gradient(var(--tile-top), var(--tile-bot)); border-color: var(--line); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 2px 6px rgba(0, 0, 0, .35); min-height: 0; }
+html .gki-tg:focus-visible { outline: 2px solid var(--bar-edge); transform: none; color: var(--text); background: linear-gradient(var(--tile-top), var(--tile-bot)); }
+html .gk-title.gki main > footer { font-family: var(--ui); }
+/* the stage sits right of the menu where there's room, a little closer, so the highway plays in the
+   clear and the near amp stands at the edge of the picture */
+@media (min-aspect-ratio: 4/3) and (min-width: 900px) {
+  .gk-title > .scene svg { overflow: visible; transform: translateX(12%) scale(1.22); transform-origin: 50% 100%; }
+  .gk-title > .scene .sleft { opacity: .3; } /* behind the menu: there, it only got in the way */
+}
 @media (max-height: 680px) {
-  html .gk-title { padding-top: 12px; padding-bottom: 28px; }
-  html .gk-title h1 { font-size: 56px; }
-  html .gk-title .gk-rule { margin: 8px 0 10px; }
-  html .gk-menu { gap: 3px; }
-  html .gk-menu button { min-height: 38px; font-size: 20px; }
+  html .gk-title h1 { font-size: 60px; }
+  html .gk-title .gk-sub { margin-top: 10px; }
+  html .gk-title .gk-sub::before { margin-bottom: 8px; }
+  html .gk-menu { margin-top: 14px; padding: 6px; }
+  html .gk-menu button { height: 40px; font-size: 20px; }
+  html .gk-menu .gk-util button, html .gk-menu .gk-util button:first-child { height: 36px; font-size: 17px; }
 }
 
 /* ---- the song list: a glossy panel over the stage, the row you're on lifted onto the bar ---- */

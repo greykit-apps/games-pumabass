@@ -129,16 +129,28 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
 
 - §1 the credit, on the title and in About;
 - §2 Settings → This browser → Forget everything, which removes only `pumabass*` keys;
-- §3 the boot and title screen: `web/js/title.js` carries `canon/gk-title.js` byte for byte. The boot
-  is the studio ident, exactly as in every Tactical game; the title keeps the canon's markup, menu and
-  keys, but **wears PumaBass's own look** (below), as do the canon's sheets;
+- §3 the boot and title screen: `web/js/title.js` carries `canon/gk-title.js` (v0.4) byte for byte. The
+  boot is the studio ident, exactly as in every Tactical game; the title is the canon's v0.4 default (the
+  name and menu down the left, over the stage), keeping its markup, menu and keys, but **wears
+  PumaBass's own look** (below), as do the canon's sheets;
 - §4 the palette: `web/style.css` opens with `canon/gk-tokens.css` byte for byte, and PumaBass's look
   is built on those colours;
 - §5 storage keys `pumabass_<feature>_v<n>` (prefs, offsets, recent, resume, muted, tuner, favorites, stats);
-- §6 the title menu, §7 Settings in order; not §8: there is no mute (no `M`, no header switch), by choice,
-  since the game is nothing without its sound;
+- §6 the title menu, §7 Settings in order; not §8: songs have no mute (no header switch, and `M` while
+  playing is the Mix), by choice, since the game is nothing without its sound. The title's own sounds
+  have a switch (below);
 - §9 page metadata and icons, §10 `tools/check-assets.js` byte for byte, run by CI's validate stage;
-- §11 no native dialogs.
+- §11 no native dialogs;
+- §14 the integrated intro: `web/js/title.js` also carries `canon/gk-intro.js` (v0.3), whose copy differs
+  from canon's in one place, an empty `@gk-meow` block. The boot plays a **chime** instead of the meow
+  (`web/js/title-sound.js`): the Macintosh's startup chord, C major spread wide with a high E on top,
+  synthesized, struck as the logo pulses. On a cold load the browser keeps the boot silent, so the press
+  that continues strikes it instead. Then the hold, the crossing, the name a line at a time, the menu,
+  and the credit under it. The scene is the stage, playing a riff written for it silently
+  (`scene.js`: `RIFF`, made to show off the highway rather than taken from a song). **No title music**, by choice: you come to the title on your way to a song of your own.
+  So the title has one switch, Sound (top right, `M` on the title), for its chime and its ticks (a pick
+  on a muted string, climbing the A minor pentatonic down the menu); it is saved in the prefs
+  (`titleSound`) and touches nothing else. `?hold=always` shows the hold.
 
 The deliberate gap: from the title on, PumaBass has its own look rather than the Tactical one: heavy condensed caps (Saira Condensed,
 leaning), glossy navy tiles, and a cyan selection bar for whatever you're on, in the greykit palette.

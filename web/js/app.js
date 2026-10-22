@@ -13,13 +13,14 @@
 //   instrument.js      the input, the mix, the tuner
 //   wake.js            keeping the screen on while PumaBass is open
 
-import { runBoot, injectTitleCSS, alertSheet } from './title.js';
+import { startIntro, injectTitleCSS, alertSheet } from './title.js';
+import { titleAudio, bootChime, chimeOnce } from './title-sound.js';
 import { mountScene } from './scene.js';
 import { SERVER_API, SERVER_OLD, WEB } from './api.js';
 import { $, mixer, highway, input, screen, songs, ownSongs, info } from './core.js';
 import { applyMix } from './instrument.js';
 import { loadLibrary, libraryKey } from './library-screen.js';
-import { title, showTitle, libraryLabel, sheetKeys, titleEscape } from './menu.js';
+import { title, showTitle, integrateTitle, setTitleSwitches, titleSoundKey, libraryLabel, sheetKeys, titleEscape } from './menu.js';
 import { chart, session, openSong, scorer, sync, inputBetween, playerKey } from './player.js';
 import { calib, runCalibration, calibKey } from './sync-test.js';
 import { saveTake } from './takes.js';
@@ -87,6 +88,7 @@ document.addEventListener('keydown', e => {
   const typing = !!(e.target.closest && e.target.closest('input[type=search],input[type=text],select'));
   if (calib && screen === 'player' && calibKey(e)) return;
   if (screen === 'title' && title && e.key === 'Escape') { e.preventDefault(); titleEscape(); return; } // twice: quit
+  if (screen === 'title' && title && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); titleSoundKey(); return; }
   if (screen === 'library') libraryKey(e, typing);
   else if (screen === 'player' && chart && !(e.target.tagName === 'INPUT' && e.target.type === 'range' && e.key.startsWith('Arrow'))) playerKey(e);
 });
@@ -109,12 +111,14 @@ window.addEventListener('keydown', e => {
 
 window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix(); }, input, mixer, highway, get session() { return session; }, get scorer() { return scorer; }, get sync() { return sync; }, inputBetween: (a, b) => inputBetween(a, b), get calib() { return calib; }, runCalibration: () => runCalibration(), openSong: title => openSong(songs.find(s => s.title === title && s.type === 'bass' && s.audio)), saveTake: () => saveTake() };
 
-/* ---- start: the boot plays while the song index loads, then the title ---- */
+/* ---- start: the integrated intro (games-meta STANDARD.md §14). The boot plays, with its
+ * chime, while the song index loads; it holds for a press when the browser wants one before
+ * sound can play; then the title fades up over the stage. No title music (title-sound.js). ---- */
 applyScreen();
 keepScreenOn();
 injectTitleCSS();
 mountScene($('library').querySelector('.scene'), 'pb-beam-list');
-const boot = runBoot({ lines: ['PumaBass', 'reading your songs'] });
+const intro = startIntro({ lines: ['PumaBass', 'reading your songs'], audio: titleAudio, bootSound: bootChime });
 applyMix();
 let startProblem = null;
 loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
@@ -122,15 +126,21 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
   // A server older than this page: its code changed since it started, or it
   // speaks an older version than this page needs.
   if (!startProblem && (info.stale || !(info.api >= SERVER_API))) startProblem = SERVER_OLD;
-  showTitle();
-  const lines = startProblem ? ['server: needs attention']
+  showTitle({ intro: true });
+  setTitleSwitches(integrateTitle());
+  const more = startProblem ? ['server: needs attention']
     : WEB ? ['the web demo', 'one song to play']
     : !ownSongs().length ? ['no songs yet: the demo song is ready']
     : [libraryLabel(), info.libraryDir && !info.libraryFound ? 'your Rocksmith folder is missing'
       : waiting ? `${waiting} bass charts waiting for a recording` : 'every bass chart has its audio'];
-  if (!startProblem && !info.vgmstream) lines.push('vgmstream missing: no song audio');
-  return boot.finish(lines);
+  if (!startProblem && !info.vgmstream) more.push('vgmstream missing: no song audio');
+  return intro.finish({
+    more, name: 'lines',
+    hold: new URLSearchParams(location.search).get('hold') || 'auto', // ?hold=always shows the hold, as the canon's demos do
+    // A cold load boots in silence (the browser holds sound back until the page is touched):
+    // the press that continues strikes the chime instead.
+    onContinue: chimeOnce,
+  });
 }).then(async () => {
-  if (title) title.reveal();
   if (startProblem) await alertSheet(startProblem, 'PumaBass needs a restart');
 });
