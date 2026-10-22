@@ -216,8 +216,9 @@ python3 tools/make-stage-art.py ~/Claude/references/pumabass.png
 
 It turns the picture into hi-bit pixel art (a third of its size, 64 colours, ordered dither), paints in a
 third more arena on the left (where the title's menu stands), paints out the picture's crowd and draws a
-crowd of animals in its place, and cuts out the puma, the stage front and a strip of haze, each a layer
-`painting.js` draws and plays. It's seeded, so the same picture always gives the same painting. It needs
+crowd of animals in its place, paints in the stage behind the puma, and cuts the puma into parts (legs,
+body with the bass, head) with the line its tail hangs along, so `painting.js` can bob it, nod it and
+swing the tail; and the stage front and a strip of haze, each a layer it draws and plays. It's seeded, so the same picture always gives the same painting. It needs
 Python with Pillow and numpy.
 
 ## The title's theme

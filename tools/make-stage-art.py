@@ -10,7 +10,8 @@
 #                    deer, owls), backlit, some holding up a phone or a lighter
 #   stage-crowd.json where each strip goes, and where the phones and lighters are
 #   stage-front.png  the stage floor and the monitors, drawn back over the crowd
-#   stage-puma.png   the puma alone (with the bass), drawn last
+#   stage-puma*.png  the puma in parts, drawn last: its legs, its body (with the bass), its head
+#   stage-puma.json  the line its tail hangs along, the page drawing the tail itself, so it can swing
 #   stage-haze.png   a strip of stage haze, tiling across, that drifts along the front
 #
 # The picture's own crowd (arms up) is painted out. web/js/painting.js draws them all, and plays
@@ -224,7 +225,66 @@ pal = np.array(pal_img.getpalette()[:COLOURS * 3]).reshape(-1, 3).astype(float)
 def paint(x, spread=SPREAD):
     d = x + np.tile(BAYER, (H // 4 + 1, W // 4 + 1))[:H, :W, None] * spread
     return pal[((d[:, :, None, :] - pal[None, None]) ** 2).sum(-1).argmin(-1)].astype(np.uint8)
-art = paint(cleaned)
+# ---- the puma: the dark shape grown out from the middle of its back, plus the bass's neck ----
+full = paint(pre)
+dark = lum(pre) < 34
+seed = (round(400 / SCALE), round(610 / SCALE) + L)
+mask = np.zeros((H, W), bool); mask[seed] = True
+q = deque([seed])
+while q:
+    y, x = q.popleft()
+    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        ny, nx = y + dy, x + dx
+        if 0 <= ny < H and 0 <= nx < W and not mask[ny, nx] and dark[ny, nx]:
+            mask[ny, nx] = True; q.append((ny, nx))
+box = (yy >= round(350 / SCALE)) & (yy < round(500 / SCALE)) & (xx >= round(340 / SCALE) + L) & (xx < round(535 / SCALE) + L)
+line = np.abs((yy - 375 / SCALE) - (xx - (350 / SCALE + L)) * ((490 - 375) / (530 - 350))) < 12 / SCALE
+def poly(pts):
+    inside = np.zeros((H, W), bool)
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
+        cross = ((y0 > yy + 0.5) != (y1 > yy + 0.5)) & (xx + 0.5 < (x1 - x0) * (yy + 0.5 - y0) / (y1 - y0 + 1e-9) + x0)
+        inside ^= cross
+    return inside
+# and all of the bass beyond the fist, the headstock and its pegs too: whatever is darker than the
+# lit haze behind it, inside the shape they make
+headstock = poly([(246, 123), (252, 114), (278, 115), (302, 134), (302, 158), (284, 154), (262, 140), (246, 133)]) & (lum(pre) < 145)
+puma = mask | (box & line & (lum(pre) < 150)) | headstock
+def grow(m, r):
+    g = m.copy()
+    for _ in range(r):
+        n = g.copy(); n[1:] |= g[:-1]; n[:-1] |= g[1:]; n[:, 1:] |= g[:, :-1]; n[:, :-1] |= g[:, 1:]; g = n
+    return g
+# and the sliver of the bass's body that shows through the gap between the right arm and the body:
+# part of the silhouette, in its dark
+gap = poly([(358, 132), (373, 132), (384, 176), (356, 176)]) & (yy < 172)
+sliver = gap & (lum(pre) < 120)
+# with the hairline of haze between it and the body closed up, so it's one shape with them
+closed = ~grow(~grow(puma | sliver, 2), 2)
+sliver = (sliver | (closed & ~puma)) & gap
+full[sliver] = np.median(full[mask & ~grow(~mask, 2)], axis=0)
+puma |= sliver
+
+# ---- what stands behind the puma, painted in, so it can move: filled in from all round it ----
+hole = grow(puma, 3)
+plate = cleaned.copy()
+known = (~hole).astype(float)
+val = plate * known[:, :, None]
+for _ in range(400):                                               # each pass carries the edge a pixel in
+    def blur(a):
+        b = a.copy()
+        b[1:] += a[:-1]; b[:-1] += a[1:]; b[:, 1:] += a[:, :-1]; b[:, :-1] += a[:, 1:]
+        return b
+    k, v = blur(known), blur(val)
+    fill = hole & (k > 0)
+    val[fill] = v[fill] / k[fill][:, None]
+    known = np.where(fill, 1.0, known)
+plate[hole] = val[hole]
+for y in range(96, CLEAN):                                         # and the stands' lights behind it
+    for x in np.nonzero(hole[y] & (rng.random(W) < 0.02))[0]:
+        disc(plate, x, y, rng.uniform(1.0, 2.2), lights[rng.integers(len(lights))] * 0.8)
+plate = np.clip(plate, 0, 255)
+
+art = paint(plate)
 Image.fromarray(art).save(os.path.join(out, 'stage.png'), optimize=True)
 
 sheet, meta, sy = [], [], 0
@@ -247,22 +307,26 @@ rgb = np.where(front[:, :, None], lerp(art.astype(float), puff, (lev * 0.55)[:, 
 a_ = np.where(front, 255, lev * 200)
 Image.fromarray(np.dstack([rgb * (a_ > 0)[:, :, None], a_]).astype(np.uint8)).save(os.path.join(out, 'stage-front.png'), optimize=True)
 
-# ---- the puma: the dark shape grown out from the middle of its back, plus the bass's neck ----
-full = paint(pre)
-dark = lum(pre) < 34
-seed = (round(400 / SCALE), round(610 / SCALE) + L)
-mask = np.zeros((H, W), bool); mask[seed] = True
-q = deque([seed])
-while q:
-    y, x = q.popleft()
-    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-        ny, nx = y + dy, x + dx
-        if 0 <= ny < H and 0 <= nx < W and not mask[ny, nx] and dark[ny, nx]:
-            mask[ny, nx] = True; q.append((ny, nx))
-box = (yy >= round(350 / SCALE)) & (yy < round(500 / SCALE)) & (xx >= round(340 / SCALE) + L) & (xx < round(535 / SCALE) + L)
-line = np.abs((yy - 375 / SCALE) - (xx - (350 / SCALE + L)) * ((490 - 375) / (530 - 350))) < 12 / SCALE
-keep = (mask | (box & line & (lum(pre) < 150)))[:, :, None]
-Image.fromarray(np.dstack([full * keep, keep[:, :, 0] * 255]).astype(np.uint8)).save(os.path.join(out, 'stage-puma.png'), optimize=True)
+# ---- the puma in parts, to move: its legs stand still; its body (with the bass) bobs on the beat
+# from the waist up; its head nods from the neck up; its tail, nearest the camera, swings, drawn
+# by the page along this line (painting.js). The tail here is taken out of the legs, except where
+# it crosses in front of a leg: the leg goes on behind it. ----
+NECK, WAIST = 99, 212
+TAIL = [(333, 210), (333, 225), (333, 240), (331, 252), (326, 262), (318, 268), (305, 272), (292, 272), (283, 268), (279, 261), (280, 253)]
+TAIL_W = [6.5] * len(TAIL)                                       # half its width: a puma's tail is thick to the end, and round there
+near = np.zeros((H, W), bool)
+for (x0, y0), (x1, y1), w in zip(TAIL, TAIL[1:], TAIL_W):
+    near |= seg(xx + 0.5, yy + 0.5, (x0, y0), (x1, y1), w + 1.5)
+legs_in = poly([(300, 212), (327, 212), (326, 219), (320, 231), (315, 243), (309, 255), (307, 261), (307, 277), (286, 277), (287, 270), (288, 261), (292, 250), (296, 240), (298, 231)]) \
+    | poly([(341, 212), (390, 212), (381, 219), (377, 240), (380, 255), (384, 277), (362, 277), (360, 252), (355, 240), (349, 225)])
+tail = near & ~legs_in & (yy >= WAIST)
+head = puma & (yy < NECK)
+parts = {'stage-puma.png': puma & (yy >= WAIST) & ~tail, 'stage-puma-body.png': puma & (yy < WAIST) & ~head, 'stage-puma-head.png': head}
+for name, m in parts.items():
+    Image.fromarray(np.dstack([full * m[:, :, None], m * 255]).astype(np.uint8)).save(os.path.join(out, name), optimize=True)
+colour = np.median(full[puma & ~grow(~puma, 2)], axis=0).astype(int)
+with open(os.path.join(out, 'stage-puma.json'), 'w') as f:
+    json.dump({'tail': TAIL, 'width': TAIL_W, 'colour': '#%02x%02x%02x' % tuple(colour)}, f, separators=(',', ':'))
 
 # ---- the haze: soft lilac noise, tiling across, thickest at the bottom, its edge dithered ----
 HH = 72

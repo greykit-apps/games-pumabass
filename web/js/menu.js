@@ -111,8 +111,18 @@ export function showTitle({ intro = false } = {}) {
   $('library').classList.add('hidden');
   $('player').classList.add('hidden');
   title = mountTitle($('title-host'), titleCfg());
+  dressPass($('title-host').querySelector('.gk-title'));
   if (!intro) { titleSwitches = integrateTitle(); startTheme(); } // the intro starts it as the title comes up
   return title;
+}
+/* The menu as a backstage pass (style.css): its lanyard and clip, its ALL ACCESS header and its bearer
+ * line, printed round the canon's menu. Decoration only: the buttons and keys are the canon's. */
+function dressPass(el) {
+  const nav = el && el.querySelector('.gk-menu');
+  if (!nav) return;
+  nav.insertAdjacentHTML('afterbegin', '<div class="pb-lanyard" aria-hidden="true"></div><div class="pb-clip" aria-hidden="true"></div>' +
+    '<div class="pb-pass-hd" aria-hidden="true"><b>All access</b><small>Stage<i>PB 26</i></small></div>');
+  nav.insertAdjacentHTML('beforeend', '<div class="pb-pass-ft" aria-hidden="true"><span>Bearer: bass player</span><span class="pb-bars"></span></div>');
 }
 /* The credit under the menu, the Music and Sound switches top right and the ticks (gk-intro.js: gkIntegrate). A
  * row's tick is its note on the way down the menu: which row comes first, then the tick. */
