@@ -29,7 +29,8 @@ look, and [`DETECTION.md`](DETECTION.md) what Rocksmith 2014's own files say abo
 - `web/js/input.js`, `web/js/tuner.js`, `web/js/pitch.js`: the instrument input, the tuner, and its
   pitch detection
 - `web/js/scoring.js`, `web/js/capture-worklet.js`: scoring, and the input recorded for it
-- `web/js/title.js`: the canon boot and title screen; `scene.js` is its stage backdrop; `help.js` holds Help and About
+- `web/js/title.js`: the canon boot and title screen; `painting.js` plays its backdrop (the painting in `web/art/`);
+  `scene.js` is the song list's and end screen's stage; `help.js` holds Help and About
 - `server/psarc.js`, `server/sng.js`: read Rocksmith `.psarc` archives and `.sng` charts
 - `server/library.js`: finds songs in any folder (PC or Mac), song index, chart conversion (with the song's
   lyrics, from the vocals arrangement beside it in the archive), audio lookup and decoding
@@ -147,8 +148,8 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
   plucked on an upright bass (all four strings in one roll of the thumb, a plucked-string model
   through the wood's resonance), synthesized, struck as the logo pulses. On a cold load the browser keeps the boot silent, so the press
   that continues strikes it instead. Then the hold, the crossing, the name a line at a time, the menu,
-  and the credit under it. The scene is the stage, playing a riff written for it silently
-  (`scene.js`: `RIFF`, made to show off the highway rather than taken from a song). **No title music**, by choice: you come to the title on your way to a song of your own.
+  and the credit under it. The scene is a painting, playing silently: its lights on the beat, its
+  crowd bobbing (`painting.js`; the painting itself is below). **No title music**, by choice: you come to the title on your way to a song of your own.
   So the title has one switch, Sound (top right, `M` on the title), for its chime and its ticks (a pick
   on a muted string, climbing the A minor pentatonic down the menu); it is saved in the prefs
   (`titleSound`) and touches nothing else. `?hold=always` shows the hold.
@@ -200,6 +201,21 @@ bash tools/render-icons.sh
 
 That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.png` and
 `apple-touch-icon.png`. It needs headless Chrome or Edge and Python with Pillow.
+
+## The title's painting
+
+`web/art/` is made from a picture (the puma on stage from behind, facing the crowd), which isn't in the
+repo; keep it with the project's references:
+
+```bash
+python3 tools/make-stage-art.py ~/Claude/references/pumabass.png
+```
+
+It turns the picture into hi-bit pixel art (a third of its size, 64 colours, ordered dither), paints in a
+third more arena on the left (where the title's menu stands), paints out the picture's crowd and draws a
+crowd of animals in its place, and cuts out the puma, the stage front and a strip of haze, each a layer
+`painting.js` draws and plays. It's seeded, so the same picture always gives the same painting. It needs
+Python with Pillow and numpy.
 
 ## Settings file and options
 

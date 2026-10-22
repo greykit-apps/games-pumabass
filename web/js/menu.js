@@ -3,7 +3,7 @@
 import { formatTime } from './chart.js';
 import { mountTitle, alertSheet, confirmSheet, gkIntegrate } from './title.js';
 import { toggles, tick } from './title-sound.js';
-import { mountScene } from './scene.js';
+import { mountPainting } from './painting.js';
 import { HELP, ABOUT, MAKE } from './help.js';
 import { api, WEB, notInDemo } from './api.js';
 import { $, highway, esc, fmtMs, songs, ownSongs, info, setScreen } from './core.js';
@@ -47,7 +47,7 @@ export function titleCfg() {
       { act: 'about', label: 'About', key: 'A' },
     ],
     primary: rs ? 'resume' : 'new',
-    scene: el => mountScene(el, 'pb-beam', { live: true }),
+    scene: el => mountPainting(el),
     help: HELP,
     about: ABOUT,
     settings: { html: settingsHTML, onClick: settingsClick },
