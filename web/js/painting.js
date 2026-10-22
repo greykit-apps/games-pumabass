@@ -1,12 +1,14 @@
 // The title's backdrop: a pixel-art painting of the puma on stage from behind, bass slung, facing
 // a crowd of animals and their lights (web/art/, made by tools/make-stage-art.py). Drawn at its own
-// size into a canvas the page scales up square-pixelled, and played: the stage lights pulse on the
-// beat, the crowd bobs to it row by row, the lights in the stands twinkle, the phones held up glint
-// and the lighters flicker, and haze drifts along the front of the stage behind the puma. No sound;
-// still under reduced motion, and held while a sheet is up.
+// size into a canvas the page scales up square-pixelled, and played to the theme (title-sound.js):
+// the stage lights pulse on its beat, the crowd bobs to it row by row, the lights in the stands twinkle, the phones held up glint
+// and the lighters flicker, and haze drifts along the front of the stage behind the puma. With the
+// theme not playing (not yet, or no sound), it keeps the theme's time by itself. Still under
+// reduced motion, and held while a sheet is up.
+
+import { themeBeats, themeBeat } from './title-sound.js';
 
 const ART = name => new URL(`../art/${name}`, import.meta.url).href;
-const BPM = 116, BEAT = 60 / BPM;
 const PULSE = 0.18;                      // seconds a beat's light takes to die away
 const BOB = 0.16;                        // seconds a row of the crowd stays up on its beat
 
@@ -78,7 +80,8 @@ function play(cv, art, still) {
       }
     }
     // The rig's lights pulse on every beat (the bar's first hardest), and breathe slowly between.
-    const n = Math.floor(t / BEAT), into = t - n * BEAT;
+    const beat = themeBeat(), heard = themeBeats(), at = heard === null ? t / beat : heard;
+    const n = Math.floor(at), into = (at - n) * beat;
     const pulse = (n % 4 === 0 ? 1 : 0.6) * Math.exp(-into / PULSE);
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.08 + 0.06 * Math.sin(t * 0.7) + 0.3 * pulse;

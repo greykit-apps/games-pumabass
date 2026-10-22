@@ -7,6 +7,7 @@ import { openTuner, tuningTargets, tuningKey } from './tuner.js';
 import { RECORDED_BASS } from './mixer.js';
 import { $, mixer, input, esc, screen, songs } from './core.js';
 import { title, showTitle, leaveTitle } from './menu.js';
+import { hushTheme } from './title-sound.js';
 import { chart, song, startScoring, syncPlayerPrefs } from './player.js';
 import { KEY_RESUME, KEY_TUNER, load, save, prefs, savePrefs } from './store.js';
 
@@ -161,11 +162,12 @@ export async function showTuner() {
   if (document.querySelector('.gk-sheet')) return;
   if (!(await ensureInput())) return;
   const c = tunerContext();
+  hushTheme(true); // the title's theme, if it's playing: the tuner wants quiet
   const result = await openTuner({
     input, label: c.label, centOffset: c.centOffset, hear,
     targets: tuningTargets(c.tuning, c.strings, c.centOffset),
     onInput: async () => { input.close(); if (await chooseInput()) showTuner(); },
-  });
+  }).finally(() => hushTheme(false));
   save(KEY_TUNER, { day: today(), tuning: tuningKey(c.tuning, c.strings, c.centOffset) });
   return result;
 }

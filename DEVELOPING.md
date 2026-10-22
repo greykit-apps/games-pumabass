@@ -148,11 +148,14 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
   plucked on an upright bass (all four strings in one roll of the thumb, a plucked-string model
   through the wood's resonance), synthesized, struck as the logo pulses. On a cold load the browser keeps the boot silent, so the press
   that continues strikes it instead. Then the hold, the crossing, the name a line at a time, the menu,
-  and the credit under it. The scene is a painting, playing silently: its lights on the beat, its
-  crowd bobbing (`painting.js`; the painting itself is below). **No title music**, by choice: you come to the title on your way to a song of your own.
-  So the title has one switch, Sound (top right, `M` on the title), for its chime and its ticks (a pick
-  on a muted string, climbing the A minor pentatonic down the menu); it is saved in the prefs
-  (`titleSound`) and touches nothing else. `?hold=always` shows the hold.
+  and the credit under it, and the **theme** starts: a bass groove played live, looping under the
+  title (`title-sound.js`; the loop itself is below). The scene is a painting playing to it: its
+  lights on the theme's beat, its crowd bobbing (`painting.js`; the painting is below too). The theme
+  fades out when the title goes, and goes quiet while the tuner is up. The title has two switches
+  top right: Sound (`M` on the title), the master, for the chime, the ticks (a pick on a muted
+  string, climbing the A minor pentatonic down the menu) and the theme; and Music, the theme alone.
+  They're saved in the prefs (`titleSound`, `titleMusic`) and touch nothing else. `?hold=always`
+  shows the hold.
 
 The deliberate gap: from the title on, PumaBass has its own look rather than the Tactical one: heavy condensed caps (Saira Condensed,
 leaning), glossy navy tiles, and a cyan selection bar for whatever you're on, in the greykit palette.
@@ -216,6 +219,21 @@ third more arena on the left (where the title's menu stands), paints out the pic
 crowd of animals in its place, and cuts out the puma, the stage front and a strip of haze, each a layer
 `painting.js` draws and plays. It's seeded, so the same picture always gives the same painting. It needs
 Python with Pillow and numpy.
+
+## The title's theme
+
+`web/audio/theme.m4a` is made from a recording of a bass groove, played live, which isn't in the repo
+either:
+
+```bash
+python3 tools/make-theme.py ~/Claude/references/"Bass Groove Live.m4a"
+```
+
+It finds the beats (the take holds 111.8 BPM within 15 ms), takes twelve bars from the first downbeat
+(where the groove comes back round to its opening), folds the moment after the twelfth bar into the
+first so the join doesn't click, and writes it as AAC, with `theme.json` (its beat and how many) for
+the painting. `title-sound.js` loops it with Web Audio, which goes round without a gap. It needs
+ffmpeg, and Python with numpy.
 
 ## Settings file and options
 

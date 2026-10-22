@@ -14,7 +14,7 @@
 //   wake.js            keeping the screen on while PumaBass is open
 
 import { startIntro, injectTitleCSS, alertSheet } from './title.js';
-import { titleAudio, bootChime, chimeOnce } from './title-sound.js';
+import { titleAudio, bootChime, chimeOnce, startTheme } from './title-sound.js';
 import { mountScene } from './scene.js';
 import { SERVER_API, SERVER_OLD, WEB } from './api.js';
 import { $, mixer, highway, input, screen, songs, ownSongs, info } from './core.js';
@@ -113,7 +113,7 @@ window.pumabassDebug = { useInput: stream => { input.useStream(stream); applyMix
 
 /* ---- start: the integrated intro (games-meta STANDARD.md §14). The boot plays, with its
  * chime, while the song index loads; it holds for a press when the browser wants one before
- * sound can play; then the title fades up over the stage. No title music (title-sound.js). ---- */
+ * sound can play; then the title fades up over its painting, and the theme starts (title-sound.js). ---- */
 applyScreen();
 keepScreenOn();
 injectTitleCSS();
@@ -140,6 +140,7 @@ loadLibrary().catch(e => { startProblem = e.message; }).then(() => {
     // A cold load boots in silence (the browser holds sound back until the page is touched):
     // the press that continues strikes the chime instead.
     onContinue: chimeOnce,
+    onTitle: startTheme,
   });
 }).then(async () => {
   if (startProblem) await alertSheet(startProblem, 'PumaBass needs a restart');

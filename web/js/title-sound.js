@@ -1,13 +1,14 @@
 // The title's sound (games-meta STANDARD.md §14, the integrated intro, as PumaBass takes it):
-// the chime the boot plays and the menu's tick. No title music, on purpose: you come to the
-// title on the way to a song you want to play, and a tune of its own every time would wear
-// thin (owner's decision, 2026-10-21). It plays in the mixer's AudioContext but beside the
-// mixer, not through it: the Mix's levels are for songs.
+// the chime the boot plays, the menu's tick, and the theme, a bass groove played live, going
+// round under the title for as long as it's up (owner's decision, 2026-10-22). It plays in the
+// mixer's AudioContext but beside the mixer, not through it: the Mix's levels are for songs.
 //
-//   chime, ticks -> effects -> Sound (the title's switch) -> speakers
+//   chime, ticks -> effects ------------------------------> Sound -> speakers
+//   theme -> its fades (in, out, hushed for the tuner) -> Music ----^
 //
-// Sound is the title's one switch, top right, and M on the title; it is only the title's: a
-// song always plays (Settings has no mute, and M while playing is the Mix).
+// Sound (top right, and M on the title) is the master; Music, beside it, is the theme alone.
+// Both are only the title's: a song always plays (Settings has no mute, and M while playing
+// is the Mix).
 
 import { mixer } from './core.js';
 import { prefs, savePrefs } from './store.js';
@@ -17,6 +18,10 @@ const master = ac.createGain(), fx = ac.createGain();
 fx.connect(master);
 master.connect(ac.destination);
 master.gain.value = prefs.titleSound === false ? 0 : 1;
+const music = ac.createGain(), level = ac.createGain();
+level.gain.value = 0;
+level.connect(music).connect(master);
+music.gain.value = prefs.titleMusic === false ? 0 : 1;
 
 export const titleAudio = () => ac;
 
@@ -143,8 +148,65 @@ export function tick(row = 0) {
   o.stop(t + 0.13);
 }
 
+/* ---- the theme ----
+ * Twelve bars of bass groove, 48 beats at 111.8 BPM, made into a seamless loop from a live take
+ * (tools/make-theme.py). It starts as the title comes up, fades out as the title goes (and
+ * carries on, if the title comes straight back), and goes quiet while the tuner is up. Its
+ * beat is the painting's (themeBeats). */
+const AUDIO = name => new URL(`../audio/${name}`, import.meta.url).href;
+let theme = null;
+const themeReady = Promise.all([
+  fetch(AUDIO('theme.m4a')).then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)),
+  fetch(AUDIO('theme.json')).then(r => r.json()),
+]).then(([buffer, m]) => (theme = { buffer, ...m }), () => null);
+let src = null, startedAt = 0, wanted = false, hushed = false, ending = 0;
+const fade = (to, tc) => { level.gain.cancelScheduledValues(ac.currentTime); level.gain.setTargetAtTime(to, ac.currentTime, tc); };
+
+/** The title is up: the theme from its top (or on, if it's still fading out). */
+export function startTheme() {
+  wanted = true;
+  clearTimeout(ending);
+  themeReady.then(() => {
+    if (!theme || !wanted) return;
+    if (!src) {
+      src = ac.createBufferSource();
+      src.buffer = theme.buffer;
+      src.loop = true;
+      src.loopEnd = theme.beat * theme.beats;
+      src.connect(level);
+      startedAt = ac.currentTime + 0.05;          // a context held back till the press starts it then
+      src.start(startedAt);
+    }
+    fade(hushed ? 0 : 1, 0.25);
+  });
+}
+/** The title has gone: the theme fades out, and stops once it has. */
+export function stopTheme() {
+  wanted = false;
+  fade(0, 0.2);
+  clearTimeout(ending);
+  ending = setTimeout(() => { if (src && !wanted) { src.stop(); src.disconnect(); src = null; } }, 1200);
+}
+/** Quiet while the tuner listens, and back after. */
+export function hushTheme(on) {
+  hushed = on;
+  if (src && wanted) fade(on ? 0 : 1, on ? 0.08 : 0.4);
+}
+/** Where the theme is in its beats, as heard (the output's delay taken off), or null when it isn't
+ * playing; and its beat, in seconds. */
+export function themeBeats() {
+  if (!src || !theme || ac.state !== 'running') return null;
+  const heard = ac.currentTime - (ac.outputLatency || ac.baseLatency || 0) - startedAt;
+  return heard < 0 ? null : (heard / theme.beat) % theme.beats;
+}
+export const themeBeat = () => (theme ? theme.beat : 60 / 111.78);
+
 /* ---- the switches (gkToggles) ---- */
 export const toggles = {
+  music: {
+    get: () => prefs.titleMusic !== false,
+    set: on => { prefs.titleMusic = on; savePrefs(); music.gain.setTargetAtTime(on ? 1 : 0, ac.currentTime, 0.05); },
+  },
   sound: {
     get: () => prefs.titleSound !== false,
     set: on => { prefs.titleSound = on; savePrefs(); master.gain.setTargetAtTime(on ? 1 : 0, ac.currentTime, 0.02); },
