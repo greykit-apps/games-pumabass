@@ -143,7 +143,7 @@ PumaBass follows games-meta's `STANDARD.md` for Tactical games:
 - §11 no native dialogs;
 - §14 the integrated intro: `web/js/title.js` also carries `canon/gk-intro.js` (v0.3), whose copy differs
   from canon's in one place, an empty `@gk-meow` block. The boot plays a **chime** instead of the meow
-  (`web/js/title-sound.js`): the Macintosh's startup chord, C major spread wide with a high E on top,
+  (`web/js/title-sound.js`): the Macintosh's startup chord, F-sharp major spread wide with a high A-sharp on top,
   synthesized, struck as the logo pulses. On a cold load the browser keeps the boot silent, so the press
   that continues strikes it instead. Then the hold, the crossing, the name a line at a time, the menu,
   and the credit under it. The scene is the stage, playing a riff written for it silently

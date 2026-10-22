@@ -21,13 +21,14 @@ master.gain.value = prefs.titleSound === false ? 0 : 1;
 export const titleAudio = () => ac;
 
 /* ---- the chime ----
- * The Macintosh's startup chime as Jim Reekes made it for the Quadra (1991): a C major chord
- * spread wide, with a high E in the top voice, struck, swelling a moment and ringing away. He
- * named the Beatles' "A Day in the Life" as where it came from: the long chord that ends it.
+ * The Macintosh's startup chime: an F-sharp major chord, as the later Macs played it. Jim
+ * Reekes's first, for the Quadra (1991), was C major spread wide with a high E on top, after
+ * the long chord that ends the Beatles' "A Day in the Life"; this is that voicing a tritone up,
+ * a high A-sharp on top. Struck, swelling a moment and ringing away.
  * Synthesized, so nothing is fetched: per voice two slightly detuned oscillators of a few
  * harmonics, through a lowpass that opens on the strike and closes as it rings, into a
  * short room. */
-const CHORD = [65.41, 98.0, 130.81, 196.0, 261.63, 329.63, 392.0, 523.25, 659.26]; // C2 G2 C3 G3 C4 E4 G4 C5 E5
+const CHORD = [92.5, 138.59, 185.0, 277.18, 369.99, 466.16, 554.37, 739.99, 932.33]; // F#2 C#3 F#3 C#4 F#4 A#4 C#5 F#5 A#5
 let chimeWave = null, room = null;
 function chimeRoom() {
   if (room) return room;
