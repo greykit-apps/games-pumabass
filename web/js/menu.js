@@ -2,7 +2,7 @@
 
 import { formatTime } from './chart.js';
 import { mountTitle, alertSheet, confirmSheet, gkIntegrate } from './title.js';
-import { toggles, tick } from './title-sound.js';
+import { toggles, tick, startTheme, stopTheme } from './title-sound.js';
 import { mountPainting } from './painting.js';
 import { HELP, ABOUT, MAKE } from './help.js';
 import { api, WEB, notInDemo } from './api.js';
@@ -111,10 +111,10 @@ export function showTitle({ intro = false } = {}) {
   $('library').classList.add('hidden');
   $('player').classList.add('hidden');
   title = mountTitle($('title-host'), titleCfg());
-  if (!intro) titleSwitches = integrateTitle();
+  if (!intro) { titleSwitches = integrateTitle(); startTheme(); } // the intro starts it as the title comes up
   return title;
 }
-/* The credit under the menu, the Sound switch top right and the ticks (gk-intro.js: gkIntegrate). A
+/* The credit under the menu, the Music and Sound switches top right and the ticks (gk-intro.js: gkIntegrate). A
  * row's tick is its note on the way down the menu: which row comes first, then the tick. */
 export function integrateTitle() {
   const el = $('title-host').querySelector('.gk-title');
@@ -135,6 +135,7 @@ export function titleSoundKey() {
 }
 export function setTitleSwitches(sw) { titleSwitches = sw; }
 export function leaveTitle() {
+  stopTheme();
   if (title) title.unmount();
   title = null;
   $('title-host').innerHTML = '';
