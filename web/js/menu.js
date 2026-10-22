@@ -1,7 +1,8 @@
 // The title screen, its Settings sheet, and Help.
 
 import { formatTime } from './chart.js';
-import { mountTitle, alertSheet, confirmSheet } from './title.js';
+import { mountTitle, alertSheet, confirmSheet, gkIntegrate } from './title.js';
+import { toggles, tick } from './title-sound.js';
 import { mountScene } from './scene.js';
 import { HELP, ABOUT, MAKE } from './help.js';
 import { api, WEB, notInDemo } from './api.js';
@@ -33,6 +34,7 @@ export function titleCfg() {
   const parts = playableParts().length;
   return {
     name: 'PumaBass',
+    lines: ['Puma', 'Bass'],
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'demo' : 'demo library' },
@@ -101,23 +103,37 @@ async function quitGame() {
   window.close();
 }
 
-export function showTitle() {
+/* The title. The first time, the intro (app.js) brings it in, with its switch and ticks;
+ * coming back to it, they come with it here. */
+export let titleSwitches = null; // the Sound switch's { refresh() }
+export function showTitle({ intro = false } = {}) {
   setScreen('title');
   $('library').classList.add('hidden');
   $('player').classList.add('hidden');
   title = mountTitle($('title-host'), titleCfg());
-  colorName($('title-host').querySelector('h1'));
+  if (!intro) titleSwitches = integrateTitle();
   return title;
 }
-/* The name in the wordmark's colors, BASS in the accent like the player's
- * corner. The canon writes the h1 as plain text and its decode ends by writing
- * it again, so the colors go in whenever it settles on the bare name. */
-function colorName(h1) {
-  if (!h1) return;
-  const paint = () => { if (h1.textContent === 'PumaBass' && !h1.firstElementChild) h1.innerHTML = 'Puma<b>Bass</b>'; };
-  paint();
-  new MutationObserver(paint).observe(h1, { childList: true });
+/* The credit under the menu, the Sound switch top right and the ticks (gk-intro.js: gkIntegrate). A
+ * row's tick is its note on the way down the menu: which row comes first, then the tick. */
+export function integrateTitle() {
+  const el = $('title-host').querySelector('.gk-title');
+  let row = 0;
+  const which = ev => {
+    const b = ev.target.closest && ev.target.closest('.gk-menu button');
+    if (b) row = [...el.querySelectorAll('.gk-menu button')].indexOf(b);
+    else if (ev.target.closest && ev.target.closest('.gki-tg')) row = 7;
+  };
+  el.addEventListener('pointerover', which);
+  el.addEventListener('focusin', which);
+  return gkIntegrate(el, { toggles, tick: () => tick(row) });
 }
+/* M on the title: the title's sound on or off (its switch shows the key). */
+export function titleSoundKey() {
+  toggles.sound.set(!toggles.sound.get());
+  if (titleSwitches) titleSwitches.refresh();
+}
+export function setTitleSwitches(sw) { titleSwitches = sw; }
 export function leaveTitle() {
   if (title) title.unmount();
   title = null;
