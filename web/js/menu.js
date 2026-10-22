@@ -35,7 +35,6 @@ export function titleCfg() {
   return {
     name: 'PumaBass',
     lines: ['Puma', 'Bass'],
-    sub: 'A note highway for bass',
     items: [
       rs && { act: 'resume', label: 'Resume game', key: 'R', meta: `${rs.title} · ${formatTime(resume.t)}` },
       { act: 'new', label: 'Learn a song', key: 'N', meta: ownSongs().length ? partsLabel(parts) : WEB ? 'demo' : 'demo library' },
