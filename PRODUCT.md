@@ -64,7 +64,7 @@ CustomsForge, then Rocksmith 2014's own, last. Not affiliated with Ubisoft.
 
 - The name is PumaBass; the wordmark sets "Puma" plain and "Bass" in the accent.
 - Part of the greykit.games portfolio (Tactical tribe). The greykit boot, with its mark, stays as the
-  studio ident before the game, with a chime of its own (the Macintosh's F-sharp major chord) where the
+  studio ident before the game, with a chime of its own (the Macintosh's two startup chords, C major then F-sharp major, as chiptune) where the
   canon has the meow, and `web/js/title.js` keeps games-meta's canon (the title block byte for byte);
   from the title screen on, PumaBass has its own look, and the title has no music. The credit "Built by greykit.com" stays on the title
   and in About.

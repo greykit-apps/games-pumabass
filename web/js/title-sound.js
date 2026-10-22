@@ -21,66 +21,72 @@ master.gain.value = prefs.titleSound === false ? 0 : 1;
 export const titleAudio = () => ac;
 
 /* ---- the chime ----
- * The Macintosh's startup chime: an F-sharp major chord, as the later Macs played it. Jim
- * Reekes's first, for the Quadra (1991), was C major spread wide with a high E on top, after
- * the long chord that ends the Beatles' "A Day in the Life"; this is that voicing a tritone up,
- * a high A-sharp on top. Struck, swelling a moment and ringing away.
- * Synthesized, so nothing is fetched: per voice two slightly detuned oscillators of a few
- * harmonics, through a lowpass that opens on the strike and closes as it rings, into a
- * short room. */
-const CHORD = [92.5, 138.59, 185.0, 277.18, 369.99, 466.16, 554.37, 739.99, 932.33]; // F#2 C#3 F#3 C#4 F#4 A#4 C#5 F#5 A#5
-let chimeWave = null, room = null;
-function chimeRoom() {
-  if (room) return room;
-  // A small hall: 2.4 s of noise falling away, a little brighter at the start.
-  const len = Math.round(ac.sampleRate * 2.4), ir = ac.createBuffer(2, len, ac.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = ir.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
-  }
-  room = ac.createConvolver();
-  room.buffer = ir;
-  const wet = ac.createGain();
-  wet.gain.value = 0.32;
-  room.connect(wet).connect(fx);
-  return room;
+ * Both of the Macintosh's startup chords, one after the other: C major with a high E on top, as
+ * Jim Reekes made it for the Quadra (1991) after the long chord that ends the Beatles' "A Day in
+ * the Life", then F-sharp major, as the later Macs played it. Played as chiptune, on the three
+ * voices of an 8-bit console, each changing note as a chip's channel does: a pulse picks up G
+ * and C and lands on the high E as the logo pulses, steps up to F-sharp and holds it with a
+ * vibrato; a second pulse plays each chord the chiptune way, arpeggiated a couple of frames a
+ * note, too fast to hear as notes; and the triangle holds the root underneath. Every volume
+ * falls in sixteen steps, as those chips' did. Synthesized, so nothing is fetched, and dry:
+ * those machines had no room. */
+const N = { C3: 130.81, Fs3: 185.0, G4: 392.0, C4: 261.63, E4: 329.63, Fs4: 369.99, As4: 466.16, C5: 523.25, Cs5: 554.37, E5: 659.26, Fs5: 739.99 };
+const CHORDS = [
+  { lead: N.E5, arp: [N.C4, N.E4, N.G4, N.C5], bass: N.C3 },      // C major
+  { lead: N.Fs5, arp: [N.Fs4, N.As4, N.Cs5, N.Fs5], bass: N.Fs3 }, // F-sharp major
+];
+const FRAME = 1 / 60, NEXT = 0.4, RING = 2; // seconds to the second chord, and its ring
+const pulses = {};
+// A pulse wave of the given duty (0.125, 0.25, 0.5), as the chips' square channels made them.
+function pulse(duty) {
+  if (pulses[duty]) return pulses[duty];
+  const n = 64, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k = 1; k < n; k++) { re[k] = Math.sin(2 * Math.PI * k * duty) / (k * Math.PI); im[k] = (1 - Math.cos(2 * Math.PI * k * duty)) / (k * Math.PI); }
+  return (pulses[duty] = ac.createPeriodicWave(re, im));
+}
+// One voice: full at t0, a step down on the first chord, then from `fall` to nothing in sixteen
+// steps over RING seconds.
+function voice(wave, t0, peak, at, fall) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  if (wave === 'triangle') o.type = 'triangle'; else o.setPeriodicWave(pulse(wave));
+  g.gain.setValueAtTime(peak, t0);
+  g.gain.setValueAtTime(peak * 0.8, at + NEXT / 2);
+  for (let k = 0; k <= 15; k++) g.gain.setValueAtTime(peak * (15 - k) / 15, fall + (RING * k) / 15);
+  o.connect(g).connect(fx);
+  o.start(t0);
+  o.stop(fall + RING + 0.05);
+  return o;
 }
 
-/** Strike the chime at `at` (the context's time), into the title's effects. */
+/** Strike the chime at `at` (the context's time), into the title's effects: the high E lands
+ * then, its pickup a moment before, and the F-sharp chord NEXT seconds after. */
 export function chime(at = null) {
   // Struck inside the press that lets sound play, the context may be a moment from running.
   if (ac.state !== 'running') { if (at === null) ac.resume().then(() => { if (ac.state === 'running') chime(); }, () => {}); return; }
-  if (at === null) at = ac.currentTime + 0.02;
-  if (!chimeWave) chimeWave = ac.createPeriodicWave(new Float32Array([0, 0, 0, 0, 0, 0]), new Float32Array([0, 1, 0.42, 0.2, 0.09, 0.04]));
-  const bus = ac.createGain(), lp = ac.createBiquadFilter();
-  lp.type = 'lowpass';
-  lp.Q.value = 0.4;
-  lp.frequency.setValueAtTime(900, at);
-  lp.frequency.exponentialRampToValueAtTime(5200, at + 0.05);
-  lp.frequency.exponentialRampToValueAtTime(1400, at + 2.6);
-  bus.gain.value = 0.55;
-  lp.connect(bus);
-  bus.connect(fx);
-  bus.connect(chimeRoom());
-  CHORD.forEach((f, i) => {
-    // The low voices carry the weight, the top E rings out over them.
-    const level = (i < 2 ? 0.07 : 0.05) * (i === CHORD.length - 1 ? 1.3 : 1);
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, at);
-    g.gain.linearRampToValueAtTime(level, at + 0.012);
-    g.gain.setTargetAtTime(level * 0.7, at + 0.012, 0.12);
-    g.gain.setTargetAtTime(0, at + 0.5, 0.9 + (CHORD.length - i) * 0.06); // the low notes ring longest
-    g.connect(lp);
-    for (const cents of [-4, 4]) {
-      const o = ac.createOscillator();
-      o.setPeriodicWave(chimeWave);
-      o.frequency.value = f;
-      o.detune.value = cents;
-      o.connect(g);
-      o.start(at);
-      o.stop(at + 6);
-    }
-  });
+  if (at === null) at = ac.currentTime + 0.12;
+  const pick = Math.max(ac.currentTime + 0.01, at - 6 * FRAME), at2 = at + NEXT;
+  // Pulse 1 (25%): the pickup, G4 then C5, three frames each, onto the high E; then up to the
+  // F-sharp, held and wavering.
+  const lead = voice(0.25, pick, 0.075, at, at2);
+  lead.frequency.setValueAtTime(N.G4, pick);
+  lead.frequency.setValueAtTime(N.C5, pick + 3 * FRAME);
+  CHORDS.forEach((c, i) => lead.frequency.setValueAtTime(c.lead, i ? at2 : at));
+  const lfo = ac.createOscillator(), depth = ac.createGain();
+  lfo.frequency.value = 6;
+  depth.gain.setValueAtTime(0, at);
+  depth.gain.setValueAtTime(18, at2 + 0.3); // cents, once the last note has sounded plain
+  lfo.connect(depth).connect(lead.detune);
+  lfo.start(at);
+  lfo.stop(at2 + RING + 0.1);
+  // Pulse 2 (12.5%): each chord round and round, two frames a note.
+  const arp = voice(0.125, at, 0.06, at, at2);
+  for (let k = 0; at + k * 2 * FRAME < at2 + RING; k++) {
+    const t = at + k * 2 * FRAME, c = CHORDS[t < at2 ? 0 : 1];
+    arp.frequency.setValueAtTime(c.arp[k % 4], t);
+  }
+  // The triangle: each chord's root underneath.
+  const bass = voice('triangle', at, 0.2, at, at2);
+  CHORDS.forEach((c, i) => bass.frequency.setValueAtTime(c.bass, i ? at2 : at));
 }
 
 /* When canon's logo pulses (gk-intro.js: it glints from 1.15 s to GK_LOGO_END, 1.85 s). */
