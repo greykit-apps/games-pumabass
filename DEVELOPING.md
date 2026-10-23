@@ -208,10 +208,10 @@ That writes the favicons here and runs greykit-meta's `make-assets.sh` for `og.p
 ## The title's painting
 
 `web/art/` is made from a picture (the puma on stage from behind, facing the crowd), which isn't in the
-repo; keep it with the project's references:
+repo:
 
 ```bash
-python3 tools/make-stage-art.py ~/Claude/references/pumabass.png
+python3 tools/make-stage-art.py path/to/stage.png
 ```
 
 It turns the picture into hi-bit pixel art (a third of its size, 64 colours, ordered dither), paints in a
@@ -227,7 +227,7 @@ Python with Pillow and numpy.
 either:
 
 ```bash
-python3 tools/make-theme.py ~/Claude/references/"Bass Groove Live.m4a"
+python3 tools/make-theme.py path/to/groove.m4a
 ```
 
 It finds the beats (the take holds 111.8 BPM within 15 ms), takes twelve bars from the first downbeat

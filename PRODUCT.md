@@ -13,9 +13,8 @@ themselves first, then downloads from CustomsForge, and Rocksmith 2014 songs the
 from the sofa, about three metres away, bass in hand, with a keyboard (often one hand free at best)
 and the bass plugged into a Real Tone Cable. "Computer, up close" is the second setting.
 
-The first player is the developer, on a Linux set-top PC under the TV; the product is meant, in time,
-for other players running it on their own PCs and TVs, so a stranger's first visit (no songs
-folder chosen, no cable picked, no favorites) has to work as well as the developer's hundredth.
+It is meant for players running it on their own PCs and TVs, so a stranger's first visit (no songs
+folder chosen, no cable picked, no favorites) has to work as well as a regular's hundredth.
 
 ## Product Purpose
 
