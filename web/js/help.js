@@ -17,12 +17,12 @@ const LINKS = {
 
 export const HELP = [
   ['Playing', cols(`
-<p><b>Learn a song</b>, pick one, and play each note as it lands on its string. <b>Score a song</b> is the same,
-marked (<b>Scoring</b>).</p>
-<p>After a pause, play counts you back in from a few seconds earlier. Click the bar along the bottom to jump to a
-section.</p>
-<p>In the song list, <kbd>/</kbd> searches and <kbd>F</kbd> hearts a favorite; the tabs over it are your
-libraries. On the menu, <kbd>M</kbd> turns its sounds on or off, and <kbd>Esc</kbd> twice quits.</p>`, `
+<p><b>Learn a song</b> lets you play along without any feedback to distract you. No judgement or mocking your
+clumsy finger work. Requires no input.</p>
+<p><b>Score a song</b> listens to you play and gives you feedback. This is a web game, so the scoring is set very
+permissive. Even so, it might make bad calls, so just, like, be chill about it.</p>
+<p>Hit the notes in time and make beautiful music. Adjust speed and complexity to help, or use practice modes to
+really nail it.</p>`, `
 ${keys([
     ['Space', 'play / pause'],
     ['Left / Right', 'back / forward 5 seconds'],
