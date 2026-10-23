@@ -7,12 +7,11 @@
 #   og.png, apple-touch-icon.png                        (greykit-meta's make-assets.sh)
 #
 # Needs headless Chrome or Edge, Python with Pillow, and a greykit-meta clone
-# (default ../../meta beside the games, or set GREYKIT_META).
+# (default ../../greykit-meta beside the games, or set GREYKIT_META).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-META="${GREYKIT_META:-$(cd "$ROOT/../.." 2>/dev/null && pwd)/meta}"
-[ -f "$META/tools/make-assets.sh" ] || META="$HOME/Claude/Gitlab/greykit-app/meta"
+META="${GREYKIT_META:-$(cd "$ROOT/../.." 2>/dev/null && pwd)/greykit-meta}"
 [ -f "$META/tools/make-assets.sh" ] || { echo "ERROR: no greykit-meta clone; set GREYKIT_META" >&2; exit 2; }
 
 BROWSER=""
