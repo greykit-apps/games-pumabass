@@ -160,7 +160,7 @@ html .gki-tg:focus-visible { outline: 2px solid var(--pb-gold); transform: none;
 html .gk-title.gki main > footer { font-family: var(--ui); }
 /* the title's painting (painting.js): its own pixels, scaled up square, the puma (61% across) kept
    61% across the screen, clear of the menu */
-.gk-title > .scene > canvas.painting { object-fit: cover; object-position: 61% 70%; image-rendering: pixelated; }
+.scene > canvas.painting { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 61% 70%; image-rendering: pixelated; }
 @media (max-height: 680px) {
   html .gk-title h1 { font-size: 96px; }
   html .gk-menu { margin-top: 16px; }
@@ -614,10 +614,10 @@ button.heart:focus-visible { padding: 2px 6px; }
 .calib-table td:nth-child(2) { color: var(--text); text-align: right; padding-right: 16px; }
 .calib-table td:nth-child(3) { color: var(--dim); font-size: 14px; }
 
-/* ---- the end screen: the stage behind it, the verdict in words, the score when there is one ---- */
-.end-sheet { position: absolute; background: rgba(3, 5, 10, .55); }
+/* ---- the end screen: the arena after the show behind it (painting.js), the verdict in words, the
+   score when there is one ---- */
+.end-sheet { position: absolute; background: rgba(3, 5, 10, .25); }
 .end-scene { position: absolute; z-index: 0; }
-.end-scene svg { opacity: .55; }
 .end-sheet .gk-box.end { position: relative; z-index: 1; width: min(800px, 100%); padding: 24px 28px 20px; background: linear-gradient(rgba(var(--tile-rgb), .97), rgba(var(--bg-rgb), .97)); }
 .end-head { text-align: center; margin-bottom: 18px; }
 .end-title { margin: 0; font-family: var(--display); font-weight: 800; font-size: 52px; line-height: 1; text-transform: uppercase; color: var(--text); transform: var(--lean); }
@@ -639,18 +639,10 @@ button.heart:focus-visible { padding: 2px 6px; }
 .end-next button { font-family: var(--display); font-weight: 700; font-size: 24px; min-height: 52px; padding: 6px 20px; border-color: var(--lit); background: linear-gradient(#18304a, #0f2034); }
 .end-score.small { padding: 10px 16px; margin-bottom: 14px; }
 .end-score-line { margin: 0; font-size: 16px; color: var(--ink); text-align: center; }
-/* Played through: the lights come up, the amps' LEDs go green. */
-.cheer .end-scene svg { opacity: 1; }
-.cheer .end-scene stop:first-child { stop-opacity: .34; }
-.cheer .end-scene .sled { fill: var(--good); opacity: 1; }
-.cheer .end-scene .sgem, .cheer .end-scene .sstr { opacity: .6; }
-.cheer .end-scene .sbeam { animation: end-lights 1.4s cubic-bezier(.22, 1, .36, 1) both; }
-.cheer .end-scene .sled { animation: end-led 1.4s ease-out both; }
+/* Played through: the whole crowd applauds (painting.js), and the title rises. */
 .cheer .end-title { animation: end-rise .7s cubic-bezier(.22, 1, .36, 1) both; }
-@keyframes end-lights { from { opacity: 0; } to { opacity: 1; } }
-@keyframes end-led { 0%, 30% { opacity: .3; } 45% { opacity: 1; } 60% { opacity: .5; } to { opacity: 1; } }
 @keyframes end-rise { from { opacity: 0; transform: var(--lean) translateY(10px); } to { opacity: 1; transform: var(--lean); } }
-@media (prefers-reduced-motion: reduce) { .cheer .end-scene .sbeam, .cheer .end-scene .sled, .cheer .end-title { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cheer .end-title { animation: none; } }
 
 /* ---- scoring ---- */
 #score-hud { color: var(--accent); border-color: var(--line); font-variant-numeric: tabular-nums; }
