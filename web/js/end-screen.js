@@ -8,7 +8,7 @@ import { chart, song, session, openSong, leaveSong, scorer, scoreMode, practiseS
 import { KEY_STATS, load, save, prefs, statsOf } from './store.js';
 import { saveTake } from './takes.js';
 import { shortLabel } from './instrument.js';
-import { sceneSVG } from './scene.js';
+import { mountPainting } from './painting.js';
 
 /* ---- the end screen: what this play was, in words, and its score ---- */
 export let endScreen = null;
@@ -106,8 +106,9 @@ export function showEndScreen() {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-label', kicker);
-  // The stage comes back for the end: its lights up when the song was played through.
-  el.innerHTML = `<div class="scene end-scene" aria-hidden="true">${sceneSVG('pb-beam-end')}</div>
+  // The arena comes back for the end, after the show: the lights still, the crowd applauding
+  // (all of them when the song was played through, a scatter when it wasn't).
+  el.innerHTML = `<div class="scene end-scene" aria-hidden="true"></div>
   <div class="gk-box end">
     <div class="end-head">
       <h2 class="end-title">${esc(song.title)}</h2>
@@ -153,6 +154,7 @@ export function showEndScreen() {
   };
   document.addEventListener('keydown', el.onKey, true);
   $('player').appendChild(el);
+  mountPainting(el.querySelector('.end-scene'), { after: true, cheer: finished });
   endScreen = el;
   el.querySelector('[data-end="again"]').focus({ preventScroll: true });
 }

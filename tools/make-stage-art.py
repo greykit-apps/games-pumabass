@@ -8,7 +8,8 @@
 #                    the puma can stand clear of it
 #   stage-crowd.png  the crowd, a row of animals to a strip (cats, foxes, bears, mice, rabbits, dogs,
 #                    deer, owls), backlit, some holding up a phone or a lighter
-#   stage-crowd.json where each strip goes, and where the phones and lighters are
+#   stage-crowd.json where each strip goes, where the phones and lighters are, and where each animal
+#                    stands and the colour the light catches it in (the end screen's applause)
 #   stage-front.png  the stage floor and the monitors, drawn back over the crowd
 #   stage-puma*.png  the puma in parts, drawn last: its legs, its body (with the bass), its head
 #   stage-puma.json  the line its tail hangs along, the page drawing the tail itself, so it can swing
@@ -179,7 +180,7 @@ def animal(px, py, cx, cy, r, kind, arm):
     return m, lit, hand
 
 base_img = cleaned.copy()
-rows, phones = [], []
+rows, phones, animals = [], [], []
 for ri, (cy0, s) in enumerate(ROWS):
     r = s / 2
     top = int(cy0 - 2.6 * r - 3)
@@ -198,6 +199,7 @@ for ri, (cy0, s) in enumerate(ROWS):
             bg = np.median(cleaned[max(top - 6, 0):max(top - 1, 1), x0:x1].reshape(-1, 3), axis=0)
             body = lerp(lerp(bg * 0.1, np.array([8, 6, 14]), 0.6), bg * 0.72, HAZE[ri])
             rim = lerp(body, np.clip(bg * 1.5 + 40, 0, 255), 0.5 + 0.07 * ri)
+            animals.append({'x': round(cx, 1), 'y': round(cy, 1), 'r': r, 'row': ri, 'rim': '#%02x%02x%02x' % tuple(np.clip(rim, 0, 255).astype(int))})
             up = np.zeros_like(m); up[1:] = m[:-1]
             top_edge = lit & ~up
             col = np.where(top_edge[:, :, None], rim, body)
@@ -294,7 +296,7 @@ for top, layer, alpha in rows:
     sheet.append(strip); meta.append({'y': top, 'h': strip.shape[0], 'sy': sy}); sy += strip.shape[0]
 Image.fromarray(np.concatenate(sheet)).save(os.path.join(out, 'stage-crowd.png'), optimize=True)
 with open(os.path.join(out, 'stage-crowd.json'), 'w') as f:
-    json.dump({'rows': meta, 'lights': phones}, f, separators=(',', ':'))
+    json.dump({'rows': meta, 'lights': phones, 'animals': animals}, f, separators=(',', ':'))
 
 # ---- in front of the crowd: the stage floor and its monitors, and the pink smoke rolling off the
 # stage at either side (the picture's, which the crowd now stands in front of), its edge dithered ----
